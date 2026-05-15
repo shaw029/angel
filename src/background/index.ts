@@ -7,6 +7,7 @@ import { incrementPattern, getMemorySummary, recordInterventionOutcome, recordSe
 import { resolveIntensity } from '@ai/guidance'
 import { getRecentPhrases, recordPhrase } from './phrase-cache'
 import { estimateCognitiveState } from './cognitive-state'
+import { analyzeDrift, driftCooldownScale } from './drift'
 import type { RollingCognitiveContext } from './cognitive-state'
 import type { PatternKey } from '@memory/index'
 import type { Message } from '@shared/messages'
@@ -171,12 +172,21 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
       cognitiveState.transition.from,
       cognitiveState.transition.to,
       rawCtx.session_context.minutes_active,
-      cognitiveState.durationMs,   // time spent in the previous state
+      cognitiveState.durationMs,
       new Date().getHours(),
     )
   }
 
-  if (!isAnyTierAllowed(state, Date.now(), rawCtx.event_type, cognitiveState.state)) return
+  // Drift analysis — reads from the updated history, no I/O
+  const drift       = analyzeDrift(cognitiveState.state, nextCogCtx.history)
+  const driftScale  = driftCooldownScale(drift)
+
+  // Apply drift-based cooldown adjustment alongside existing suppression
+  const adjustedState = driftScale !== 1.0
+    ? { ...state, suppressionMultiplier: (state.suppressionMultiplier ?? 1.0) * driftScale }
+    : state
+
+  if (!isAnyTierAllowed(adjustedState, Date.now(), rawCtx.event_type, cognitiveState.state)) return
 
   // Record behavioral patterns — fire-and-forget, non-critical
   void recordPatterns(rawCtx)
@@ -186,7 +196,7 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
   const intensity     = resolveIntensity(rawCtx.event_type, memory)
   const recentPhrases = await getRecentPhrases()
 
-  const ctx: CompressedContext = { ...rawCtx, memory, intensity, recentPhrases, cognitiveState }
+  const ctx: CompressedContext = { ...rawCtx, memory, intensity, recentPhrases, cognitiveState, drift }
 
   pendingTabId     = tabId
   pendingEventType = rawCtx.event_type

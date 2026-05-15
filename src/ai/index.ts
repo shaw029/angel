@@ -18,6 +18,7 @@ export async function generateIntervention(ctx: CompressedContext): Promise<Inte
     intensity:       ctx.intensity,
     recentPhrases:   ctx.recentPhrases,
     cognitiveState:  ctx.cognitiveState,
+    drift:           ctx.drift,
   })
 
   // decision_state and confidence together determine tier — gate happens in background.

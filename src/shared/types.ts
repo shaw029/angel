@@ -44,6 +44,7 @@ export interface InferenceInput {
   intensity?:      InterventionStyle    // resolved from memory by background before inference
   recentPhrases?:  string[]             // recent nudge text for variety enforcement
   cognitiveState?: CognitiveStateEstimate
+  drift?:          DriftEstimate
 }
 
 export interface InferenceOutput {
@@ -188,6 +189,33 @@ export interface MemorySummary {
   recovery_minutes?:  number             // avg minutes to leave compulsive_loop (EMA)
 }
 
+// ─── Cognitive drift tracking ────────────────────────────────────────────────
+
+export type DriftDirection =
+  | 'escalating'    // health scores worsening over the window
+  | 'recovering'    // health scores improving
+  | 'stable'        // no meaningful directional change
+  | 'fluctuating'   // alternating escalation and recovery
+
+export type DriftTrajectory =
+  | 'gradual_escalation'       // slow multi-step drift toward compulsive states
+  | 'rapid_escalation'         // fast drop into compulsive/reactive
+  | 'recovery_in_progress'     // trending back toward intentional browsing
+  | 'urgency_spiral'           // emotionally_reactive escalation pattern
+  | 'attention_fragmentation'  // fragmented_attention becoming dominant
+  | 'decision_overload'        // decision_fatigue persisting under pressure
+
+export interface DriftEstimate {
+  direction:   DriftDirection
+  confidence:  number             // 0–1: strength of the directional signal
+  depth:       number             // 0–1: health score of current state (higher = worse)
+  velocity:    number             // health-score change per minute (positive = worsening)
+  windowMs:    number             // ms of transition history analyzed
+  trajectory:  DriftTrajectory | null
+  escalatingTransitions: number   // worsening transitions in window
+  recoveringTransitions: number   // improving transitions in window
+}
+
 // ─── Cognitive state estimation ──────────────────────────────────────────────
 // Inferred by background CognitiveStateEngine from rolling behavioral context.
 
@@ -223,4 +251,5 @@ export interface CompressedContext {
   intensity?:      InterventionStyle  // resolved from memory by background
   recentPhrases?:  string[]           // last N nudge phrases for variety enforcement
   cognitiveState?: CognitiveStateEstimate
+  drift?:          DriftEstimate
 }

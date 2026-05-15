@@ -1,4 +1,4 @@
-import type { InferenceInput, CognitiveStateEstimate } from '@shared/types'
+import type { InferenceInput, CognitiveStateEstimate, DriftEstimate } from '@shared/types'
 import type { ChatMessage } from './engine'
 import { INFERENCE_SYSTEM_PROMPT } from './system-prompt'
 import { buildContextBlock } from './guidance'
@@ -9,7 +9,7 @@ import { buildContextBlock } from './guidance'
  * [assistant, user] correction turns on validation failure.
  */
 export function buildInferencePrompt(input: InferenceInput): ChatMessage[] {
-  const { event_type, signals, session_context: sc, memory, intensity, recentPhrases, cognitiveState } = input
+  const { event_type, signals, session_context: sc, memory, intensity, recentPhrases, cognitiveState, drift } = input
 
   const ctx = [
     `pattern:${event_type}`,
@@ -28,10 +28,15 @@ export function buildInferencePrompt(input: InferenceInput): ChatMessage[] {
   const cogLine      = cognitiveState
     ? formatCognitiveLine(cognitiveState)
     : null
+  // Only include drift line when direction is meaningful and confidence is sufficient
+  const driftLine    = drift && drift.direction !== 'stable' && drift.confidence >= 0.45
+    ? formatDriftLine(drift)
+    : null
 
   const userContent = [
     `[context] ${ctx}`,
     cogLine       ? `[mind] ${cogLine}` : null,
+    driftLine     ? `[drift] ${driftLine}` : null,
     memLine       ? `[memory] ${memLine}` : null,
     `[guidance] ${guidanceLine}`,
     avoidLine     ? `[avoid] ${avoidLine}` : null,
@@ -43,6 +48,19 @@ export function buildInferencePrompt(input: InferenceInput): ChatMessage[] {
     { role: 'system', content: INFERENCE_SYSTEM_PROMPT },
     { role: 'user',   content: userContent },
   ]
+}
+
+function formatDriftLine(d: DriftEstimate): string {
+  const parts: string[] = [
+    `${d.direction}(${Math.round(d.confidence * 100)}%)`,
+    d.trajectory ?? '',
+    `depth:${d.depth.toFixed(1)}`,
+  ]
+  // Include velocity only when it's meaningfully fast (≥ 0.02/min = 20% per hour)
+  if (Math.abs(d.velocity) >= 0.02) {
+    parts.push(d.velocity > 0 ? 'fast' : 'slow_recovery')
+  }
+  return parts.filter(Boolean).join(' ')
 }
 
 function formatCognitiveLine(cs: CognitiveStateEstimate): string {

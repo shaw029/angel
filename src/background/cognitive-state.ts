@@ -11,7 +11,7 @@ import type {
 export interface RollingCognitiveContext {
   state:     CognitiveState
   enteredAt: number
-  history:   CognitiveStateTransition[]  // last 5, oldest first
+  history:   CognitiveStateTransition[]  // last 15, oldest first — sufficient for 1-hour drift window
 }
 
 // ─── Transition hysteresis ────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ export function estimateCognitiveState(
   const nextState  = transition ? topState       : current.state
   const enteredAt  = transition ? now             : current.enteredAt
   const history    = transition
-    ? [...current.history.slice(-4), transition]
+    ? [...current.history.slice(-14), transition]
     : current.history
 
   return {
