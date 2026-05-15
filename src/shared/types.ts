@@ -41,8 +41,9 @@ export interface InferenceInput {
   signals:         SignalLabel[]
   session_context: SessionContext
   memory?:         MemorySummary
-  intensity?:      InterventionStyle  // resolved from memory by background before inference
-  recentPhrases?:  string[]           // recent nudge text for variety enforcement
+  intensity?:      InterventionStyle    // resolved from memory by background before inference
+  recentPhrases?:  string[]             // recent nudge text for variety enforcement
+  cognitiveState?: CognitiveStateEstimate
 }
 
 export interface InferenceOutput {
@@ -180,12 +181,39 @@ export interface MemorySummary {
   weeks_active:      number         // how many distinct ISO weeks have been recorded
 }
 
+// ─── Cognitive state estimation ──────────────────────────────────────────────
+// Inferred by background CognitiveStateEngine from rolling behavioral context.
+
+export type CognitiveState =
+  | 'intentional_browsing'    // purposeful, goal-directed, reading
+  | 'exploratory_browsing'    // curious, moving between tabs/topics
+  | 'passive_consumption'     // drifting, low engagement, time passing
+  | 'compulsive_loop'         // doom-scroll / interaction loop, can't stop
+  | 'emotionally_reactive'    // triggered by urgency / purchase pressure
+  | 'fragmented_attention'    // unable to settle, rapid switching
+  | 'decision_fatigue'        // overwhelmed by choices, extended purchase context
+
+export interface CognitiveStateTransition {
+  from: CognitiveState
+  to:   CognitiveState
+  at:   number  // epoch ms
+}
+
+export interface CognitiveStateEstimate {
+  state:      CognitiveState
+  confidence: number                                    // 0–1
+  scores:     Partial<Record<CognitiveState, number>>  // all scores for explainability
+  transition: CognitiveStateTransition | null           // populated if state changed this cycle
+  durationMs: number                                    // ms in current state
+}
+
 export interface CompressedContext {
   event_type:      EventType
   signals:         SignalLabel[]
   session_context: SessionContext
   page_context:    PageContext
-  memory?:         MemorySummary    // injected by background when available
+  memory?:         MemorySummary      // injected by background when available
   intensity?:      InterventionStyle  // resolved from memory by background
   recentPhrases?:  string[]           // last N nudge phrases for variety enforcement
+  cognitiveState?: CognitiveStateEstimate
 }

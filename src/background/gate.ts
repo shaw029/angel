@@ -1,4 +1,4 @@
-import type { StorageState, DismissalRecord, InterventionTier, EventType } from '@shared/types'
+import type { StorageState, DismissalRecord, InterventionTier, EventType, CognitiveState } from '@shared/types'
 import { GATE } from '@shared/constants'
 
 // ─── Event-type cooldown scaling ──────────────────────────────────────────────
@@ -12,8 +12,22 @@ const EVENT_COOLDOWN_SCALE: Partial<Record<EventType, number>> = {
   ambient:             3.0,   // almost no intervention needed
 }
 
-function cooldownScale(eventType: EventType | undefined): number {
-  return (eventType ? EVENT_COOLDOWN_SCALE[eventType] : undefined) ?? 1.0
+// ─── Cognitive-state cooldown scaling ─────────────────────────────────────────
+// Applied on top of event-type scaling. Compulsive/reactive states warrant
+// faster response; intentional/fragmented states warrant backing off.
+
+const COGNITIVE_COOLDOWN_SCALE: Partial<Record<CognitiveState, number>> = {
+  compulsive_loop:      0.6,   // can't stop — intervene sooner
+  emotionally_reactive: 0.7,   // purchase pressure window is short
+  decision_fatigue:     0.8,   // a timely nudge is welcome
+  intentional_browsing: 2.5,   // user is focused — leave them alone
+  fragmented_attention: 1.5,   // already distracted, don't add more noise
+}
+
+function cooldownScale(eventType: EventType | undefined, cogState?: CognitiveState): number {
+  const eventScale = (eventType ? EVENT_COOLDOWN_SCALE[eventType] : undefined) ?? 1.0
+  const cogScale   = (cogState  ? COGNITIVE_COOLDOWN_SCALE[cogState] : undefined) ?? 1.0
+  return eventScale * cogScale
 }
 
 // ─── Tier computation ─────────────────────────────────────────────────────────
@@ -33,14 +47,15 @@ function cooldownScale(eventType: EventType | undefined): number {
  * without spamming the user.
  */
 export function computeTier(
-  confidence: number,
-  state:      StorageState,
-  now:        number = Date.now(),
-  eventType?: EventType,
+  confidence:   number,
+  state:        StorageState,
+  now:          number = Date.now(),
+  eventType?:   EventType,
+  cogState?:    CognitiveState,
 ): InterventionTier {
   if (confidence < 0.5) return 'none'
 
-  const multiplier     = (state.suppressionMultiplier ?? 1.0) * cooldownScale(eventType)
+  const multiplier     = (state.suppressionMultiplier ?? 1.0) * cooldownScale(eventType, cogState)
   const subtleCooldown = GATE.SUBTLE_COOLDOWN_MS * multiplier
   const fullCooldown   = GATE.FULL_COOLDOWN_MS   * multiplier
 
@@ -66,8 +81,9 @@ export function isAnyTierAllowed(
   state:      StorageState,
   now:        number = Date.now(),
   eventType?: EventType,
+  cogState?:  CognitiveState,
 ): boolean {
-  const multiplier     = (state.suppressionMultiplier ?? 1.0) * cooldownScale(eventType)
+  const multiplier     = (state.suppressionMultiplier ?? 1.0) * cooldownScale(eventType, cogState)
   const subtleCooldown = GATE.SUBTLE_COOLDOWN_MS * multiplier
   const lastAny = Math.max(
     state.lastFullIntervention   ?? 0,

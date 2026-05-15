@@ -6,6 +6,8 @@ import { computeTier, isAnyTierAllowed, afterIntervention, afterDismissal } from
 import { incrementPattern, getMemorySummary } from '@memory/index'
 import { resolveIntensity } from '@ai/guidance'
 import { getRecentPhrases, recordPhrase } from './phrase-cache'
+import { estimateCognitiveState } from './cognitive-state'
+import type { RollingCognitiveContext } from './cognitive-state'
 import type { PatternKey } from '@memory/index'
 import type { Message } from '@shared/messages'
 import { MSG, GATE } from '@shared/constants'
@@ -34,7 +36,8 @@ let latestModelStatus: ModelLoadStatus = { phase: 'idle' }
 
 // Bounded per-tab event buffer — enriches CompressedContext when Gemma is invoked
 const MAX_EVENTS_PER_TAB = 60
-const tabEvents = new Map<number, BehavioralEvent[]>()
+const tabEvents           = new Map<number, BehavioralEvent[]>()
+const tabCognitiveContext = new Map<number, RollingCognitiveContext>()
 
 function storeEvents(tabId: number, events: BehavioralEvent[]): void {
   const existing = tabEvents.get(tabId) ?? []
@@ -48,7 +51,10 @@ function recentDetections(tabId: number): DetectionResult[] {
     .map(e => e.data)
 }
 
-chrome.tabs.onRemoved.addListener((tabId) => tabEvents.delete(tabId))
+chrome.tabs.onRemoved.addListener((tabId) => {
+  tabEvents.delete(tabId)
+  tabCognitiveContext.delete(tabId)
+})
 
 // Accept the long-lived port from the offscreen document while the model is
 // loading. Holding an open port prevents Chrome from terminating the SW (≥116).
@@ -140,7 +146,15 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
     tabEvents.get(tabId) ?? [],
   )
 
-  if (!isAnyTierAllowed(state, Date.now(), rawCtx.event_type)) return
+  // Cognitive state estimation — runs synchronously from heuristics, no I/O
+  const { estimate: cognitiveState, next: nextCogCtx } = estimateCognitiveState(
+    signal,
+    rawCtx,
+    tabCognitiveContext.get(tabId) ?? null,
+  )
+  tabCognitiveContext.set(tabId, nextCogCtx)
+
+  if (!isAnyTierAllowed(state, Date.now(), rawCtx.event_type, cognitiveState.state)) return
 
   // Record behavioral patterns — fire-and-forget, non-critical
   void recordPatterns(rawCtx)
@@ -150,7 +164,7 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
   const intensity     = resolveIntensity(rawCtx.event_type, memory)
   const recentPhrases = await getRecentPhrases()
 
-  const ctx: CompressedContext = { ...rawCtx, memory, intensity, recentPhrases }
+  const ctx: CompressedContext = { ...rawCtx, memory, intensity, recentPhrases, cognitiveState }
 
   pendingTabId     = tabId
   pendingEventType = rawCtx.event_type
@@ -162,7 +176,8 @@ async function onIntervention(intervention: Intervention) {
   if (pendingTabId === null) return
 
   const state = await getState()
-  const tier  = computeTier(intervention.confidence, state, Date.now(), pendingEventType ?? undefined)
+  const pendingCogState = pendingTabId !== null ? tabCognitiveContext.get(pendingTabId)?.state : undefined
+  const tier  = computeTier(intervention.confidence, state, Date.now(), pendingEventType ?? undefined, pendingCogState)
 
   if (tier === 'none') {
     pendingTabId     = null

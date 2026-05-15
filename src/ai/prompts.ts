@@ -1,4 +1,4 @@
-import type { InferenceInput } from '@shared/types'
+import type { InferenceInput, CognitiveStateEstimate } from '@shared/types'
 import type { ChatMessage } from './engine'
 import { INFERENCE_SYSTEM_PROMPT } from './system-prompt'
 import { buildContextBlock } from './guidance'
@@ -9,7 +9,7 @@ import { buildContextBlock } from './guidance'
  * [assistant, user] correction turns on validation failure.
  */
 export function buildInferencePrompt(input: InferenceInput): ChatMessage[] {
-  const { event_type, signals, session_context: sc, memory, intensity, recentPhrases } = input
+  const { event_type, signals, session_context: sc, memory, intensity, recentPhrases, cognitiveState } = input
 
   const ctx = [
     `pattern:${event_type}`,
@@ -25,12 +25,16 @@ export function buildInferencePrompt(input: InferenceInput): ChatMessage[] {
   const avoidLine    = recentPhrases && recentPhrases.length > 0
     ? recentPhrases.map(p => `"${p}"`).join(' ')
     : null
+  const cogLine      = cognitiveState
+    ? formatCognitiveLine(cognitiveState)
+    : null
 
   const userContent = [
     `[context] ${ctx}`,
-    memLine      ? `[memory] ${memLine}` : null,
+    cogLine       ? `[mind] ${cogLine}` : null,
+    memLine       ? `[memory] ${memLine}` : null,
     `[guidance] ${guidanceLine}`,
-    avoidLine    ? `[avoid] ${avoidLine}` : null,
+    avoidLine     ? `[avoid] ${avoidLine}` : null,
     '',
     'Respond with JSON only.',
   ].filter((l) => l !== null).join('\n')
@@ -39,6 +43,12 @@ export function buildInferencePrompt(input: InferenceInput): ChatMessage[] {
     { role: 'system', content: INFERENCE_SYSTEM_PROMPT },
     { role: 'user',   content: userContent },
   ]
+}
+
+function formatCognitiveLine(cs: CognitiveStateEstimate): string {
+  const base = `${cs.state}(${Math.round(cs.confidence * 100)}%)`
+  const transition = cs.transition ? ` ←${cs.transition.from}` : ''
+  return base + transition
 }
 
 function formatMemoryLine(m: import('@shared/types').MemorySummary): string {
