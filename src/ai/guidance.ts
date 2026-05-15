@@ -14,6 +14,11 @@ export function resolveIntensity(
   memory:     MemorySummary | undefined,
 ): InterventionStyle {
   if (!memory || memory.weeks_active === 0) return 'gentle'
+
+  // Empirical best style from profile takes precedence once there's enough data
+  if (memory.optimal_style) return memory.optimal_style
+
+  // Fallback: time-and-acceptance heuristic
   if (memory.acceptance_rate >= 0.5 && memory.weeks_active >= 2) return 'reflective'
   if (memory.weeks_active >= 4) return 'reflective'
   if (memory.weeks_active >= 1) return 'curious'

@@ -1,5 +1,18 @@
 import type { MemorySummary } from '@shared/types'
 import { openMemoryDB, dbGet, dbPut, dbGetAll, dbGetAllKeys, dbDelete, STORE } from './db'
+import {
+  getCognitiveProfile,
+  bestStyle,
+  isVulnerableNow,
+  escalatesFast,
+} from './profile'
+
+export {
+  getCognitiveProfile,
+  recordInterventionOutcome,
+  recordSessionEnd,
+  recordStateTransition,
+} from './profile'
 
 // ─── Pattern keys ─────────────────────────────────────────────────────────────
 // Strictly enumerated. No dynamic keys, no URLs, no content.
@@ -91,6 +104,7 @@ export async function getPatterns(): Promise<Partial<Record<PatternKey, number>>
 /**
  * Returns a compact summary safe to include in the AI inference context.
  * Never contains URLs, domains, content, or timestamps.
+ * Merges base pattern counters with profile-derived fields.
  */
 export async function getMemorySummary(): Promise<MemorySummary> {
   const db      = await openMemoryDB()
@@ -115,10 +129,24 @@ export async function getMemorySummary(): Promise<MemorySummary> {
   // Weeks active: number of stored weekly snapshots
   const snapKeys = await dbGetAllKeys(db, STORE.WEEKLY_SUMMARIES)
 
+  // Profile-derived fields — merged in, fall back gracefully if profile unavailable
+  const profile      = await getCognitiveProfile().catch(() => null)
+  const nowHour      = new Date().getHours()
+  const optimal_style    = profile ? (bestStyle(profile) ?? undefined)             : undefined
+  const vulnerable_now   = profile ? isVulnerableNow(profile, nowHour)             : undefined
+  const tolerance_level  = profile?.toleranceLevel
+  const _escalatesFast   = profile ? escalatesFast(profile)                        : undefined
+  const recovery_minutes = profile?.recoveryDurationMinutes ?? undefined
+
   return {
     dominant_pattern,
     acceptance_rate,
-    weeks_active: snapKeys.length,
+    weeks_active:    snapKeys.length,
+    optimal_style,
+    vulnerable_now:  vulnerable_now || undefined,  // omit when false
+    tolerance_level,
+    escalates_fast:  _escalatesFast || undefined,  // omit when false
+    recovery_minutes,
   }
 }
 

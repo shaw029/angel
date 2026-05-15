@@ -20,7 +20,7 @@ export function buildInferencePrompt(input: InferenceInput): ChatMessage[] {
     signals.length > 0 ? `signals:${signals.join(',')}` : null,
   ].filter(Boolean).join(' ')
 
-  const memLine      = memory ? formatMemoryLine(memory) : null
+  const memLine      = memory ? formatMemoryLine(memory)  : null
   const guidanceLine = buildContextBlock(event_type, intensity ?? 'gentle')
   const avoidLine    = recentPhrases && recentPhrases.length > 0
     ? recentPhrases.map(p => `"${p}"`).join(' ')
@@ -55,6 +55,10 @@ function formatMemoryLine(m: import('@shared/types').MemorySummary): string {
   return [
     m.dominant_pattern ? `pattern:${m.dominant_pattern}` : null,
     `acceptance:${Math.round(m.acceptance_rate * 100)}%`,
-    m.weeks_active > 0 ? `weeks:${m.weeks_active}` : null,
+    m.weeks_active > 0           ? `weeks:${m.weeks_active}`                          : null,
+    m.vulnerable_now             ? 'vulnerable_window:yes'                             : null,
+    m.tolerance_level !== undefined && m.tolerance_level < 0.7
+      ? `fatigue:${Math.round((1 - m.tolerance_level) * 100)}%`                       : null,
+    m.escalates_fast             ? 'escalates_fast:yes'                                : null,
   ].filter(Boolean).join(' ')
 }

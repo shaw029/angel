@@ -179,6 +179,13 @@ export interface MemorySummary {
   dominant_pattern:  string | null  // highest-count behavioral PatternKey, or null
   acceptance_rate:   number         // interventions_accepted / interventions_shown (0–1)
   weeks_active:      number         // how many distinct ISO weeks have been recorded
+
+  // Profile-derived — present once enough observations have accumulated
+  optimal_style?:     InterventionStyle  // empirically best tone for this user
+  vulnerable_now?:    boolean            // current hour matches established vulnerability window
+  tolerance_level?:   number             // 0-1: persistent fatigue (1 = fully tolerant)
+  escalates_fast?:    boolean            // typically enters compulsive state within 10 min
+  recovery_minutes?:  number             // avg minutes to leave compulsive_loop (EMA)
 }
 
 // ─── Cognitive state estimation ──────────────────────────────────────────────

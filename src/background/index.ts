@@ -3,7 +3,7 @@ import { getState, patchState } from '@storage/index'
 import { ensureOffscreenDocument } from './offscreen'
 import { compress } from '@ai/pipeline'
 import { computeTier, isAnyTierAllowed, afterIntervention, afterDismissal } from './gate'
-import { incrementPattern, getMemorySummary } from '@memory/index'
+import { incrementPattern, getMemorySummary, recordInterventionOutcome, recordSessionEnd, recordStateTransition } from '@memory/index'
 import { resolveIntensity } from '@ai/guidance'
 import { getRecentPhrases, recordPhrase } from './phrase-cache'
 import { estimateCognitiveState } from './cognitive-state'
@@ -19,6 +19,7 @@ import type {
   Intervention,
   CompressedContext,
   EventType,
+  InterventionStyle,
 } from '@shared/types'
 
 // Pre-warm the offscreen document (and start Gemma download) as soon as the
@@ -28,8 +29,9 @@ chrome.runtime.onInstalled.addListener(() => void ensureOffscreenDocument())
 chrome.runtime.onStartup.addListener(()   => void ensureOffscreenDocument())
 
 // Track which tab triggered an AI inference so the intervention routes back correctly
-let pendingTabId:    number    | null = null
-let pendingEventType: EventType | null = null
+let pendingTabId:     number           | null = null
+let pendingEventType: EventType        | null = null
+let lastShownTone:    InterventionStyle | null = null  // tone of most recently shown intervention
 
 // Latest model status relayed from offscreen — injected into GET_STATE responses
 let latestModelStatus: ModelLoadStatus = { phase: 'idle' }
@@ -54,6 +56,7 @@ function recentDetections(tabId: number): DetectionResult[] {
 chrome.tabs.onRemoved.addListener((tabId) => {
   tabEvents.delete(tabId)
   tabCognitiveContext.delete(tabId)
+  void recordSessionEnd()  // tolerance recovers gradually as sessions end
 })
 
 // Accept the long-lived port from the offscreen document while the model is
@@ -93,11 +96,19 @@ async function dispatch(
       const state = await getState()
       await patchState(afterDismissal({ timestamp: Date.now(), dwellMs }, state))
 
-      // Memory: track outcome pattern — fire-and-forget, non-critical
-      if (outcome === 'accepted') {
+      const accepted     = outcome === 'accepted'
+      const quickDismiss = dwellMs < GATE.QUICK_DISMISS_MS
+
+      // Memory: pattern counters — fire-and-forget, non-critical
+      if (accepted) {
         void incrementPattern('interventions_accepted')
-      } else if (dwellMs < GATE.QUICK_DISMISS_MS) {
+      } else if (quickDismiss) {
         void incrementPattern('interventions_quick_dismissed')
+      }
+
+      // Profile: record tone effectiveness and tolerance signal
+      if (lastShownTone) {
+        void recordInterventionOutcome(lastShownTone, accepted, quickDismiss)
       }
       break
     }
@@ -154,6 +165,17 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
   )
   tabCognitiveContext.set(tabId, nextCogCtx)
 
+  // Profile: record state transitions for vulnerability + escalation/recovery tracking
+  if (cognitiveState.transition) {
+    void recordStateTransition(
+      cognitiveState.transition.from,
+      cognitiveState.transition.to,
+      rawCtx.session_context.minutes_active,
+      cognitiveState.durationMs,   // time spent in the previous state
+      new Date().getHours(),
+    )
+  }
+
   if (!isAnyTierAllowed(state, Date.now(), rawCtx.event_type, cognitiveState.state)) return
 
   // Record behavioral patterns — fire-and-forget, non-critical
@@ -193,6 +215,9 @@ async function onIntervention(intervention: Intervention) {
 
   // Cache phrase for variety enforcement — fire-and-forget
   void recordPhrase(intervention.message)
+
+  // Track tone so DISMISSED can record outcome against correct style
+  lastShownTone = intervention.tone
 
   pendingTabId     = null
   pendingEventType = null

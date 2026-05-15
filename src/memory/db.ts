@@ -1,9 +1,10 @@
 const DB_NAME    = 'ca-memory'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 export const STORE = {
-  PATTERNS:         'patterns',
-  WEEKLY_SUMMARIES: 'weekly-summaries',
+  PATTERNS:          'patterns',
+  WEEKLY_SUMMARIES:  'weekly-summaries',
+  COGNITIVE_PROFILE: 'cognitive-profile',
 } as const
 
 // ─── Singleton ────────────────────────────────────────────────────────────────
@@ -16,12 +17,20 @@ export function openMemoryDB(): Promise<IDBDatabase> {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
 
     req.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result
-      if (!db.objectStoreNames.contains(STORE.PATTERNS)) {
-        db.createObjectStore(STORE.PATTERNS, { keyPath: 'key' })
-      }
-      if (!db.objectStoreNames.contains(STORE.WEEKLY_SUMMARIES)) {
+      const db         = (event.target as IDBOpenDBRequest).result
+      const oldVersion = (event as IDBVersionChangeEvent).oldVersion
+
+      // v1 stores — created on fresh install or migration from nothing
+      if (oldVersion < 1) {
+        db.createObjectStore(STORE.PATTERNS,         { keyPath: 'key'  })
         db.createObjectStore(STORE.WEEKLY_SUMMARIES, { keyPath: 'week' })
+      }
+
+      // v2 stores — additive migration; safe to run on existing v1 databases
+      if (oldVersion < 2) {
+        if (!db.objectStoreNames.contains(STORE.COGNITIVE_PROFILE)) {
+          db.createObjectStore(STORE.COGNITIVE_PROFILE, { keyPath: 'id' })
+        }
       }
     }
 
