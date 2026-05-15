@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arc Studio Pro — Flash Sale</title>
+<style>
+  :root {
+    --bg: #0c0c0e;
+    --surface: #161618;
+    --border: #2a2a2e;
+    --text: #f0f0f0;
+    --muted: #8a8a90;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --green: #22c55e;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; }
+
+  /* ── Banner ── */
+  .banner {
+    background: linear-gradient(90deg, #92400e, var(--amber), #92400e);
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+    text-align: center; padding: 10px; font-size: 13px; font-weight: 600;
+    color: #0c0c0e; letter-spacing: 0.05em;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* ── Nav ── */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 40px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: rgba(12,12,14,0.92); backdrop-filter: blur(12px); z-index: 10;
+  }
+  .logo { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+  .logo span { color: var(--amber); }
+  .nav-right { display: flex; gap: 16px; align-items: center; }
+  .nav-btn { background: var(--amber); color: #0c0c0e; border: none; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  /* ── Hero ── */
+  .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; padding: 60px 40px; max-width: 1100px; margin: 0 auto; }
+
+  .product-visual {
+    aspect-ratio: 1; border-radius: var(--radius); overflow: hidden;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+    display: flex; align-items: center; justify-content: center; position: relative;
+  }
+  .product-visual::before {
+    content: ''; position: absolute;
+    width: 200px; height: 200px; border-radius: 50%;
+    border: 28px solid #334155; box-shadow: 0 0 60px rgba(245,158,11,0.3), inset 0 0 30px rgba(0,0,0,0.5);
+  }
+  .product-visual::after {
+    content: ''; position: absolute;
+    width: 80px; height: 120px; background: #1e293b;
+    border-radius: 40px 40px 0 0; border: 10px solid #334155;
+    transform: translateY(-80px); box-shadow: 0 4px 20px rgba(245,158,11,0.2);
+  }
+
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .badge-red   { background: rgba(239,68,68,0.15);  color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+
+  h1 { font-size: 38px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 8px; }
+  .subtitle { color: var(--muted); font-size: 15px; margin-bottom: 24px; }
+
+  .price-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
+  .price-sale { font-size: 42px; font-weight: 800; color: var(--amber); }
+  .price-orig { font-size: 22px; color: var(--muted); text-decoration: line-through; }
+  .price-save { font-size: 13px; background: rgba(34,197,94,0.15); color: var(--green); padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+
+  /* ── Countdown ── */
+  .countdown-block {
+    background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(239,68,68,0.08));
+    border: 1px solid rgba(245,158,11,0.25); border-radius: var(--radius);
+    padding: 16px 20px; margin-bottom: 20px;
+  }
+  .countdown-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .countdown-timer { font-size: 36px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--amber); letter-spacing: 0.04em; }
+  .countdown-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* ── Social signals ── */
+  .social-signals { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+  .signal-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .signal-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-red   { background: var(--red);   animation: pulse 1.5s ease-in-out infinite; }
+  .dot-amber { background: var(--amber); }
+  .dot-green { background: var(--green); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── Stock bar ── */
+  .stock-bar { margin-bottom: 24px; }
+  .stock-label { font-size: 13px; color: var(--red); font-weight: 600; margin-bottom: 6px; }
+  .stock-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .stock-fill { height: 100%; width: 5%; background: var(--red); border-radius: 3px; }
+
+  .cta { display: flex; flex-direction: column; gap: 10px; }
+  .btn-primary { background: var(--amber); color: #0c0c0e; border: none; padding: 16px 32px; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; transition: opacity 0.15s; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); padding: 14px 32px; border-radius: 10px; font-size: 14px; cursor: pointer; width: 100%; }
+  .cta-note { font-size: 12px; color: var(--muted); text-align: center; }
+
+  /* ── Below fold content ── */
+  .section { max-width: 1100px; margin: 0 auto; padding: 60px 40px; border-top: 1px solid var(--border); }
+  .section h2 { font-size: 28px; font-weight: 700; margin-bottom: 32px; }
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+  .feature-icon { font-size: 28px; margin-bottom: 12px; }
+  .feature-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+  .feature-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  .specs-table { width: 100%; border-collapse: collapse; }
+  .specs-table tr { border-bottom: 1px solid var(--border); }
+  .specs-table td { padding: 14px 8px; font-size: 14px; }
+  .specs-table td:first-child { color: var(--muted); width: 40%; }
+
+  .reviews { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  .review-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+  .stars { color: var(--amber); font-size: 14px; margin-bottom: 8px; }
+  .review-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .reviewer { font-size: 12px; color: var(--muted); margin-top: 12px; font-weight: 600; }
+
+  .urgency-footer {
+    background: linear-gradient(135deg, rgba(239,68,68,0.06), rgba(245,158,11,0.06));
+    border-top: 1px solid rgba(239,68,68,0.2); border-bottom: 1px solid rgba(239,68,68,0.2);
+    padding: 20px 40px; text-align: center; font-size: 14px;
+  }
+
+  /* ── Demo Panel ── */
+  .demo-panel {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    background: rgba(22,22,24,0.96); border: 1px solid #3a3a40; border-radius: 14px;
+    padding: 16px 18px; width: 220px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5); backdrop-filter: blur(12px);
+    font-size: 12px;
+  }
+  .demo-label { color: #8a8a90; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; margin-bottom: 10px; }
+  .demo-scenario { font-size: 13px; font-weight: 600; color: #f0f0f0; margin-bottom: 4px; }
+  .demo-signals { font-size: 11px; color: #8a8a90; margin-bottom: 14px; line-height: 1.6; }
+  .demo-btn {
+    width: 100%; background: var(--amber); color: #0c0c0e; border: none;
+    padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .demo-btn:hover { opacity: 0.9; }
+  .demo-btn:disabled { opacity: 0.5; cursor: default; }
+  .demo-status { font-size: 11px; color: var(--green); margin-top: 8px; text-align: center; min-height: 16px; }
+</style>
+</head>
+<body>
+
+<!-- Urgency banner — triggers RE_EXPIRY: "offer ends" -->
+<div class="banner">🔥 FLASH SALE — 40% OFF · Limited time offer ends tonight · Act now</div>
+
+<nav>
+  <div class="logo">Arc<span>Audio</span></div>
+  <div class="nav-right">
+    <span style="font-size:13px;color:#8a8a90;">Free shipping over $99</span>
+    <button class="nav-btn">Cart (1)</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <!-- Product visual (CSS art — no external images) -->
+  <div class="product-visual"></div>
+
+  <!-- Product info -->
+  <div class="product-info">
+    <div class="badges">
+      <span class="badge badge-red">Flash Sale</span>
+      <span class="badge badge-amber">Limited Stock</span>
+      <span class="badge badge-red">Today Only</span>
+    </div>
+
+    <h1>Arc Studio Pro</h1>
+    <p class="subtitle">Wireless Noise-Cancelling Headphones · 40-hour battery · Hi-Res Audio</p>
+
+    <div class="price-row">
+      <span class="price-sale">$209</span>
+      <span class="price-orig">$349</span>
+      <span class="price-save">Save $140</span>
+    </div>
+
+    <!-- Live countdown — JS updates id="countdown-display" -->
+    <div class="countdown-block">
+      <div class="countdown-label">⏱ Deal expires in</div>
+      <!-- RE_COLON pattern: \b(\d{1,2}):(\d{2})(?::(\d{2}))?\b — matches and decrements -->
+      <div class="countdown-timer" id="countdown-display">0:14:32</div>
+      <div class="countdown-sub">Offer expires in 14 minutes — don't wait</div>
+    </div>
+
+    <div class="social-signals">
+      <!-- Category 4: social_proof_live — "18 people are viewing this" -->
+      <div class="signal-row">
+        <span class="signal-dot dot-red"></span>
+        <span><strong id="viewers">18</strong> people are viewing this right now</span>
+      </div>
+      <!-- Category 3: limited_stock — "Only 2 left in stock" -->
+      <div class="signal-row">
+        <span class="signal-dot dot-amber"></span>
+        <span><strong>Only 2 left in stock</strong> at this price</span>
+      </div>
+      <!-- Category 1: "Don't miss out" -->
+      <div class="signal-row">
+        <span class="signal-dot dot-green"></span>
+        <span>Don't miss out — 47 sold in the last hour</span>
+      </div>
+    </div>
+
+    <div class="stock-bar">
+      <div class="stock-label">Almost gone — only 2 remaining!</div>
+      <div class="stock-track"><div class="stock-fill"></div></div>
+    </div>
+
+    <div class="cta">
+      <button class="btn-primary">Add to Cart — $209</button>
+      <button class="btn-secondary">Save for Later</button>
+      <!-- Category 6: offer expires in N — for urgency detector -->
+      <p class="cta-note">Offer expires in 14 minutes · Free returns · 2-year warranty</p>
+    </div>
+  </div>
+</div>
+
+<!-- Below-fold content for scrollability -->
+<div class="section">
+  <h2>Why Arc Studio Pro</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <h3>Adaptive Noise Cancellation</h3>
+      <p>Four microphones and real-time DSP processing eliminate up to 98% of ambient noise automatically.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔋</div>
+      <h3>40-Hour Battery Life</h3>
+      <p>All-day and overnight listening. Quick-charge gives you 4 hours of playback in just 10 minutes.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎵</div>
+      <h3>Hi-Res Audio Certified</h3>
+      <p>40mm beryllium drivers deliver the full frequency range. Supports LDAC, aptX HD, AAC.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <h3>Multipoint Connection</h3>
+      <p>Seamlessly switch between your phone, laptop, and tablet without re-pairing.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧘</div>
+      <h3>Transparency Mode</h3>
+      <p>Hear your surroundings naturally without removing the headphones. Great for commuting.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>USB-C & Wireless</h3>
+      <p>Charge with USB-C or wirelessly on any Qi pad. Includes premium 3.5mm cable for wired use.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Category 2: "ends tonight" + Category 5: "lightning deal" -->
+<div class="urgency-footer">
+  ⚡ Lightning deal ends tonight at midnight · Last chance — only 2 remaining at this price · Hurry, this deal won't last
+</div>
+
+<div class="section">
+  <h2>Specifications</h2>
+  <table class="specs-table">
+    <tr><td>Driver Size</td><td>40mm beryllium-coated dynamic</td></tr>
+    <tr><td>Frequency Response</td><td>4 Hz – 40,000 Hz</td></tr>
+    <tr><td>Battery Life</td><td>40 hours (ANC off) · 32 hours (ANC on)</td></tr>
+    <tr><td>Quick Charge</td><td>10 min = 4 hours playback</td></tr>
+    <tr><td>Bluetooth</td><td>5.3 · LDAC · aptX HD · AAC</td></tr>
+    <tr><td>Noise Cancellation</td><td>Adaptive 4-mic feedforward/feedback hybrid</td></tr>
+    <tr><td>Weight</td><td>254g</td></tr>
+    <tr><td>Connectivity</td><td>USB-C · 3.5mm · Qi wireless charging</td></tr>
+    <tr><td>Warranty</td><td>2-year international</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>Customer Reviews</h2>
+  <div class="reviews">
+    <div class="review-card">
+      <div class="stars">★★★★★</div>
+      <p>"These are absolutely incredible. The noise cancellation is on another level — I can't hear anything on my daily commute. Best purchase I've made this year."</p>
+      <div class="reviewer">— Marcus T. · Verified Purchase</div>
+    </div>
+    <div class="review-card">
+      <div class="stars">★★★★★</div>
+      <p>"40 hours of battery is not a lie. I charged these on Sunday and it's now Thursday. Sound quality is warm and detailed without being harsh."</p>
+      <div class="reviewer">— Priya K. · Verified Purchase</div>
+    </div>
+    <div class="review-card">
+      <div class="stars">★★★★☆</div>
+      <p>"The fit is incredibly comfortable for long sessions. I wore them for an 8-hour flight without any ear fatigue. Highly recommend for travelers."</p>
+      <div class="reviewer">— Daniel W. · Verified Purchase</div>
+    </div>
+    <div class="review-card">
+      <div class="stars">★★★★★</div>
+      <p>"Switched from a well-known competitor at twice the price. These are objectively better in every category that matters. Sound, battery, comfort, build."</p>
+      <div class="reviewer">— Aisha M. · Verified Purchase</div>
+    </div>
+  </div>
+</div>
+
+<!-- Demo control panel -->
+<div class="demo-panel">
+  <div class="demo-label">🔬 Demo Scenario</div>
+  <div class="demo-scenario">Checkout Pressure</div>
+  <div class="demo-signals">
+    Detectors active:<br>
+    · countdown-timer (decreasing)<br>
+    · urgency-language (7 patterns)<br>
+    · limited_stock · social_proof_live<br>
+    Expected: <strong>checkout_pressure</strong>
+  </div>
+  <button class="demo-btn" id="trigger-btn" onclick="triggerDemo()">▶ Activate Now</button>
+  <div class="demo-status" id="demo-status"></div>
+</div>
+
+<script>
+  // ── Live countdown (H:MM:SS → decrements each second → confirmedDecreasing = true) ──
+  let totalSeconds = 14 * 60 + 32
+  const display = document.getElementById('countdown-display')
+
+  function pad(n) { return String(n).padStart(2, '0') }
+  function updateTimer() {
+    if (totalSeconds <= 0) { display.textContent = '0:00:00'; return }
+    totalSeconds--
+    const h = Math.floor(totalSeconds / 3600)
+    const m = Math.floor((totalSeconds % 3600) / 60)
+    const s = totalSeconds % 60
+    // Format: H:MM:SS — matches RE_COLON pattern in countdown detector
+    display.textContent = `${h}:${pad(m)}:${pad(s)}`
+  }
+  setInterval(updateTimer, 1000)
+
+  // ── Fluctuating viewer count (social proof animation) ──
+  const viewerEl = document.getElementById('viewers')
+  setInterval(() => {
+    const base = 18
+    const delta = Math.floor(Math.random() * 5) - 2
+    viewerEl.textContent = Math.max(14, base + delta)
+  }, 3500)
+
+  // ── Auto-scroll: reaches 90% depth within ~20s so excessive-scroll heuristic fires ──
+  // (after EXCESSIVE_SCROLL_MAX_TIME_S was fixed from 20s → 300s)
+  let autoScrollActive = true
+  window.addEventListener('scroll', () => { autoScrollActive = false }, { once: true })
+
+  setTimeout(() => {
+    if (!autoScrollActive) return
+    const target = document.body.scrollHeight * 0.92
+    const start = window.scrollY
+    const duration = 18000  // 18s — gentle, feels organic on camera
+    const startTime = performance.now()
+    function step(now) {
+      const t = Math.min((now - startTime) / duration, 1)
+      const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t  // easeInOut
+      window.scrollTo(0, start + (target - start) * ease)
+      if (t < 1 && autoScrollActive) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }, 2000)
+
+  // ── Demo trigger ──
+  function triggerDemo() {
+    const btn = document.getElementById('trigger-btn')
+    const status = document.getElementById('demo-status')
+    btn.disabled = true
+    btn.textContent = 'Signal sent…'
+    document.dispatchEvent(new CustomEvent('ca:demo-trigger'))
+    status.textContent = '✓ Signal dispatched to extension'
+    setTimeout(() => {
+      btn.disabled = false
+      btn.textContent = '▶ Activate Now'
+      status.textContent = ''
+    }, 4000)
+  }
+</script>
+</body>
+</html>

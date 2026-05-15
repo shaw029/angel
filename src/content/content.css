@@ -1,0 +1,2 @@
+/* Only utilities — no base reset so we don't pollute host page styles */
+@tailwind utilities;

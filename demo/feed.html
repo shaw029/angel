@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — For You</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; overflow-x: hidden; }
+
+  /* ── Top nav ── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+    display: flex; justify-content: center; gap: 32px; padding: 16px;
+  }
+  .tab { font-size: 15px; font-weight: 500; opacity: 0.6; cursor: pointer; padding: 4px 0; }
+  .tab.active { opacity: 1; border-bottom: 2px solid #fff; font-weight: 700; }
+
+  /* ── Feed ── */
+  #feed { display: flex; flex-direction: column; }
+
+  .card {
+    position: relative; width: 100%; height: 100svh; overflow: hidden;
+    display: flex; align-items: flex-end; flex-shrink: 0;
+    /* data-infinite attribute triggers the structural fallback detector */
+  }
+
+  /* Gradient video thumbnail (pure CSS — no real video needed for detector test) */
+  .card-bg {
+    position: absolute; inset: 0;
+    background: var(--grad);
+  }
+  .card-bg::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 30%, transparent 70%);
+  }
+
+  /* Play button overlay */
+  .play-btn {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 64px; height: 64px; border-radius: 50%;
+    background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px); pointer-events: none;
+  }
+  .play-btn::after { content: '▶'; font-size: 22px; margin-left: 4px; }
+
+  /* Hidden video element — autoplay attribute triggers autoplay-video detector */
+  .card video { display: none; }
+
+  /* Card info overlay */
+  .card-info {
+    position: relative; z-index: 2; padding: 16px 72px 32px 16px; width: 100%;
+  }
+  .card-user { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.6);
+    background: var(--av-color);
+  }
+  .username { font-size: 14px; font-weight: 700; }
+  .follow-btn {
+    margin-left: 12px; font-size: 12px; border: 1px solid #fff; border-radius: 4px;
+    padding: 2px 10px; background: transparent; color: #fff; cursor: pointer;
+  }
+  .card-caption { font-size: 14px; line-height: 1.5; margin-bottom: 8px; max-width: 72%; }
+  .card-tags { font-size: 13px; color: rgba(255,255,255,0.7); }
+  .card-music {
+    display: flex; align-items: center; gap: 8px; margin-top: 10px;
+    font-size: 12px; color: rgba(255,255,255,0.6);
+  }
+  .music-icon { font-size: 14px; animation: spin 3s linear infinite; }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+
+  /* Sidebar actions */
+  .card-actions {
+    position: absolute; right: 12px; bottom: 100px; z-index: 2;
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+  }
+  .action-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+  .action-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255,255,255,0.12); display: flex; align-items: center;
+    justify-content: center; font-size: 20px;
+  }
+  .action-count { font-size: 11px; color: rgba(255,255,255,0.8); }
+
+  /* View counter (live viewers) */
+  .live-badge {
+    position: absolute; top: 60px; left: 16px; z-index: 2;
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(239,68,68,0.8); border-radius: 4px;
+    padding: 4px 10px; font-size: 12px; font-weight: 700;
+  }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: pulse 1s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Loading spinner at bottom — triggers structural fallback in infinite-scroll detector -->
+  /* (last child with class 'loading') */
+  #feed-loader {
+    display: flex; justify-content: center; align-items: center; height: 80px;
+    color: rgba(255,255,255,0.4); font-size: 13px; gap: 10px;
+  }
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2); border-top-color: rgba(255,255,255,0.7);
+    animation: spin 0.8s linear infinite; class: loading;
+  }
+
+  /* ── Demo Panel ── */
+  .demo-panel {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    background: rgba(15,15,15,0.96); border: 1px solid #2a2a2e; border-radius: 14px;
+    padding: 16px 18px; width: 220px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.8); backdrop-filter: blur(12px); font-size: 12px;
+  }
+  .demo-label { color: #8a8a90; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; margin-bottom: 10px; }
+  .demo-scenario { font-size: 13px; font-weight: 600; color: #f0f0f0; margin-bottom: 4px; }
+  .demo-signals { font-size: 11px; color: #8a8a90; margin-bottom: 14px; line-height: 1.6; }
+  .demo-btn {
+    width: 100%; background: #fff; color: #000; border: none;
+    padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .demo-btn:hover { opacity: 0.85; }
+  .demo-btn:disabled { opacity: 0.4; cursor: default; }
+  .demo-status { font-size: 11px; color: #22c55e; margin-top: 8px; text-align: center; min-height: 16px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tab">Following</div>
+  <div class="tab active">For You</div>
+  <div class="tab">Explore</div>
+</div>
+
+<!-- Feed container — data-infinite triggers structural fallback in infinite-scroll detector -->
+<div id="feed" data-infinite="true"></div>
+
+<!-- Loading spinner at bottom of DOM — infinite-scroll structural fallback: last child with .loading -->
+<div id="feed-loader">
+  <div class="spinner loading"></div>
+  <span>Loading more</span>
+</div>
+
+<!-- Demo panel -->
+<div class="demo-panel">
+  <div class="demo-label">🔬 Demo Scenario</div>
+  <div class="demo-scenario">Infinite Scroll Feed</div>
+  <div class="demo-signals">
+    Detectors active:<br>
+    · infinite-scroll (height grows)<br>
+    · autoplay-video (media hooks)<br>
+    · doom-scroll (velocity ≥2500px/s)<br>
+    Expected: <strong>engagement_hook</strong>
+  </div>
+  <button class="demo-btn" id="trigger-btn" onclick="triggerDemo()">▶ Activate Now</button>
+  <div class="demo-status" id="demo-status"></div>
+</div>
+
+<script>
+// ── Card data ────────────────────────────────────────────────────────────────
+const CARDS = [
+  { grad: 'linear-gradient(135deg,#1a1a2e,#e94560)', user: 'aurora.lens', av: '#e94560', caption: 'Golden hour hit different today 🌅 the way the light bends through the fog...', tags: '#photography #goldenhour #vibe', likes: '284K', comments: '3.2K', shares: '18K', live: null },
+  { grad: 'linear-gradient(135deg,#0f3460,#533483)', user: 'techbyte_', av: '#533483', caption: 'POV: you just discovered this productivity hack and now you can never go back 🧠⚡', tags: '#productivityhacks #workflow #fyp', likes: '1.1M', comments: '24K', shares: '89K', live: '1.2K watching' },
+  { grad: 'linear-gradient(135deg,#2d6a4f,#52b788)', user: 'chef.maya', av: '#52b788', caption: 'This recipe took me 3 years to perfect. Making it in 60 seconds. Watch till end 🍜', tags: '#cooking #foodtok #recipe', likes: '447K', comments: '9.1K', shares: '31K', live: null },
+  { grad: 'linear-gradient(135deg,#370617,#e85d04)', user: 'urban.run', av: '#e85d04', caption: 'Marathon training day 47. Nobody talks about what happens at mile 18 😤', tags: '#running #marathon #fitness', likes: '92K', comments: '4.5K', shares: '7.2K', live: null },
+  { grad: 'linear-gradient(135deg,#03045e,#0096c7)', user: 'ocean.doc', av: '#0096c7', caption: 'Found this creature 600m below the surface. Science doesn\'t have a name for it yet 🌊', tags: '#ocean #deepSea #science', likes: '2.3M', comments: '56K', shares: '204K', live: '4.8K watching' },
+  { grad: 'linear-gradient(135deg,#1b1b2f,#e43f5a)', user: 'night.city_', av: '#e43f5a', caption: 'This city never sleeps and neither do I 🌃 midnight drives hit different with this playlist', tags: '#nightdrive #aesthetic #lofi', likes: '788K', comments: '12K', shares: '54K', live: null },
+  { grad: 'linear-gradient(135deg,#2c2c54,#ff793f)', user: 'dj.prism', av: '#ff793f', caption: 'Drop incoming 🎵 produced this entire beat on my phone while commuting', tags: '#music #producer #beatmaking', likes: '563K', comments: '8.7K', shares: '43K', live: '892 watching' },
+  { grad: 'linear-gradient(135deg,#1a3a1a,#76c442)', user: 'grow.wild', av: '#76c442', caption: 'Before and after: transforming a concrete rooftop into a food forest 🌿', tags: '#urbangarden #sustainability #garden', likes: '1.9M', comments: '31K', shares: '156K', live: null },
+]
+
+let cardIdx = 0
+
+function makeCard(data) {
+  const card = document.createElement('div')
+  card.className = 'card'
+  card.style.setProperty('--grad', data.grad)
+  card.style.setProperty('--av-color', data.av)
+
+  card.innerHTML = `
+    <div class="card-bg"></div>
+    <div class="play-btn"></div>
+    ${data.live ? `<div class="live-badge"><div class="live-dot"></div>LIVE · ${data.live}</div>` : ''}
+    <!-- autoplay attr on video triggers autoplay-video detector -->
+    <video autoplay muted loop playsinline src=""></video>
+    <div class="card-actions">
+      <div class="action-btn">
+        <div class="action-icon">♥</div>
+        <div class="action-count">${data.likes}</div>
+      </div>
+      <div class="action-btn">
+        <div class="action-icon">💬</div>
+        <div class="action-count">${data.comments}</div>
+      </div>
+      <div class="action-btn">
+        <div class="action-icon">↗</div>
+        <div class="action-count">${data.shares}</div>
+      </div>
+      <div class="action-btn">
+        <div class="action-icon">⋯</div>
+        <div class="action-count"></div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-user">
+        <div class="avatar"></div>
+        <div>
+          <div class="username">@${data.user}</div>
+        </div>
+        <button class="follow-btn">Follow</button>
+      </div>
+      <div class="card-caption">${data.caption}</div>
+      <div class="card-tags">${data.tags}</div>
+      <div class="card-music">
+        <span class="music-icon">♫</span>
+        <span>${data.user} · Original sound</span>
+      </div>
+    </div>
+  `
+  return card
+}
+
+function appendBatch(count = 4) {
+  const feed = document.getElementById('feed')
+  const loader = document.getElementById('feed-loader')
+  for (let i = 0; i < count; i++) {
+    const data = CARDS[cardIdx % CARDS.length]
+    cardIdx++
+    const card = makeCard(data)
+    feed.insertBefore(card, loader)
+  }
+}
+
+// Initial cards
+appendBatch(6)
+
+// ── Infinite scroll: append more cards as user nears bottom ──────────────────
+// This triggers growthEvents in infinite-scroll detector (height grows near bottom)
+let loading = false
+function checkBottom() {
+  const pos = window.scrollY + window.innerHeight
+  const h = document.body.scrollHeight
+  if (pos / h > 0.80 && !loading) {
+    loading = true
+    setTimeout(() => {
+      appendBatch(3)
+      loading = false
+    }, 400)
+  }
+}
+window.addEventListener('scroll', checkBottom, { passive: true })
+
+// ── Auto-scroll sequence ─────────────────────────────────────────────────────
+// Phase 1: fast burst (doom-scroll velocity ≥ 2500 px/s)
+// Phase 2: card-by-card paging (organic feel for camera)
+let userScrolled = false
+window.addEventListener('scroll', () => { userScrolled = true }, { once: true })
+
+setTimeout(() => {
+  if (userScrolled) return
+
+  // Fast burst: ~3000px/s for 1.5s → triggers doom_scroll signal in scroll-continuity tracker
+  const cardH = window.innerHeight
+  let elapsed = 0
+  const burstInterval = setInterval(() => {
+    window.scrollBy(0, 75)  // 75px every 25ms = 3000px/s
+    elapsed += 25
+    if (elapsed >= 1500) {
+      clearInterval(burstInterval)
+      // Phase 2: slow card-paging every 2.5s
+      let page = 2
+      const pageInterval = setInterval(() => {
+        window.scrollTo({ top: page * cardH, behavior: 'smooth' })
+        page++
+        if (page > 7) clearInterval(pageInterval)
+      }, 2500)
+    }
+  }, 25)
+}, 1500)
+
+// ── Demo trigger ─────────────────────────────────────────────────────────────
+function triggerDemo() {
+  const btn = document.getElementById('trigger-btn')
+  const status = document.getElementById('demo-status')
+  btn.disabled = true
+  btn.textContent = 'Signal sent…'
+  document.dispatchEvent(new CustomEvent('ca:demo-trigger'))
+  status.textContent = '✓ Signal dispatched to extension'
+  setTimeout(() => {
+    btn.disabled = false
+    btn.textContent = '▶ Activate Now'
+    status.textContent = ''
+  }, 4000)
+}
+</script>
+</body>
+</html>

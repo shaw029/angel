@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@shared/*":    ["./src/shared/*"],
+      "@ui/*":        ["./src/ui/*"],
+      "@ai/*":        ["./src/ai/*"],
+      "@heuristics/*":["./src/heuristics/*"],
+      "@storage/*":   ["./src/storage/*"],
+      "@memory/*":    ["./src/memory/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

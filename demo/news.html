@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DailyPulse — Breaking News &amp; Analysis</title>
+<style>
+  :root {
+    --red: #dc2626;
+    --orange: #ea580c;
+    --blue: #1d4ed8;
+    --text: #111827;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --bg: #f9fafb;
+    --surface: #fff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: Georgia, 'Times New Roman', serif; line-height: 1.5; }
+
+  /* ── Breaking banner ── */
+  .breaking-bar {
+    background: var(--red); color: #fff; padding: 10px 20px;
+    display: flex; align-items: center; gap: 12px; font-size: 13px;
+  }
+  .breaking-badge {
+    background: #fff; color: var(--red); font-weight: 900; font-size: 10px;
+    padding: 3px 7px; border-radius: 2px; letter-spacing: 0.1em; flex-shrink: 0;
+    font-family: -apple-system, sans-serif;
+  }
+  .breaking-ticker { overflow: hidden; flex: 1; }
+  .breaking-text { white-space: nowrap; animation: ticker 30s linear infinite; }
+  @keyframes ticker {
+    0%   { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  /* ── Top nav ── */
+  .topnav {
+    background: var(--surface); border-bottom: 3px solid var(--text);
+    padding: 0 20px;
+  }
+  .topnav-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+  .logo-text { font-size: 28px; font-weight: 900; letter-spacing: -0.04em; font-family: -apple-system, sans-serif; }
+  .logo-text span { color: var(--red); }
+  .nav-links { display: flex; gap: 24px; font-size: 13px; font-family: -apple-system, sans-serif; font-weight: 600; }
+  .nav-links a { color: var(--text); text-decoration: none; }
+  .nav-subscribe {
+    background: var(--red); color: #fff; border: none; padding: 8px 18px;
+    font-size: 13px; font-weight: 700; font-family: -apple-system, sans-serif;
+    cursor: pointer; border-radius: 2px;
+  }
+
+  /* ── Notification bar ── */
+  .notif-bar {
+    background: #fef3c7; border-bottom: 1px solid #fcd34d;
+    padding: 8px 20px; font-size: 13px; font-family: -apple-system, sans-serif;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .notif-cta { color: var(--red); font-weight: 700; cursor: pointer; }
+
+  /* ── Hero ── */
+  .hero { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+  .hero-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+
+  .hero-main { position: relative; }
+  .hero-img {
+    width: 100%; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden;
+    background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 40%, #312e81 100%);
+    display: flex; align-items: center; justify-content: center; position: relative;
+  }
+  .hero-img-art {
+    width: 120px; height: 80px; background: rgba(255,255,255,0.1);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 48px;
+  }
+  .hero-img-caption {
+    position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 12px;
+    background: rgba(0,0,0,0.6); color: #fff; font-size: 11px; font-family: -apple-system, sans-serif;
+  }
+  .hero-category { font-family: -apple-system, sans-serif; font-size: 11px; font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 12px; margin-bottom: 6px; }
+  .hero-headline { font-size: 26px; font-weight: 800; line-height: 1.2; margin-bottom: 10px; }
+  .hero-byline { font-family: -apple-system, sans-serif; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .hero-summary { font-size: 15px; color: #374151; line-height: 1.65; }
+
+  /* Sidebar stories */
+  .hero-sidebar { display: flex; flex-direction: column; gap: 16px; }
+  .sidebar-story { border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+  .sidebar-story:last-child { border-bottom: none; }
+  .story-cat { font-family: -apple-system, sans-serif; font-size: 10px; font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .urgent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); animation: pulse 1.2s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .sidebar-story h3 { font-size: 15px; font-weight: 700; line-height: 1.3; margin-bottom: 4px; }
+  .sidebar-story .meta { font-family: -apple-system, sans-serif; font-size: 11px; color: var(--muted); }
+
+  /* ── Urgency strip ── */
+  .urgency-strip {
+    background: #fff7ed; border-top: 2px solid var(--orange); border-bottom: 2px solid var(--orange);
+    padding: 12px 20px; margin: 0; font-family: -apple-system, sans-serif;
+    display: flex; gap: 32px; justify-content: center; align-items: center;
+    font-size: 13px; font-weight: 600;
+  }
+  .urgency-item { display: flex; align-items: center; gap: 8px; }
+  .urgency-badge { background: var(--orange); color: #fff; padding: 2px 8px; border-radius: 2px; font-size: 10px; letter-spacing: 0.06em; }
+
+  /* ── Section header ── */
+  .section-header {
+    max-width: 1200px; margin: 28px auto 0; padding: 0 20px;
+    display: flex; align-items: center; gap: 12px; border-bottom: 2px solid var(--text);
+    padding-bottom: 8px;
+  }
+  .section-header h2 { font-family: -apple-system, sans-serif; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
+  .live-count { background: var(--red); color: #fff; font-family: -apple-system, sans-serif; font-size: 11px; padding: 2px 8px; border-radius: 2px; font-weight: 700; }
+
+  /* ── News grid ── */
+  .news-grid { max-width: 1200px; margin: 0 auto; padding: 16px 20px 40px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .news-card { border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+  .card-img { width: 100%; aspect-ratio: 16/10; border-radius: 2px; margin-bottom: 10px; overflow: hidden; background: var(--grad); }
+  .card-label { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .label-tag { font-family: -apple-system, sans-serif; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
+  .label-red { color: var(--red); }
+  .label-blue { color: var(--blue); }
+  .label-orange { color: var(--orange); }
+  .news-card h3 { font-size: 15px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; }
+  .news-card p { font-family: -apple-system, sans-serif; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .card-meta { font-family: -apple-system, sans-serif; font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+  /* ── Paywall CTA ── */
+  .paywall-bar {
+    background: var(--surface); border: 2px solid var(--text); border-radius: 4px;
+    max-width: 700px; margin: 20px auto; padding: 24px 32px; text-align: center;
+  }
+  .paywall-bar h3 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .paywall-bar p { font-family: -apple-system, sans-serif; font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+  .paywall-actions { display: flex; gap: 12px; justify-content: center; }
+  .btn-sub { background: var(--text); color: #fff; border: none; padding: 12px 28px; font-size: 14px; font-weight: 700; font-family: -apple-system, sans-serif; cursor: pointer; }
+  .btn-ghost { background: transparent; color: var(--text); border: 2px solid var(--text); padding: 12px 24px; font-size: 14px; font-weight: 700; font-family: -apple-system, sans-serif; cursor: pointer; }
+  .paywall-urgency { font-family: -apple-system, sans-serif; font-size: 12px; color: var(--red); margin-top: 12px; font-weight: 600; }
+
+  /* ── Demo Panel ── */
+  .demo-panel {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    background: rgba(17,24,39,0.97); border: 1px solid #374151; border-radius: 14px;
+    padding: 16px 18px; width: 220px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4); backdrop-filter: blur(12px); font-size: 12px;
+    font-family: -apple-system, sans-serif;
+  }
+  .demo-label { color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; margin-bottom: 10px; }
+  .demo-scenario { font-size: 13px; font-weight: 600; color: #f9fafb; margin-bottom: 4px; }
+  .demo-signals { font-size: 11px; color: #9ca3af; margin-bottom: 14px; line-height: 1.6; }
+  .demo-btn {
+    width: 100%; background: var(--red); color: #fff; border: none;
+    padding: 10px; border-radius: 6px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .demo-btn:hover { opacity: 0.85; }
+  .demo-btn:disabled { opacity: 0.4; cursor: default; }
+  .demo-status { font-size: 11px; color: #22c55e; margin-top: 8px; text-align: center; min-height: 16px; }
+</style>
+</head>
+<body>
+
+<!-- BREAKING ticker — always visible -->
+<div class="breaking-bar">
+  <span class="breaking-badge">BREAKING</span>
+  <div class="breaking-ticker">
+    <!-- urgency-language category 1: "Act now" + category 2: "Ends tonight" -->
+    <span class="breaking-text">MARKETS VOLATILE · Act now before volatility window closes · Last chance to read before paywall · Ends tonight: free access period · Don't miss out: analysis going paywalled at midnight</span>
+  </div>
+</div>
+
+<div class="topnav">
+  <div class="topnav-inner">
+    <div class="logo-text">Daily<span>Pulse</span></div>
+    <div class="nav-links">
+      <a href="#">World</a><a href="#">Politics</a><a href="#">Tech</a><a href="#">Markets</a><a href="#">Opinion</a>
+    </div>
+    <button class="nav-subscribe">Subscribe — Today Only</button>
+  </div>
+</div>
+
+<!-- Category 0: "Limited time offer" + category 1: "Act now" → urgency-language -->
+<div class="notif-bar">
+  ⚠️ Limited time offer: Full access for 3 months — offer expires in 4 hours.
+  <!-- Category 1: act now -->
+  <span class="notif-cta">Act now →</span>
+</div>
+
+<div class="hero" style="padding-top:20px;">
+  <div class="hero-grid">
+    <div class="hero-main">
+      <div class="hero-img">
+        <div class="hero-img-art">📡</div>
+        <div class="hero-img-caption">LIVE UPDATES · Updated 2 minutes ago</div>
+      </div>
+      <div class="hero-category">
+        <span style="display:inline-flex;align-items:center;gap:6px;"><span class="urgent-dot"></span> URGENT</span>
+      </div>
+      <h1 class="hero-headline">Global Markets in Turmoil: What Happens Next Depends on the Next 48 Hours</h1>
+      <div class="hero-byline">By Sarah Chen, Markets Correspondent · Published 12 min ago · 4 min read</div>
+      <p class="hero-summary">
+        Analysts warn of a narrow intervention window as synchronized selling spreads across asset classes.
+        The next policy decision — expected within 48 hours — will determine whether this is a correction
+        or the beginning of a prolonged downturn. <strong>Don't miss the live briefing at 3PM ET.</strong>
+      </p>
+    </div>
+
+    <div class="hero-sidebar">
+      <div class="sidebar-story">
+        <div class="story-cat"><span class="urgent-dot"></span> BREAKING</div>
+        <h3>Senate Committee Calls Emergency Session — Vote Expected Tonight</h3>
+        <div class="meta">14 min ago · 2 min read</div>
+      </div>
+      <div class="sidebar-story">
+        <div class="story-cat"><span class="urgent-dot"></span> LIVE</div>
+        <h3>AI Regulation: Last Chance to Submit Public Comment Before Deadline</h3>
+        <div class="meta">28 min ago · Deadline in 6 hours</div>
+      </div>
+      <div class="sidebar-story">
+        <div class="story-cat">DEVELOPING</div>
+        <h3>Climate Summit Enters Final Day — Deal Hinges on Midnight Agreement</h3>
+        <div class="meta">1 hour ago · 3 min read</div>
+      </div>
+      <div class="sidebar-story">
+        <div class="story-cat">EXCLUSIVE</div>
+        <h3>Interview: The CEO Who Walked Away From a $2B Deal — And Why</h3>
+        <div class="meta">2 hours ago · 8 min read</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Category 2: "ends tonight" + category 1: "don't miss out" + category 0: "limited time" -->
+<div class="urgency-strip">
+  <div class="urgency-item">
+    <span class="urgency-badge">TODAY ONLY</span>
+    <!-- Cat 2: today only -->
+    <span>Premium access — today only, cancel anytime</span>
+  </div>
+  <div class="urgency-item">
+    <span class="urgency-badge">3 READS LEFT</span>
+    <!-- Cat 1: don't miss out -->
+    <span>Don't miss out — running low on free articles</span>
+  </div>
+  <div class="urgency-item">
+    <span class="urgency-badge">HURRY</span>
+    <!-- Cat 2: hurry + ends tonight -->
+    <span>Hurry — subscriber rate ends tonight</span>
+  </div>
+</div>
+
+<div class="section-header">
+  <h2>Top Stories</h2>
+  <span class="live-count">24 LIVE</span>
+</div>
+
+<!-- Dense news grid -->
+<div class="news-grid">
+
+  <div class="news-card">
+    <div class="card-img" style="background:linear-gradient(135deg,#1e3a5f,#3b82f6)"></div>
+    <div class="card-label"><span class="label-tag label-red">BREAKING</span><span class="urgent-dot"></span></div>
+    <h3>Fed Chair Signals Rate Decision "Could Come Sooner Than Expected"</h3>
+    <p>Markets surge then pull back as traders parse every word of the prepared remarks.</p>
+    <div class="card-meta">8 min ago</div>
+  </div>
+
+  <div class="news-card">
+    <div class="card-img" style="background:linear-gradient(135deg,#312e81,#7c3aed)"></div>
+    <div class="card-label"><span class="label-tag label-blue">ANALYSIS</span></div>
+    <!-- Cat 1: last chance -->
+    <h3>Last Chance to Lock In Fixed Mortgage Rates Before the Window Closes</h3>
+    <p>Housing economists say the current rate environment is unlikely to persist beyond Q2.</p>
+    <div class="card-meta">22 min ago · Sponsored Analysis</div>
+  </div>
+
+  <div class="news-card">
+    <div class="card-img" style="background:linear-gradient(135deg,#064e3b,#10b981)"></div>
+    <div class="card-label"><span class="label-tag label-red">URGENT</span><span class="urgent-dot"></span></div>
+    <h3>WHO Issues Rare Rapid-Response Alert — Health Officials On Standby</h3>
+    <p>The agency convened an emergency committee for only the third time in five years.</p>
+    <div class="card-meta">35 min ago</div>
+  </div>
+
+  <div class="news-card">
+    <div class="card-img" style="background:linear-gradient(135deg,#78350f,#f59e0b)"></div>
+    <div class="card-label"><span class="label-tag label-orange">MARKETS</span></div>
+    <h3>Gold Hits 18-Month High as Safe-Haven Demand Surges Overnight</h3>
+    <p>Commodities analysts divided on whether current levels represent a structural shift.</p>
+    <div class="card-meta">51 min ago</div>
+  </div>
+
+  <div class="news-card">
+    <div class="card-img" style="background:linear-gradient(135deg,#1e1b4b,#4338ca)"></div>
+    <div class="card-label"><span class="label-tag label-red">BREAKING</span><span class="urgent-dot"></span></div>
+    <h3>Space Agency Confirms Anomaly With Uncrewed Probe — Press Briefing at 2PM</h3>
+    <p>Officials say telemetry data was "unexpected" and declined to elaborate before the briefing.</p>
+    <div class="card-meta">1 hr ago</div>
+  </div>
+
+  <div class="news-card">
+    <div class="card-img" style="background:linear-gradient(135deg,#450a0a,#dc2626)"></div>
+    <div class="card-label"><span class="label-tag label-red">LIVE</span></div>
+    <!-- Cat 1: act now -->
+    <h3>Election Officials Warn: Act Now if You Haven't Updated Your Registration</h3>
+    <p>Deadline for several key states is in 72 hours. Verification system experiencing delays.</p>
+    <div class="card-meta">1 hr 12 min ago</div>
+  </div>
+
+  <div class="news-card">
+    <div class="card-img" style="background:linear-gradient(135deg,#0c4a6e,#0ea5e9)"></div>
+    <div class="card-label"><span class="label-tag label-blue">TECH</span></div>
+    <h3>Browser Maker Announces End of Support — Millions of Users Must Upgrade</h3>
+    <p>Security patches will stop shipping to the legacy version starting next month.</p>
+    <div class="card-meta">2 hr ago</div>
+  </div>
+
+  <div class="news-card">
+    <div class="card-img" style="background:linear-gradient(135deg,#1c1917,#78716c)"></div>
+    <div class="card-label"><span class="label-tag label-orange">OPINION</span></div>
+    <!-- Cat 0: limited time -->
+    <h3>The Limited Time We Have to Fix Broken Trust in Public Institutions</h3>
+    <p>Former policy adviser argues the window for structural reform is narrowing rapidly.</p>
+    <div class="card-meta">2 hr 40 min ago · 6 min read</div>
+  </div>
+
+</div>
+
+<!-- Paywall CTA — more urgency language -->
+<div style="max-width:1200px;margin:0 auto;padding:0 20px 40px;">
+  <div class="paywall-bar">
+    <h3>You've reached your free article limit</h3>
+    <!-- Cat 2: ends tonight + cat 1: don't miss out -->
+    <p>Don't miss out on breaking developments. Subscribe now and get unlimited access. <br>Introductory rate ends tonight at midnight.</p>
+    <div class="paywall-actions">
+      <button class="btn-sub">Subscribe — $1/week</button>
+      <button class="btn-ghost">Sign In</button>
+    </div>
+    <!-- Cat 0: limited time + cat 1: act now -->
+    <p class="paywall-urgency">⚠ Limited time offer · Act now before rate increases · Today only</p>
+  </div>
+</div>
+
+<!-- Demo panel -->
+<div class="demo-panel">
+  <div class="demo-label">🔬 Demo Scenario</div>
+  <div class="demo-scenario">Attention Overload</div>
+  <div class="demo-signals">
+    Detectors active:<br>
+    · urgency-language (6 categories)<br>
+    · no countdown, no social proof<br>
+    · signals: urgency_language only<br>
+    Expected: <strong>attention_capture</strong>
+  </div>
+  <button class="demo-btn" id="trigger-btn" onclick="triggerDemo()">▶ Activate Now</button>
+  <div class="demo-status" id="demo-status"></div>
+</div>
+
+<script>
+  // ── Slow auto-scroll through dense content ────────────────────────────────
+  let userScrolled = false
+  window.addEventListener('scroll', () => { userScrolled = true }, { once: true })
+
+  setTimeout(() => {
+    if (userScrolled) return
+    const target = document.body.scrollHeight * 0.92
+    const duration = 22000
+    const startTime = performance.now()
+    const startY = window.scrollY
+    function step(now) {
+      const t = Math.min((now - startTime) / duration, 1)
+      const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t
+      window.scrollTo(0, startY + (target - startY) * ease)
+      if (t < 1 && !userScrolled) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }, 1500)
+
+  // ── Demo trigger ──────────────────────────────────────────────────────────
+  function triggerDemo() {
+    const btn = document.getElementById('trigger-btn')
+    const status = document.getElementById('demo-status')
+    btn.disabled = true
+    btn.textContent = 'Signal sent…'
+    document.dispatchEvent(new CustomEvent('ca:demo-trigger'))
+    status.textContent = '✓ Signal dispatched to extension'
+    setTimeout(() => {
+      btn.disabled = false
+      btn.textContent = '▶ Activate Now'
+      status.textContent = ''
+    }, 4000)
+  }
+</script>
+</body>
+</html>

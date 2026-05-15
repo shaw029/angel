@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# ORT WASM binary — 23 MB, copied from node_modules by `npm run setup`
+public/ort-wasm-simd-threaded.asyncify.wasm
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor
+.vscode/settings.json.bak
+
+# Env files (shouldn't exist here, but just in case)
+.env
+.env.local
+.env.*.local

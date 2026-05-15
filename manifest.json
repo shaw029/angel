@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Angel",
+  "version": "0.1.0",
+  "description": "Angel — a private on-device AI companion for intentional browsing.",
+  "permissions": ["storage", "tabs", "activeTab", "offscreen"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["src/content/index.ts"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/index.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "ort-wasm-simd-threaded.asyncify.mjs",
+        "ort-wasm-simd-threaded.asyncify.wasm"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
