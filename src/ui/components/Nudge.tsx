@@ -45,18 +45,18 @@ export function Nudge({ intervention, onDismiss }: NudgeProps) {
     setTimeout(() => onDismiss(outcome), 260)
   }
 
-  // Subtle tier auto-dismisses — it's ambient, not a request for attention
+  // Auto-dismiss: subtle after 7 s, full after 20 s so it never permanently blocks future nudges
   useEffect(() => {
-    if (tier !== 'subtle') return
-    const t = setTimeout(dismiss, 7_000)
+    const ms = tier === 'subtle' ? 7_000 : 20_000
+    const t = setTimeout(dismiss, ms)
     return () => clearTimeout(t)
   }, [tier])
 
   return (
     <AnimatePresence>
       {visible && (tier === 'full'
-        ? <FullCard message={message} tone={tone} action={action} observation={observation} onDismiss={dismiss} />
-        : <SubtlePill message={message} tone={tone} onDismiss={() => dismiss('dismissed')} />
+        ? <FullCard key="full" message={message} tone={tone} action={action} observation={observation} onDismiss={dismiss} />
+        : <SubtlePill key="subtle" message={message} tone={tone} onDismiss={() => dismiss('dismissed')} />
       )}
     </AnimatePresence>
   )

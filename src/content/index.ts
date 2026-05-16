@@ -41,13 +41,18 @@ const teardownTrackers  = setupTrackers(push)
 
 // Demo trigger: dispatched by demo HTML pages via document.dispatchEvent(new CustomEvent('ca:demo-trigger')).
 // Calls showNudge directly — no inference needed, works before the model is loaded.
-// To test the full AI pipeline instead, wait for the organic 30s BROWSING_SIGNAL cycle.
+// Force-clears any existing nudge so repeated demo triggers always work.
 document.addEventListener('ca:demo-trigger', () => {
+  if (hostEl) {
+    hostEl.remove()
+    hostEl  = null
+    shownAt = null
+  }
   void showNudge({
     id:         crypto.randomUUID(),
     message:    "You can take a moment before deciding.",
     tone:       'gentle',
-    action:     'none',
+    action:     'take_a_break',
     confidence: 0.85,
     tier:       'full',
   })
