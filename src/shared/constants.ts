@@ -18,6 +18,8 @@ export const MODEL_ID = 'onnx-community/gemma-4-E2B-it-ONNX'
 export const MODEL_DTYPE_WEBGPU  = 'q4f16' as const  // 4-bit weights, fp16 activations
 export const MODEL_DTYPE_WASM    = 'q4'    as const  // 4-bit weights, no fp16 in WASM
 
+export const PRESENCE_DEFAULT = 0.45
+
 export const MSG = {
   BROWSING_SIGNAL:  'BROWSING_SIGNAL',
   BEHAVIORAL_EVENTS:'BEHAVIORAL_EVENTS',
@@ -26,6 +28,7 @@ export const MSG = {
   DISMISSED:        'DISMISSED',
   GET_STATE:        'GET_STATE',
   SET_ENABLED:      'SET_ENABLED',
+  SET_PRESENCE:     'SET_PRESENCE',
   MODEL_PROGRESS:   'MODEL_PROGRESS',
   KEEPALIVE:        'KEEPALIVE',
 } as const

@@ -9,11 +9,12 @@ import { getRecentPhrases, recordPhrase } from './phrase-cache'
 import { estimateCognitiveState } from './cognitive-state'
 import { analyzeDrift, driftCooldownScale, HEALTH_SCORE } from './drift'
 import { resolveStrategy } from './intervention-strategy'
+import { derivePresence } from './presence'
 import type { RollingCognitiveContext } from './cognitive-state'
 import type { InterventionStrategy } from './intervention-strategy'
 import type { PatternKey } from '@memory/index'
 import type { Message } from '@shared/messages'
-import { MSG, GATE } from '@shared/constants'
+import { MSG, GATE, PRESENCE_DEFAULT } from '@shared/constants'
 import type {
   BrowsingSignal,
   BehavioralEvent,
@@ -170,6 +171,10 @@ async function dispatch(
       await patchState({ enabled: message.payload })
       break
 
+    case MSG.SET_PRESENCE:
+      await patchState({ presenceLevel: message.payload })
+      break
+
     case MSG.KEEPALIVE:
       break  // receiving this message is enough to reset the service-worker idle timer
   }
@@ -240,11 +245,13 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
 
   // Resolve intervention strategy for current state, trajectory, and session history
   const sessionDismissals = sessionQuickDismissalsByState.get(cognitiveState.state) ?? 0
+  const presence = derivePresence(state.presenceLevel ?? PRESENCE_DEFAULT)
   let strategy = resolveStrategy(
     cognitiveState.state,
     drift,
     cognitiveState.durationMs,
     sessionDismissals,
+    presence,
   )
 
   if (!isAnyTierAllowed(adjustedState, Date.now(), rawCtx.event_type, cognitiveState.state, strategy)) return

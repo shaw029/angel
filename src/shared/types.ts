@@ -88,6 +88,9 @@ export interface StorageState {
   recentDismissals:       DismissalRecord[]  // ring buffer (last 20) for adaptive suppression
   suppressionMultiplier:  number             // 1.0 baseline — raised by quick dismissals
 
+  // User preference: how actively Angel offers reflective support (0–1, default 0.45)
+  presenceLevel: number
+
   // Injected by background at query time — not persisted to chrome.storage
   modelStatus?: ModelLoadStatus
 }

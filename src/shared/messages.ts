@@ -18,6 +18,7 @@ export type Message =
   | { type: MsgKey['DISMISSED'];         payload: { id: string; dwellMs: number; outcome: 'accepted' | 'dismissed' } }
   | { type: MsgKey['GET_STATE'] }
   | { type: MsgKey['SET_ENABLED'];       payload: boolean }
+  | { type: MsgKey['SET_PRESENCE'];      payload: number }
   | { type: MsgKey['MODEL_PROGRESS'];    payload: ModelLoadStatus }
   | { type: MsgKey['KEEPALIVE'] }
 

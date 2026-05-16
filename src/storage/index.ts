@@ -1,5 +1,5 @@
 import type { StorageState } from '@shared/types'
-import { COOLDOWN_DEFAULT_MINUTES } from '@shared/constants'
+import { COOLDOWN_DEFAULT_MINUTES, PRESENCE_DEFAULT } from '@shared/constants'
 
 const DEFAULTS: StorageState = {
   enabled:           true,
@@ -11,6 +11,8 @@ const DEFAULTS: StorageState = {
   lastSubtleIntervention: null,
   recentDismissals:       [],
   suppressionMultiplier:  1.0,
+
+  presenceLevel: PRESENCE_DEFAULT,
 }
 
 export async function getState(): Promise<StorageState> {

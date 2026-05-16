@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { StorageState, ModelLoadStatus, EvaluationMetrics, TrendDirection } from '@shared/types'
-import { MSG, COOLDOWN_DEFAULT_MINUTES } from '@shared/constants'
+import { MSG, COOLDOWN_DEFAULT_MINUTES, PRESENCE_DEFAULT } from '@shared/constants'
 import { getEvaluationMetrics } from '@memory/evaluation'
 
 const STATE_DEFAULTS: Omit<StorageState, 'modelStatus'> = {
@@ -12,6 +12,7 @@ const STATE_DEFAULTS: Omit<StorageState, 'modelStatus'> = {
   lastSubtleIntervention: null,
   recentDismissals:       [],
   suppressionMultiplier:  1.0,
+  presenceLevel:          PRESENCE_DEFAULT,
 }
 
 
@@ -30,19 +31,19 @@ function ModelStatusBadge({ status }: { status: ModelLoadStatus }) {
 
   if (status.phase === 'downloading') {
     return (
-      <div className="mt-3">
+      <div className="mt-3 pt-3 border-t border-neutral-100">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs text-ink-muted">Setting up your companion…</span>
-          <span className="text-xs tabular-nums text-ink-muted">{displayPct}%</span>
+          <span className="text-[10px] text-ink-muted">Setting up your companion…</span>
+          <span className="text-[10px] tabular-nums text-ink-muted">{displayPct}%</span>
         </div>
-        <div className="h-1 w-full rounded-full bg-neutral-200 overflow-hidden">
+        <div className="h-0.5 w-full rounded-full bg-neutral-100 overflow-hidden">
           <div
             className="h-full rounded-full bg-sage transition-all duration-700 ease-out"
             style={{ width: `${displayPct}%` }}
           />
         </div>
         <p className="mt-1.5 text-[10px] text-ink-muted">
-          This happens once — the model stays on your device.
+          One-time download — stays on your device.
         </p>
       </div>
     )
@@ -50,13 +51,13 @@ function ModelStatusBadge({ status }: { status: ModelLoadStatus }) {
 
   if (status.phase === 'loading') {
     return (
-      <div className="mt-3">
-        <span className="text-xs text-ink-muted">Setting up your companion…</span>
-        <div className="mt-1.5 h-1 w-full rounded-full bg-neutral-200 overflow-hidden relative">
+      <div className="mt-3 pt-3 border-t border-neutral-100">
+        <span className="text-[10px] text-ink-muted">Setting up your companion…</span>
+        <div className="mt-1.5 h-0.5 w-full rounded-full bg-neutral-100 overflow-hidden relative">
           <div className="absolute h-full w-1/3 rounded-full bg-sage animate-slide" />
         </div>
         <p className="mt-1.5 text-[10px] text-ink-muted">
-          This happens once — the model stays on your device.
+          One-time download — stays on your device.
         </p>
       </div>
     )
@@ -64,9 +65,9 @@ function ModelStatusBadge({ status }: { status: ModelLoadStatus }) {
 
   if (status.phase === 'ready') {
     return (
-      <div className="mt-3 flex items-center gap-1.5">
+      <div className="mt-3 pt-3 border-t border-neutral-100 flex items-center gap-1.5">
         <span className="h-1.5 w-1.5 rounded-full bg-sage" />
-        <span className="text-xs text-ink-muted">
+        <span className="text-[10px] text-ink-muted">
           AI ready · {status.device === 'webgpu' ? 'GPU' : 'CPU'}
         </span>
       </div>
@@ -75,8 +76,8 @@ function ModelStatusBadge({ status }: { status: ModelLoadStatus }) {
 
   if (status.phase === 'error') {
     return (
-      <div className="mt-3">
-        <span className="text-xs text-amber-500">Model unavailable — nudges paused</span>
+      <div className="mt-3 pt-3 border-t border-neutral-100">
+        <span className="text-[10px] text-amber-500">Model unavailable — nudges paused</span>
         {status.reason && (
           <p className="mt-1 text-[10px] text-amber-400 break-all">{status.reason}</p>
         )}
@@ -153,9 +154,9 @@ function InsightPanel({ metrics }: { metrics: EvaluationMetrics }) {
 
   if (!hasData) {
     return (
-      <div className="mt-4 pt-3 border-t border-neutral-100">
+      <div className="mt-3 pt-3 border-t border-neutral-100">
         <p className="text-[11px] text-ink-muted leading-relaxed">
-          Building your awareness picture — a few more sessions and patterns will emerge.
+          Still learning your patterns.
         </p>
       </div>
     )
@@ -169,7 +170,7 @@ function InsightPanel({ metrics }: { metrics: EvaluationMetrics }) {
     : 'This session'
 
   return (
-    <div className="mt-4 pt-3 border-t border-neutral-100">
+    <div className="mt-3 pt-3 border-t border-neutral-100">
       <p className="text-[10px] text-ink-muted mb-2">{weekLabel} of awareness data</p>
       <div className="space-y-1.5">
         {rows.map((row) => (
@@ -185,6 +186,48 @@ function InsightPanel({ metrics }: { metrics: EvaluationMetrics }) {
             </span>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Presence slider ─────────────────────────────────────────────────────────
+
+function PresenceSlider({
+  value,
+  onChange,
+  disabled,
+}: {
+  value:    number
+  onChange: (v: number) => void
+  disabled?: boolean
+}) {
+  const pct = Math.round(value * 100)
+  const trackStyle = {
+    background: `linear-gradient(to right, #4A7C59 ${pct}%, #E5E5E5 ${pct}%)`,
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-neutral-100" style={{ opacity: disabled ? 0.45 : 1 }}>
+      <div className="flex items-baseline justify-between mb-2.5">
+        <p className="text-[10px] font-semibold tracking-widest uppercase text-ink-muted">Presence</p>
+        <p className="text-[10px] text-ink-muted">How present Angel feels.</p>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.01}
+        value={value}
+        disabled={disabled}
+        onChange={e => onChange(parseFloat(e.target.value))}
+        className="presence-slider"
+        style={trackStyle}
+        aria-label="Angel Presence"
+      />
+      <div className="flex justify-between mt-1.5">
+        <span className="text-[10px] text-ink-muted">Quiet</span>
+        <span className="text-[10px] text-ink-muted">Attentive</span>
       </div>
     </div>
   )
@@ -235,12 +278,21 @@ export function App() {
     if (!state) return
     const next = !state.enabled
     setState((s) => (s ? { ...s, enabled: next } : s))
-    // Write directly to storage and notify background (for any in-flight logic)
     const current = await new Promise<Record<string, unknown>>(
       (resolve) => chrome.storage.local.get('state', resolve)
     )
     chrome.storage.local.set({ state: { ...STATE_DEFAULTS, ...(current.state as object), enabled: next } })
     chrome.runtime.sendMessage({ type: MSG.SET_ENABLED, payload: next })
+  }
+
+  async function setPresence(level: number) {
+    if (!state) return
+    setState((s) => (s ? { ...s, presenceLevel: level } : s))
+    const current = await new Promise<Record<string, unknown>>(
+      (resolve) => chrome.storage.local.get('state', resolve)
+    )
+    chrome.storage.local.set({ state: { ...STATE_DEFAULTS, ...(current.state as object), presenceLevel: level } })
+    chrome.runtime.sendMessage({ type: MSG.SET_PRESENCE, payload: level })
   }
 
   if (!state) {
@@ -284,6 +336,12 @@ export function App() {
       )}
 
       {metrics && <InsightPanel metrics={metrics} />}
+
+      <PresenceSlider
+        value={state.presenceLevel ?? PRESENCE_DEFAULT}
+        onChange={setPresence}
+        disabled={!state.enabled}
+      />
 
       <ModelStatusBadge status={modelStatus} />
     </div>

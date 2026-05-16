@@ -1,4 +1,5 @@
 import type { CognitiveState, InterventionTier, DriftEstimate } from '@shared/types'
+import type { PresenceProfile } from './presence'
 
 // ─── Strategy interface ───────────────────────────────────────────────────────
 
@@ -121,8 +122,18 @@ export function resolveStrategy(
   drift:             DriftEstimate | undefined,
   persistenceMs:     number,
   sessionDismissals: number,
+  presence?:         PresenceProfile,
 ): InterventionStrategy {
   const base = STATE_STRATEGY[cogState]
+
+  // Apply presence modulation to entry delay and session cap thresholds.
+  // These are checked before returning, so presence biases the gate conditions.
+  const effectiveEntryDelay = presence
+    ? base.stateEntryDelayMs * presence.entryDelayScale
+    : base.stateEntryDelayMs
+  const effectiveSessionCap = presence
+    ? Math.max(1, base.sessionDismissalCap + presence.sessionCapDelta)
+    : base.sessionDismissalCap
 
   // 1. Recovery: the user is naturally improving — never interrupt that
   if (drift?.trajectory === 'recovery_in_progress') {
@@ -130,12 +141,12 @@ export function resolveStrategy(
   }
 
   // 2. Entry delay: state too recent, let it stabilize first
-  if (persistenceMs < base.stateEntryDelayMs) {
+  if (persistenceMs < effectiveEntryDelay) {
     return { ...base, preferredTier: 'none' }
   }
 
   // 3. Session dismissal cap: user has clearly opted out for now
-  if (sessionDismissals >= base.sessionDismissalCap) {
+  if (sessionDismissals >= effectiveSessionCap) {
     return { ...base, preferredTier: 'none' }
   }
 
@@ -152,6 +163,16 @@ export function resolveStrategy(
   // 5. Rapid escalation: bring the intervention forward before it deepens
   if (drift?.trajectory === 'rapid_escalation' && (drift.confidence ?? 0) >= 0.60) {
     return { ...base, cooldownScale: base.cooldownScale * 0.60 }
+  }
+
+  // Apply presence to the returned strategy — cooldown scaling and confidence
+  // threshold are modulated here so gate.ts needs no changes.
+  if (presence) {
+    return {
+      ...base,
+      cooldownScale:  base.cooldownScale  * presence.cooldownScale,
+      minConfidence:  Math.max(0.10, Math.min(0.99, base.minConfidence + presence.confidenceDelta)),
+    }
   }
 
   return base
