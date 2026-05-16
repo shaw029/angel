@@ -147,7 +147,14 @@
   }
   .demo-label { color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; margin-bottom: 10px; }
   .demo-scenario { font-size: 13px; font-weight: 600; color: #f9fafb; margin-bottom: 4px; }
-  .demo-signals { font-size: 11px; color: #9ca3af; margin-bottom: 14px; line-height: 1.6; }
+  .demo-signals { font-size: 11px; color: #9ca3af; margin-bottom: 10px; line-height: 1.6; }
+  .demo-meta { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; border-top: 1px solid #374151; padding-top: 10px; }
+  .demo-meta-row { display: flex; align-items: center; justify-content: space-between; font-size: 10px; }
+  .demo-meta-key { color: #5a5a62; }
+  .demo-meta-event { color: #f0a830; font-weight: 600; }
+  .demo-meta-state { color: #5a9a78; font-weight: 600; }
+  .demo-meta-mech  { color: #818cf8; font-weight: 600; }
+  .demo-meta-tier  { color: #94a3b8; font-weight: 600; }
   .demo-btn {
     width: 100%; background: var(--red); color: #fff; border: none;
     padding: 10px; border-radius: 6px; font-size: 13px; font-weight: 700;
@@ -343,14 +350,17 @@
 
 <!-- Demo panel -->
 <div class="demo-panel">
-  <div class="demo-label">🔬 Demo Scenario</div>
-  <div class="demo-scenario">Attention Overload</div>
+  <div class="demo-label">Demo Scenario 03</div>
+  <div class="demo-scenario">Attention Overload News</div>
   <div class="demo-signals">
-    Detectors active:<br>
-    · urgency-language (6 categories)<br>
-    · no countdown, no social proof<br>
-    · signals: urgency_language only<br>
-    Expected: <strong>attention_capture</strong>
+    · urgency_language (6 categories)<br>
+    · breaking ×6 · competing CTAs
+  </div>
+  <div class="demo-meta">
+    <div class="demo-meta-row"><span class="demo-meta-key">Event</span><span class="demo-meta-event">attention_capture</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">State</span><span class="demo-meta-state">fragmented_attention</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">Mechanic</span><span class="demo-meta-mech">attention_capture</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">Tier</span><span class="demo-meta-tier">subtle pill</span></div>
   </div>
   <button class="demo-btn" id="trigger-btn" onclick="triggerDemo()">▶ Activate Now</button>
   <div class="demo-status" id="demo-status"></div>

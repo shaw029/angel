@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workspace — Distracted Browsing</title>
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #141416;
+    --surface2: #1a1a1d;
+    --border: #26262a;
+    --text: #e8e8ec;
+    --muted: #888890;
+    --blue: #4f83cc;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #c084fc;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+  }
+
+  /* ── Browser chrome ── */
+  .browser-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 8px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .window-controls { display: flex; gap: 6px; }
+  .wc { width: 12px; height: 12px; border-radius: 50%; }
+  .wc-red    { background: #ff5f57; }
+  .wc-yellow { background: #febc2e; }
+  .wc-green  { background: #28c840; }
+  .tabs-bar {
+    display: flex; gap: 2px; flex: 1; overflow-x: auto;
+    scrollbar-width: none; padding-left: 8px;
+  }
+  .tabs-bar::-webkit-scrollbar { display: none; }
+  .browser-tab {
+    display: flex; align-items: center; gap: 6px; padding: 5px 12px;
+    border-radius: 6px 6px 0 0; font-size: 12px; cursor: pointer;
+    white-space: nowrap; border: 1px solid transparent; border-bottom: none;
+    transition: background 0.15s; flex-shrink: 0; max-width: 160px;
+  }
+  .browser-tab.active {
+    background: var(--bg); border-color: var(--border); color: var(--text);
+  }
+  .browser-tab:not(.active) {
+    background: var(--surface2); color: var(--muted);
+  }
+  .browser-tab:not(.active):hover { background: #222226; }
+  .tab-favicon { font-size: 11px; flex-shrink: 0; }
+  .tab-title { overflow: hidden; text-overflow: ellipsis; }
+  .tab-close {
+    margin-left: auto; color: var(--muted); font-size: 13px; flex-shrink: 0;
+    opacity: 0; transition: opacity 0.1s;
+  }
+  .browser-tab:hover .tab-close { opacity: 1; }
+  .tab-notif {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    animation: pulse 1.4s ease infinite;
+  }
+  .notif-red    { background: var(--red); }
+  .notif-blue   { background: var(--blue); }
+  .notif-amber  { background: var(--amber); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── Main pane layout ── */
+  .workspace {
+    flex: 1; display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 1px; background: var(--border); overflow: hidden;
+  }
+  .pane {
+    background: var(--bg); overflow: hidden; display: flex; flex-direction: column;
+    position: relative;
+  }
+  .pane-header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 8px 14px; display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .pane-title { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .pane-icon { font-size: 13px; }
+  .pane-controls { display: flex; gap: 8px; }
+  .pane-ctrl { font-size: 11px; color: var(--muted); cursor: pointer; }
+  .pane-body { flex: 1; overflow-y: auto; padding: 12px; }
+  .pane-body::-webkit-scrollbar { width: 4px; }
+  .pane-body::-webkit-scrollbar-track { background: transparent; }
+  .pane-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── Notification pane ── */
+  .notif-item {
+    display: flex; gap: 10px; padding: 10px; border-radius: 8px; margin-bottom: 6px;
+    background: var(--surface); border: 1px solid var(--border); cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .notif-item:hover { border-color: #38383e; }
+  .notif-item.unread { border-left: 3px solid var(--blue); }
+  .notif-item.urgent { border-left: 3px solid var(--red); }
+  .notif-avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    background: var(--surface2);
+  }
+  .notif-content { flex: 1; min-width: 0; }
+  .notif-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+  .notif-body { font-size: 11px; color: var(--muted); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .notif-time { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+  .notif-badge {
+    display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px;
+    border-radius: 10px; text-transform: uppercase; letter-spacing: 0.05em; margin-left: 4px;
+  }
+  .badge-red    { background: rgba(248,113,113,0.15); color: var(--red); }
+  .badge-blue   { background: rgba(79,131,204,0.15);  color: var(--blue); }
+  .badge-amber  { background: rgba(251,191,36,0.15);  color: var(--amber); }
+
+  /* ── Slack/chat pane ── */
+  .chat-msg {
+    display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-start;
+  }
+  .chat-avatar {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    background: var(--surface2); font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chat-content { flex: 1; }
+  .chat-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+  .chat-name { font-size: 12px; font-weight: 700; }
+  .chat-time { font-size: 10px; color: var(--muted); }
+  .chat-text { font-size: 12px; color: #c8c8d0; line-height: 1.5; }
+  .mention { color: var(--blue); font-weight: 600; }
+  .chat-reaction {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 2px 7px; margin-top: 4px; cursor: pointer;
+  }
+  .chat-input {
+    margin: 8px; display: flex; align-items: center;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 12px; gap: 8px; flex-shrink: 0;
+  }
+  .chat-input-placeholder { font-size: 12px; color: var(--muted); flex: 1; }
+  .chat-send { font-size: 16px; cursor: pointer; }
+
+  /* ── Task/todo pane ── */
+  .task-section { margin-bottom: 16px; }
+  .task-section-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted); margin-bottom: 8px;
+  }
+  .task-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    border-radius: 6px; margin-bottom: 3px; cursor: pointer;
+    transition: background 0.12s;
+  }
+  .task-item:hover { background: var(--surface2); }
+  .task-check {
+    width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--border);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+  }
+  .task-check.done { background: var(--green); border-color: var(--green); color: #0d0d0f; }
+  .task-label { font-size: 12px; flex: 1; }
+  .task-label.done { text-decoration: line-through; color: var(--muted); }
+  .task-priority {
+    font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px;
+  }
+  .p-urgent { background: rgba(248,113,113,0.12); color: var(--red); }
+  .p-med    { background: rgba(251,191,36,0.12);  color: var(--amber); }
+  .p-low    { background: rgba(100,116,139,0.12); color: #94a3b8; }
+  .task-due { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+
+  /* ── Feed pane ── */
+  .feed-item {
+    border-bottom: 1px solid var(--border); padding: 12px 0; cursor: pointer;
+  }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .feed-avatar {
+    width: 24px; height: 24px; border-radius: 50%; background: var(--surface2);
+    font-size: 12px; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .feed-user { font-size: 11px; font-weight: 600; }
+  .feed-time { font-size: 10px; color: var(--muted); margin-left: auto; }
+  .feed-text { font-size: 12px; color: #c8c8d0; line-height: 1.5; margin-bottom: 6px; }
+  .feed-media {
+    width: 100%; height: 80px; border-radius: 6px; background: var(--grad);
+    margin-bottom: 6px; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; overflow: hidden; position: relative;
+  }
+  .feed-actions { display: flex; gap: 12px; }
+  .feed-action { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
+
+  /* ── Interruption overlay ── */
+  .interrupt {
+    position: absolute; top: 12px; right: 12px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; font-size: 12px; z-index: 20; min-width: 180px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5); animation: slideIn 0.2s ease;
+    cursor: pointer;
+  }
+  .interrupt.urgent { border-color: rgba(248,113,113,0.4); }
+  .interrupt.info   { border-color: rgba(79,131,204,0.4); }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .interrupt-title { font-weight: 700; margin-bottom: 2px; font-size: 11px; }
+  .interrupt-body  { color: var(--muted); font-size: 11px; line-height: 1.4; }
+  .interrupt-close { position: absolute; top: 6px; right: 8px; font-size: 12px; color: var(--muted); }
+
+  /* ── Demo Panel ── */
+  .demo-panel {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    background: rgba(13,13,15,0.97); border: 1px solid #2a2a2e; border-radius: 14px;
+    padding: 16px 18px; width: 220px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.7); backdrop-filter: blur(12px); font-size: 12px;
+  }
+  .demo-label { color: #888890; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; margin-bottom: 10px; }
+  .demo-scenario { font-size: 13px; font-weight: 600; color: #e8e8ec; margin-bottom: 4px; }
+  .demo-signals { font-size: 11px; color: #888890; margin-bottom: 10px; line-height: 1.6; }
+  .demo-meta { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; border-top: 1px solid #26262a; padding-top: 10px; }
+  .demo-meta-row { display: flex; align-items: center; justify-content: space-between; font-size: 10px; }
+  .demo-meta-key { color: #5a5a62; }
+  .demo-meta-event { color: #f0a830; font-weight: 600; }
+  .demo-meta-state { color: #5a9a78; font-weight: 600; }
+  .demo-meta-mech  { color: #818cf8; font-weight: 600; }
+  .demo-meta-tier  { color: #94a3b8; font-weight: 600; }
+  .demo-btn {
+    width: 100%; background: #7c3aed; color: #fff; border: none;
+    padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .demo-btn:hover { opacity: 0.85; }
+  .demo-btn:disabled { opacity: 0.4; cursor: default; }
+  .demo-status { font-size: 11px; color: #4ade80; margin-top: 8px; text-align: center; min-height: 16px; }
+</style>
+</head>
+<body>
+
+<!-- Simulated browser chrome with multiple active tabs -->
+<div class="browser-bar">
+  <div class="window-controls">
+    <div class="wc wc-red"></div>
+    <div class="wc wc-yellow"></div>
+    <div class="wc wc-green"></div>
+  </div>
+  <div class="tabs-bar" id="tabs-bar">
+    <div class="browser-tab active" onclick="cycleTab(0)">
+      <span class="tab-favicon">📋</span>
+      <span class="tab-title">Workspace</span>
+      <span class="tab-close">×</span>
+    </div>
+    <div class="browser-tab" onclick="cycleTab(1)">
+      <span class="tab-favicon">🔴</span>
+      <span class="tab-title">Gmail — 14 unread</span>
+      <span class="tab-notif notif-red"></span>
+      <span class="tab-close">×</span>
+    </div>
+    <div class="browser-tab" onclick="cycleTab(2)">
+      <span class="tab-favicon">💬</span>
+      <span class="tab-title">Slack — #general</span>
+      <span class="tab-notif notif-blue"></span>
+      <span class="tab-close">×</span>
+    </div>
+    <div class="browser-tab" onclick="cycleTab(3)">
+      <span class="tab-favicon">📰</span>
+      <span class="tab-title">Hacker News</span>
+      <span class="tab-close">×</span>
+    </div>
+    <div class="browser-tab" onclick="cycleTab(4)">
+      <span class="tab-favicon">📱</span>
+      <span class="tab-title">Twitter / X</span>
+      <span class="tab-notif notif-amber"></span>
+      <span class="tab-close">×</span>
+    </div>
+    <div class="browser-tab" onclick="cycleTab(5)">
+      <span class="tab-favicon">📄</span>
+      <span class="tab-title">Q2 Planning Doc</span>
+      <span class="tab-close">×</span>
+    </div>
+    <div class="browser-tab" onclick="cycleTab(6)">
+      <span class="tab-favicon">🛒</span>
+      <span class="tab-title">Amazon — Cart</span>
+      <span class="tab-close">×</span>
+    </div>
+    <div class="browser-tab" onclick="cycleTab(7)">
+      <span class="tab-favicon">▶</span>
+      <span class="tab-title">YouTube</span>
+      <span class="tab-close">×</span>
+    </div>
+  </div>
+</div>
+
+<!-- 4-pane split workspace — all competing for attention simultaneously -->
+<div class="workspace">
+
+  <!-- Pane 1: Notifications / email -->
+  <div class="pane">
+    <div class="pane-header">
+      <div class="pane-title"><span class="pane-icon">🔔</span> Notifications <span id="notif-count" style="background:rgba(248,113,113,0.15);color:#f87171;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:700;">14</span></div>
+      <div class="pane-controls">
+        <span class="pane-ctrl">Mark all read</span>
+      </div>
+    </div>
+    <div class="pane-body" id="notif-pane">
+      <div class="notif-item urgent">
+        <div class="notif-avatar">📊</div>
+        <div class="notif-content">
+          <div class="notif-title">Q2 OKR review <span class="notif-badge badge-red">Overdue</span></div>
+          <div class="notif-body">Deadline was 2 hours ago — 3 people waiting for your input</div>
+        </div>
+        <div class="notif-time">2h</div>
+      </div>
+      <div class="notif-item unread">
+        <div class="notif-avatar">👤</div>
+        <div class="notif-content">
+          <div class="notif-title">Priya mentioned you <span class="notif-badge badge-blue">@mention</span></div>
+          <div class="notif-body">@you can you review the PR before standup?</div>
+        </div>
+        <div class="notif-time">18m</div>
+      </div>
+      <div class="notif-item unread">
+        <div class="notif-avatar">📧</div>
+        <div class="notif-content">
+          <div class="notif-title">Re: Product roadmap</div>
+          <div class="notif-body">Jordan: "I disagree with the priority call on mobile — let me know when you're free to discuss"</div>
+        </div>
+        <div class="notif-time">34m</div>
+      </div>
+      <div class="notif-item">
+        <div class="notif-avatar">🤖</div>
+        <div class="notif-content">
+          <div class="notif-title">CI/CD pipeline <span class="notif-badge badge-red">Failed</span></div>
+          <div class="notif-body">main branch · 3 tests failing · 2 warnings</div>
+        </div>
+        <div class="notif-time">41m</div>
+      </div>
+      <div class="notif-item">
+        <div class="notif-avatar">📅</div>
+        <div class="notif-content">
+          <div class="notif-title">Meeting in 8 minutes</div>
+          <div class="notif-body">1:1 with Marcus — no agenda set</div>
+        </div>
+        <div class="notif-time">now</div>
+      </div>
+      <div class="notif-item unread">
+        <div class="notif-avatar">💳</div>
+        <div class="notif-content">
+          <div class="notif-title">Invoice overdue <span class="notif-badge badge-amber">Action needed</span></div>
+          <div class="notif-body">Vendor invoice #4821 — 7 days past due date</div>
+        </div>
+        <div class="notif-time">1h</div>
+      </div>
+      <div class="notif-item">
+        <div class="notif-avatar">📊</div>
+        <div class="notif-content">
+          <div class="notif-title">Analytics spike detected</div>
+          <div class="notif-body">Traffic up 340% on /checkout — possible campaign effect</div>
+        </div>
+        <div class="notif-time">2h</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pane 2: Slack-style chat -->
+  <div class="pane" style="position:relative;">
+    <div class="pane-header">
+      <div class="pane-title"><span class="pane-icon">💬</span> #engineering</div>
+      <div class="pane-controls">
+        <span class="pane-ctrl" style="color:#4f83cc;">🔵 12 unread</span>
+      </div>
+    </div>
+    <div class="pane-body" id="chat-pane">
+      <div class="chat-msg">
+        <div class="chat-avatar">👩</div>
+        <div class="chat-content">
+          <div class="chat-meta"><span class="chat-name">Priya</span><span class="chat-time">10:14 AM</span></div>
+          <div class="chat-text">hey <span class="mention">@team</span> the deploy is live — need someone to smoke test search before we announce</div>
+          <div><span class="chat-reaction">👍 3</span></div>
+        </div>
+      </div>
+      <div class="chat-msg">
+        <div class="chat-avatar">🧑</div>
+        <div class="chat-content">
+          <div class="chat-meta"><span class="chat-name">Marco</span><span class="chat-time">10:17 AM</span></div>
+          <div class="chat-text">on it — btw did anyone else see the latency spike in prod around 10:05? p95 hit 2.3s</div>
+        </div>
+      </div>
+      <div class="chat-msg">
+        <div class="chat-avatar">👩</div>
+        <div class="chat-content">
+          <div class="chat-meta"><span class="chat-name">Priya</span><span class="chat-time">10:19 AM</span></div>
+          <div class="chat-text">yeah we saw it — correlates with the new search index rebuild. should be one-time</div>
+        </div>
+      </div>
+      <div class="chat-msg">
+        <div class="chat-avatar">🧑‍💻</div>
+        <div class="chat-content">
+          <div class="chat-meta"><span class="chat-name">Alex</span><span class="chat-time">10:22 AM</span></div>
+          <div class="chat-text"><span class="mention">@you</span> — did you get a chance to look at the PR I sent yesterday? blocker for the mobile release</div>
+        </div>
+      </div>
+      <div class="chat-msg">
+        <div class="chat-avatar">👩‍🦱</div>
+        <div class="chat-content">
+          <div class="chat-meta"><span class="chat-name">Yuki</span><span class="chat-time">10:28 AM</span></div>
+          <div class="chat-text">FYI the standup doc is missing context on 3 items — can whoever owns search fill it in before 10:45?</div>
+        </div>
+      </div>
+      <div class="chat-msg">
+        <div class="chat-avatar">🤖</div>
+        <div class="chat-content">
+          <div class="chat-meta"><span class="chat-name" style="color:#94a3b8">GitHub Bot</span><span class="chat-time">10:31 AM</span></div>
+          <div class="chat-text" style="color:#8b949e;">PR #847 approved by 1/2 reviewers · Waiting on final approval before merge</div>
+        </div>
+      </div>
+      <div class="chat-msg" id="chat-live-1" style="display:none;">
+        <div class="chat-avatar">👩</div>
+        <div class="chat-content">
+          <div class="chat-meta"><span class="chat-name">Priya</span><span class="chat-time" id="chat-time-1">now</span></div>
+          <div class="chat-text"><span class="mention">@you</span> standing by, any update on that PR review?</div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input">
+      <span class="chat-input-placeholder">Message #engineering…</span>
+      <span class="chat-send">↵</span>
+    </div>
+    <!-- Interruption popup -->
+    <div class="interrupt info" id="slack-interrupt" style="display:none;">
+      <span class="interrupt-close" onclick="this.parentElement.style.display='none'">×</span>
+      <div class="interrupt-title">💬 New direct message</div>
+      <div class="interrupt-body">Marco: "hey quick q before standup"</div>
+    </div>
+  </div>
+
+  <!-- Pane 3: Task list (interrupted task) -->
+  <div class="pane">
+    <div class="pane-header">
+      <div class="pane-title"><span class="pane-icon">✓</span> Today's Focus</div>
+      <div class="pane-controls"><span class="pane-ctrl">+ Add task</span></div>
+    </div>
+    <div class="pane-body">
+      <div class="task-section">
+        <div class="task-section-title">In progress</div>
+        <div class="task-item" id="task-current">
+          <div class="task-check">▶</div>
+          <div class="task-label" style="color:#79c0ff;">Review PR #847 — auth refactor</div>
+          <div class="task-due" style="color:#f87171;">overdue</div>
+        </div>
+      </div>
+      <div class="task-section">
+        <div class="task-section-title">Today</div>
+        <div class="task-item">
+          <div class="task-check"></div>
+          <div class="task-label">Write Q2 OKR retrospective</div>
+          <span class="task-priority p-urgent">urgent</span>
+          <div class="task-due">2h ago</div>
+        </div>
+        <div class="task-item">
+          <div class="task-check"></div>
+          <div class="task-label">Respond to Jordan re: roadmap</div>
+          <span class="task-priority p-med">medium</span>
+          <div class="task-due">today</div>
+        </div>
+        <div class="task-item">
+          <div class="task-check"></div>
+          <div class="task-label">Update standup doc</div>
+          <span class="task-priority p-urgent">urgent</span>
+          <div class="task-due">10:45</div>
+        </div>
+        <div class="task-item">
+          <div class="task-check"></div>
+          <div class="task-label">Fix failing CI tests on main</div>
+          <span class="task-priority p-med">medium</span>
+          <div class="task-due">today</div>
+        </div>
+        <div class="task-item">
+          <div class="task-check"></div>
+          <div class="task-label">Prepare 1:1 agenda for Marcus</div>
+          <span class="task-priority p-low">low</span>
+          <div class="task-due">in 8m</div>
+        </div>
+      </div>
+      <div class="task-section">
+        <div class="task-section-title">Done</div>
+        <div class="task-item">
+          <div class="task-check done">✓</div>
+          <div class="task-label done">Morning Slack catch-up</div>
+          <div class="task-due">done</div>
+        </div>
+        <div class="task-item">
+          <div class="task-check done">✓</div>
+          <div class="task-label done">Deploy search index</div>
+          <div class="task-due">done</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pane 4: Social / news feed (distraction source) -->
+  <div class="pane" style="position:relative;">
+    <div class="pane-header">
+      <div class="pane-title"><span class="pane-icon">📱</span> Feed</div>
+      <div class="pane-controls">
+        <span class="pane-ctrl" style="color:#fbbf24;">🔔 8 new</span>
+      </div>
+    </div>
+    <div class="pane-body" id="feed-pane">
+      <div class="feed-item">
+        <div class="feed-meta">
+          <div class="feed-avatar">🐦</div>
+          <div class="feed-user">@dan_abramov</div>
+          <div class="feed-time">4m</div>
+        </div>
+        <div class="feed-text">Hot take: the best productivity improvement isn't a new tool, it's removing one. Every app you add is a new context-switch tax.</div>
+        <div class="feed-actions">
+          <div class="feed-action">♥ 2.4K</div>
+          <div class="feed-action">↺ 834</div>
+          <div class="feed-action">💬 91</div>
+        </div>
+      </div>
+      <div class="feed-item">
+        <div class="feed-meta">
+          <div class="feed-avatar">📰</div>
+          <div class="feed-user">Hacker News</div>
+          <div class="feed-time">11m</div>
+        </div>
+        <div class="feed-text">Show HN: I built a local-first notes app in a weekend — 2.3K stars in 48 hours</div>
+        <div class="feed-actions">
+          <div class="feed-action">▲ 847 pts</div>
+          <div class="feed-action">💬 312</div>
+        </div>
+      </div>
+      <div class="feed-item">
+        <div class="feed-media" style="--grad: linear-gradient(135deg,#1a1a2e,#e94560)">🎬</div>
+        <div class="feed-meta">
+          <div class="feed-avatar">▶</div>
+          <div class="feed-user">Fireship</div>
+          <div class="feed-time">22m</div>
+        </div>
+        <div class="feed-text">I rewrote my entire backend in 4 minutes (not clickbait)</div>
+        <div class="feed-actions">
+          <div class="feed-action">▲ 184K views</div>
+          <div class="feed-action">💬 2.1K</div>
+        </div>
+      </div>
+      <div class="feed-item" id="feed-live-1" style="display:none;">
+        <div class="feed-meta">
+          <div class="feed-avatar">🔴</div>
+          <div class="feed-user">BREAKING</div>
+          <div class="feed-time">now</div>
+        </div>
+        <div class="feed-text">Tech layoffs: major company announces 12% workforce reduction, 4,000 affected</div>
+        <div class="feed-actions">
+          <div class="feed-action">🔥 trending</div>
+          <div class="feed-action">💬 5.6K</div>
+        </div>
+      </div>
+    </div>
+    <!-- Interruption popup -->
+    <div class="interrupt urgent" id="feed-interrupt" style="display:none;">
+      <span class="interrupt-close" onclick="this.parentElement.style.display='none'">×</span>
+      <div class="interrupt-title">🔥 Trending now</div>
+      <div class="interrupt-body">"AI replaces 40% of developer jobs" — 18K reactions</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Demo panel -->
+<div class="demo-panel">
+  <div class="demo-label">Demo Scenario 05</div>
+  <div class="demo-scenario">Distracted Browsing</div>
+  <div class="demo-signals">
+    · rapid_tab_switching<br>
+    · competing_contexts · long_session
+  </div>
+  <div class="demo-meta">
+    <div class="demo-meta-row"><span class="demo-meta-key">Event</span><span class="demo-meta-event">distracted_browsing</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">State</span><span class="demo-meta-state">fragmented_attention</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">Mechanic</span><span class="demo-meta-mech">attention_capture</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">Tier</span><span class="demo-meta-tier">subtle pill</span></div>
+  </div>
+  <button class="demo-btn" id="trigger-btn" onclick="triggerDemo()">▶ Activate Now</button>
+  <div class="demo-status" id="demo-status"></div>
+</div>
+
+<script>
+  // ── Tab cycling simulation ────────────────────────────────────────────────────
+  // Rapid tab switches trigger rapid_tab_switching_episodes in background/index.ts
+  const tabTitles = [
+    'Workspace', 'Gmail — 14 unread', 'Slack — #general',
+    'Hacker News', 'Twitter / X', 'Q2 Planning Doc', 'Amazon — Cart', 'YouTube'
+  ]
+
+  function cycleTab(idx) {
+    const tabs = document.querySelectorAll('.browser-tab')
+    tabs.forEach((t, i) => t.classList.toggle('active', i === idx))
+    document.title = tabTitles[idx] ?? 'Workspace'
+    document.dispatchEvent(new CustomEvent('ca:tab-switch', { detail: { from: 0, to: idx } }))
+  }
+
+  // Auto-cycle tabs rapidly to simulate distracted_browsing pattern
+  // Each cycle emits a BROWSING_SIGNAL that content scripts forward to background
+  let autoCycleIdx = 0
+  const TAB_COUNT = 8
+
+  function autoSwitch() {
+    autoCycleIdx = (autoCycleIdx + 1) % TAB_COUNT
+    cycleTab(autoCycleIdx)
+    // Vary dwell: 800ms–2200ms to feel human while still being rapid (< 3s avg)
+    const dwell = 800 + Math.random() * 1400
+    setTimeout(autoSwitch, dwell)
+  }
+
+  // Start auto-cycling after 3s — gives user time to read the panel
+  let autoCycleTimer = setTimeout(() => { autoSwitch() }, 3000)
+
+  // Stop auto-cycle if user manually switches tabs
+  document.querySelectorAll('.browser-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      clearTimeout(autoCycleTimer)
+    })
+  })
+
+  // ── Live content injection ─────────────────────────────────────────────────
+  // Simulates new messages/notifications arriving, adding to context-switch pressure
+
+  setTimeout(() => {
+    document.getElementById('slack-interrupt').style.display = 'block'
+  }, 5000)
+
+  setTimeout(() => {
+    const el = document.getElementById('chat-live-1')
+    if (el) el.style.display = 'flex'
+    const count = document.querySelector('[style*="color:#4f83cc"]')
+    if (count) count.textContent = '🔵 13 unread'
+  }, 9000)
+
+  setTimeout(() => {
+    document.getElementById('feed-interrupt').style.display = 'block'
+  }, 14000)
+
+  setTimeout(() => {
+    const el = document.getElementById('feed-live-1')
+    if (el) el.style.display = 'block'
+    const badge = document.querySelector('[style*="color:#fbbf24"]')
+    if (badge) badge.textContent = '🔔 9 new'
+  }, 18000)
+
+  // Increment notification counter periodically
+  let notifCount = 14
+  setInterval(() => {
+    notifCount++
+    const el = document.getElementById('notif-count')
+    if (el) el.textContent = notifCount
+  }, 30000)
+
+  // ── Demo trigger ──────────────────────────────────────────────────────────────
+  function triggerDemo() {
+    const btn    = document.getElementById('trigger-btn')
+    const status = document.getElementById('demo-status')
+    btn.disabled = true
+    btn.textContent = 'Signal sent…'
+    document.dispatchEvent(new CustomEvent('ca:demo-trigger'))
+    status.textContent = '✓ Signal dispatched to extension'
+    setTimeout(() => {
+      btn.disabled = false
+      btn.textContent = '▶ Activate Now'
+      status.textContent = ''
+    }, 4000)
+  }
+</script>
+</body>
+</html>

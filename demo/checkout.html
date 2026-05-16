@@ -140,7 +140,14 @@
   }
   .demo-label { color: #8a8a90; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; margin-bottom: 10px; }
   .demo-scenario { font-size: 13px; font-weight: 600; color: #f0f0f0; margin-bottom: 4px; }
-  .demo-signals { font-size: 11px; color: #8a8a90; margin-bottom: 14px; line-height: 1.6; }
+  .demo-signals { font-size: 11px; color: #8a8a90; margin-bottom: 10px; line-height: 1.6; }
+  .demo-meta { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; border-top: 1px solid #2a2a2e; padding-top: 10px; }
+  .demo-meta-row { display: flex; align-items: center; justify-content: space-between; font-size: 10px; }
+  .demo-meta-key { color: #5a5a62; }
+  .demo-meta-event { color: #f0a830; font-weight: 600; }
+  .demo-meta-state { color: #5a9a78; font-weight: 600; }
+  .demo-meta-mech  { color: #818cf8; font-weight: 600; }
+  .demo-meta-tier  { color: #94a3b8; font-weight: 600; }
   .demo-btn {
     width: 100%; background: var(--amber); color: #0c0c0e; border: none;
     padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700;
@@ -310,14 +317,17 @@
 
 <!-- Demo control panel -->
 <div class="demo-panel">
-  <div class="demo-label">🔬 Demo Scenario</div>
-  <div class="demo-scenario">Checkout Pressure</div>
+  <div class="demo-label">Demo Scenario 01</div>
+  <div class="demo-scenario">Artificial Urgency Checkout</div>
   <div class="demo-signals">
-    Detectors active:<br>
-    · countdown-timer (decreasing)<br>
-    · urgency-language (7 patterns)<br>
-    · limited_stock · social_proof_live<br>
-    Expected: <strong>checkout_pressure</strong>
+    · countdown_timer · urgency_language<br>
+    · limited_stock · social_proof_live
+  </div>
+  <div class="demo-meta">
+    <div class="demo-meta-row"><span class="demo-meta-key">Event</span><span class="demo-meta-event">checkout_pressure</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">State</span><span class="demo-meta-state">emotionally_reactive</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">Mechanic</span><span class="demo-meta-mech">decision_pressure</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">Tier</span><span class="demo-meta-tier">full card</span></div>
   </div>
   <button class="demo-btn" id="trigger-btn" onclick="triggerDemo()">▶ Activate Now</button>
   <div class="demo-status" id="demo-status"></div>

@@ -3,125 +3,211 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cognitive Assistant — Demo Scenarios</title>
+<title>Angel — Demo Scenarios</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: #0c0c0e; color: #f0f0f0; min-height: 100vh;
+    background: #0a0a0c; color: #f0f0f0; min-height: 100vh;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 40px 20px;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 48px 20px 64px;
   }
-  .header { text-align: center; margin-bottom: 48px; }
-  .header h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 10px; }
-  .header p { font-size: 15px; color: #8a8a90; max-width: 520px; line-height: 1.6; }
-  .header p strong { color: #f0f0f0; }
+
+  .header { text-align: center; margin-bottom: 16px; }
+  .logo { font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #5a9a78; margin-bottom: 24px; }
+  .header h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 10px; }
+  .header p { font-size: 14px; color: #8a8a90; max-width: 520px; line-height: 1.65; margin: 0 auto; }
 
   .prereq {
-    background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25);
-    border-radius: 10px; padding: 14px 20px; margin-bottom: 40px;
-    font-size: 13px; color: #d97706; max-width: 580px; text-align: center; line-height: 1.6;
+    background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 10px; padding: 13px 20px; margin: 32px 0;
+    font-size: 12.5px; color: #c98a20; max-width: 620px; text-align: center; line-height: 1.7;
   }
-  .prereq code { background: rgba(245,158,11,0.15); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+  .prereq code {
+    background: rgba(245,158,11,0.12); padding: 2px 6px; border-radius: 4px;
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px;
+  }
 
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 900px; width: 100%; }
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #5a5a62; margin-bottom: 20px; width: 100%; max-width: 960px;
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 960px; width: 100%; margin-bottom: 40px; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); max-width: 640px; }
 
   .card {
-    background: #161618; border: 1px solid #2a2a2e; border-radius: 16px;
+    background: #131315; border: 1px solid #222226; border-radius: 14px;
     overflow: hidden; text-decoration: none; color: inherit;
-    transition: transform 0.15s, border-color 0.15s;
+    transition: transform 0.14s ease, border-color 0.14s ease;
     display: flex; flex-direction: column;
   }
-  .card:hover { transform: translateY(-3px); border-color: #4a4a50; }
+  .card:hover { transform: translateY(-2px); border-color: #38383e; }
 
   .card-thumb {
-    height: 140px; display: flex; align-items: center; justify-content: center;
-    font-size: 56px; position: relative; overflow: hidden;
+    height: 120px; display: flex; align-items: center; justify-content: center;
+    font-size: 48px; position: relative;
   }
-  .thumb-1 { background: linear-gradient(135deg, #1a1a2e, #f59e0b33); }
-  .thumb-2 { background: linear-gradient(135deg, #000000, #333); }
-  .thumb-3 { background: linear-gradient(135deg, #f9fafb, #e5e7eb); }
-  .thumb-3 .emoji { filter: none; }
+  .t-checkout     { background: linear-gradient(135deg, #1c1008, #f59e0b22); }
+  .t-feed         { background: linear-gradient(135deg, #050505, #1a1a2e); }
+  .t-news         { background: linear-gradient(135deg, #f9fafb, #e5e7eb); }
+  .t-subscription { background: linear-gradient(135deg, #0a1628, #1d4ed822); }
+  .t-tabs         { background: linear-gradient(135deg, #12081e, #7c3aed22); }
 
-  .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
-  .card-num { font-size: 11px; color: #8a8a90; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
-  .card-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
-  .card-desc { font-size: 13px; color: #8a8a90; line-height: 1.6; flex: 1; margin-bottom: 16px; }
+  .card-body { padding: 18px; flex: 1; display: flex; flex-direction: column; }
+  .card-num { font-size: 10px; color: #5a5a62; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
+  .card-title { font-size: 15px; font-weight: 700; margin-bottom: 7px; line-height: 1.3; }
+  .card-desc { font-size: 12.5px; color: #7a7a80; line-height: 1.6; flex: 1; margin-bottom: 14px; }
 
-  .card-signals { margin-bottom: 16px; }
-  .signal-tag {
-    display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px;
-    border-radius: 20px; margin: 2px; text-transform: uppercase; letter-spacing: 0.06em;
+  .card-meta { border-top: 1px solid #1e1e22; padding-top: 12px; display: flex; flex-direction: column; gap: 5px; }
+  .meta-row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; }
+  .meta-key { color: #5a5a62; }
+  .meta-val { font-weight: 600; color: #d0d0d8; font-size: 11px; }
+  .meta-state { color: #5a9a78; }
+  .meta-mech  { color: #818cf8; }
+  .meta-event { color: #f0a830; }
+  .meta-tier  { color: #94a3b8; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; }
+  .tag {
+    font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+    letter-spacing: 0.06em; text-transform: uppercase;
   }
-  .sig-red    { background: rgba(239,68,68,0.12);  color: #ef4444; }
-  .sig-amber  { background: rgba(245,158,11,0.12); color: #f59e0b; }
-  .sig-green  { background: rgba(34,197,94,0.12);  color: #22c55e; }
-  .sig-blue   { background: rgba(99,102,241,0.12); color: #818cf8; }
+  .t-red    { background: rgba(239,68,68,0.1);   color: #f87171; }
+  .t-amber  { background: rgba(245,158,11,0.1);  color: #fbbf24; }
+  .t-blue   { background: rgba(99,102,241,0.1);  color: #818cf8; }
+  .t-green  { background: rgba(34,197,94,0.1);   color: #4ade80; }
+  .t-purple { background: rgba(168,85,247,0.1);  color: #c084fc; }
+  .t-slate  { background: rgba(100,116,139,0.1); color: #94a3b8; }
 
-  .card-meta { font-size: 12px; color: #6a6a70; border-top: 1px solid #2a2a2e; padding-top: 12px; }
-  .card-event { font-weight: 700; color: #f0f0f0; }
-
-  @media (max-width: 700px) {
+  @media (max-width: 720px) {
     .grid { grid-template-columns: 1fr; }
+    .grid-2 { grid-template-columns: 1fr; max-width: 100%; }
   }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>Cognitive Assistant — Demos</h1>
-  <p>Three reproducible scenarios for testing intervention triggers. Each page contains authentic dark-pattern DOM structure that the content script detectors actively scan.</p>
+  <div class="logo">Angel</div>
+  <h1>Demo Scenarios</h1>
+  <p>Five reproducible test environments, each designed to trigger a specific cognitive state and intervention strategy. Every page contains authentic dark-pattern DOM structure that Angel's detectors actively scan.</p>
 </div>
 
 <div class="prereq">
-  ⚠ Extension must be loaded first (<code>chrome://extensions</code> → Load unpacked → <code>dist/</code>)<br>
-  Then serve this folder: <code>python3 -m http.server 3001 --directory demo</code> and open <code>localhost:3001</code>
+  ① Build the extension: <code>npm run build</code><br>
+  ② Load unpacked: <code>chrome://extensions</code> → Developer mode → Load unpacked → <code>dist/</code><br>
+  ③ Serve demo pages: <code>python3 -m http.server 3001 --directory demo</code> → <code>localhost:3001</code>
 </div>
+
+<div class="section-label">Core scenarios</div>
 
 <div class="grid">
 
   <a class="card" href="checkout.html">
-    <div class="card-thumb thumb-1"><span>🛒</span></div>
+    <div class="card-thumb t-checkout"><span>🛒</span></div>
     <div class="card-body">
-      <div class="card-num">Scenario 01</div>
+      <div class="card-num">01</div>
       <div class="card-title">Artificial Urgency Checkout</div>
-      <div class="card-desc">Live countdown timer, social proof ("18 people viewing"), stock scarcity, and 7 distinct urgency language patterns — all actively detected.</div>
-      <div class="card-signals">
-        <span class="signal-tag sig-amber">countdown_timer</span>
-        <span class="signal-tag sig-red">urgency_language</span>
-        <span class="signal-tag sig-red">limited_stock</span>
-        <span class="signal-tag sig-amber">social_proof_live</span>
+      <div class="card-desc">Live countdown, "18 people viewing," stock scarcity, and 7 urgency language patterns. Fires the maximum purchase-pressure signal cluster.</div>
+      <div class="tags">
+        <span class="tag t-amber">countdown_timer</span>
+        <span class="tag t-red">urgency_language</span>
+        <span class="tag t-red">limited_stock</span>
+        <span class="tag t-amber">social_proof_live</span>
       </div>
-      <div class="card-meta">Expected event type: <span class="card-event">checkout_pressure</span></div>
+      <div class="card-meta">
+        <div class="meta-row"><span class="meta-key">Event</span>       <span class="meta-val meta-event">checkout_pressure</span></div>
+        <div class="meta-row"><span class="meta-key">Cognitive state</span> <span class="meta-val meta-state">emotionally_reactive</span></div>
+        <div class="meta-row"><span class="meta-key">Mechanic</span>    <span class="meta-val meta-mech">decision_pressure</span></div>
+        <div class="meta-row"><span class="meta-key">Tier</span>        <span class="meta-val meta-tier">full card</span></div>
+      </div>
     </div>
   </a>
 
   <a class="card" href="feed.html">
-    <div class="card-thumb thumb-2"><span>📱</span></div>
+    <div class="card-thumb t-feed"><span>📱</span></div>
     <div class="card-body">
-      <div class="card-num">Scenario 02</div>
+      <div class="card-num">02</div>
       <div class="card-title">Infinite Scroll Feed</div>
-      <div class="card-desc">Short-form video cards that auto-load as the user scrolls. Triggers infinite-scroll growth detection and doom-scroll velocity tracking.</div>
-      <div class="card-signals">
-        <span class="signal-tag sig-blue">infinite_feed</span>
-        <span class="signal-tag sig-blue">autoplay_media</span>
-        <span class="signal-tag sig-green">doom_scrolling</span>
+      <div class="card-desc">Short-form video cards that auto-load on scroll. Triggers infinite-scroll growth detection, autoplay hooks, and doom-scroll velocity tracking.</div>
+      <div class="tags">
+        <span class="tag t-blue">infinite_feed</span>
+        <span class="tag t-blue">autoplay_media</span>
+        <span class="tag t-green">doom_scrolling</span>
       </div>
-      <div class="card-meta">Expected event type: <span class="card-event">engagement_hook</span></div>
+      <div class="card-meta">
+        <div class="meta-row"><span class="meta-key">Event</span>       <span class="meta-val meta-event">engagement_hook</span></div>
+        <div class="meta-row"><span class="meta-key">Cognitive state</span> <span class="meta-val meta-state">compulsive_loop</span></div>
+        <div class="meta-row"><span class="meta-key">Mechanic</span>    <span class="meta-val meta-mech">engagement_loop</span></div>
+        <div class="meta-row"><span class="meta-key">Tier</span>        <span class="meta-val meta-tier">subtle pill</span></div>
+      </div>
     </div>
   </a>
 
   <a class="card" href="news.html">
-    <div class="card-thumb thumb-3"><span>📰</span></div>
+    <div class="card-thumb t-news"><span>📰</span></div>
     <div class="card-body">
-      <div class="card-num">Scenario 03</div>
+      <div class="card-num">03</div>
       <div class="card-title">Attention Overload News</div>
-      <div class="card-desc">Dense news aggregator saturated with BREAKING badges, urgency language across 6 categories, live tickers, and competing paywall CTAs.</div>
-      <div class="card-signals">
-        <span class="signal-tag sig-red">urgency_language</span>
-        <span class="signal-tag sig-red">breaking × 6</span>
+      <div class="card-desc">Dense news aggregator with BREAKING badges, urgency language across 6 categories, live tickers, and competing paywall CTAs.</div>
+      <div class="tags">
+        <span class="tag t-red">urgency_language</span>
+        <span class="tag t-red">breaking ×6</span>
+        <span class="tag t-slate">no countdown</span>
       </div>
-      <div class="card-meta">Expected event type: <span class="card-event">attention_capture</span></div>
+      <div class="card-meta">
+        <div class="meta-row"><span class="meta-key">Event</span>       <span class="meta-val meta-event">attention_capture</span></div>
+        <div class="meta-row"><span class="meta-key">Cognitive state</span> <span class="meta-val meta-state">fragmented_attention</span></div>
+        <div class="meta-row"><span class="meta-key">Mechanic</span>    <span class="meta-val meta-mech">attention_capture</span></div>
+        <div class="meta-row"><span class="meta-key">Tier</span>        <span class="meta-val meta-tier">subtle pill</span></div>
+      </div>
+    </div>
+  </a>
+
+</div>
+
+<div class="section-label">Additional scenarios</div>
+
+<div class="grid grid-2">
+
+  <a class="card" href="subscription.html">
+    <div class="card-thumb t-subscription"><span>💳</span></div>
+    <div class="card-body">
+      <div class="card-num">04</div>
+      <div class="card-title">Subscription Commitment Funnel</div>
+      <div class="card-desc">SaaS trial-to-paid upsell with trial language, recurring billing framing, and annual vs monthly commitment architecture.</div>
+      <div class="tags">
+        <span class="tag t-blue">trial_language</span>
+        <span class="tag t-blue">recurring_billing</span>
+        <span class="tag t-purple">commitment_escalation</span>
+      </div>
+      <div class="card-meta">
+        <div class="meta-row"><span class="meta-key">Event</span>       <span class="meta-val meta-event">subscription_funnel</span></div>
+        <div class="meta-row"><span class="meta-key">Cognitive state</span> <span class="meta-val meta-state">decision_fatigue</span></div>
+        <div class="meta-row"><span class="meta-key">Mechanic</span>    <span class="meta-val meta-mech">commitment_escalation</span></div>
+        <div class="meta-row"><span class="meta-key">Tier</span>        <span class="meta-val meta-tier">full card</span></div>
+      </div>
+    </div>
+  </a>
+
+  <a class="card" href="tabs.html">
+    <div class="card-thumb t-tabs"><span>⚡</span></div>
+    <div class="card-body">
+      <div class="card-num">05</div>
+      <div class="card-title">Distracted Browsing</div>
+      <div class="card-desc">Multi-pane attention splitter that simulates rapid context switching: competing feeds, notifications, and interrupted tasks with high interaction velocity.</div>
+      <div class="tags">
+        <span class="tag t-purple">rapid_interaction</span>
+        <span class="tag t-purple">session_long</span>
+        <span class="tag t-slate">multiple signals</span>
+      </div>
+      <div class="card-meta">
+        <div class="meta-row"><span class="meta-key">Event</span>       <span class="meta-val meta-event">distracted_browsing</span></div>
+        <div class="meta-row"><span class="meta-key">Cognitive state</span> <span class="meta-val meta-state">fragmented_attention</span></div>
+        <div class="meta-row"><span class="meta-key">Mechanic</span>    <span class="meta-val meta-mech">attention_capture</span></div>
+        <div class="meta-row"><span class="meta-key">Tier</span>        <span class="meta-val meta-tier">subtle pill</span></div>
+      </div>
     </div>
   </a>
 

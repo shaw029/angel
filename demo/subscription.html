@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clarity — Choose Your Plan</title>
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1117;
+    --surface2: #161b22;
+    --border: #21262d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --blue: #1d6ae5;
+    --blue-dim: rgba(29,106,229,0.15);
+    --green: #3fb950;
+    --amber: #d29922;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.6; min-height: 100vh;
+  }
+
+  /* ── Trial expiry banner ── */
+  .trial-banner {
+    background: linear-gradient(90deg, #0d2137, #1d6ae522, #0d2137);
+    border-bottom: 1px solid rgba(29,106,229,0.3);
+    padding: 10px 20px; text-align: center;
+    font-size: 13px; color: #79c0ff;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .trial-countdown {
+    background: rgba(29,106,229,0.2); border: 1px solid rgba(29,106,229,0.4);
+    border-radius: 4px; padding: 2px 8px; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: #79c0ff;
+  }
+
+  /* ── Nav ── */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 40px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: rgba(6,9,15,0.92);
+    backdrop-filter: blur(12px); z-index: 10;
+  }
+  .logo { font-size: 18px; font-weight: 700; letter-spacing: -0.03em; }
+  .logo span { color: var(--blue); }
+  .nav-trial-pill {
+    font-size: 12px; background: rgba(29,106,229,0.12); border: 1px solid rgba(29,106,229,0.3);
+    color: #79c0ff; padding: 4px 12px; border-radius: 20px;
+  }
+
+  /* ── Hero ── */
+  .hero { text-align: center; padding: 60px 20px 40px; }
+  .hero-eyebrow {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--blue); margin-bottom: 16px;
+    /* trial_language: "free trial" explicit mention */
+  }
+  .hero h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 12px; line-height: 1.15; }
+  .hero p { font-size: 16px; color: var(--muted); max-width: 480px; margin: 0 auto 12px; line-height: 1.65; }
+  .hero-urgency {
+    font-size: 13px; color: var(--amber); font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .urgency-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); animation: pulse 1.4s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── Toggle ── */
+  .billing-toggle {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    margin: 32px auto; font-size: 14px;
+  }
+  .toggle-track {
+    position: relative; width: 48px; height: 26px; border-radius: 13px;
+    background: var(--blue); cursor: pointer; transition: background 0.2s;
+  }
+  .toggle-thumb {
+    position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+    border-radius: 50%; background: #fff; transition: transform 0.2s;
+    transform: translateX(22px);
+  }
+  .toggle-label { font-weight: 600; }
+  .toggle-label.active { color: var(--text); }
+  .toggle-label.inactive { color: var(--muted); }
+  .save-badge {
+    background: rgba(63,185,80,0.15); border: 1px solid rgba(63,185,80,0.3);
+    color: var(--green); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+    /* commitment_escalation: anchors user to annual framing first */
+  }
+
+  /* ── Plans ── */
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 900px; margin: 0 auto; padding: 0 20px 60px; }
+
+  .plan-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px 24px; display: flex; flex-direction: column; position: relative;
+    transition: border-color 0.2s;
+  }
+  .plan-card:hover { border-color: #30363d; }
+  .plan-card.featured {
+    border-color: var(--blue); background: linear-gradient(180deg, rgba(29,106,229,0.06) 0%, var(--surface) 60%);
+  }
+
+  .popular-badge {
+    position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+    background: var(--blue); color: #fff; font-size: 10px; font-weight: 700;
+    padding: 3px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .plan-name { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 16px; }
+  .plan-price { display: flex; align-items: baseline; gap: 4px; margin-bottom: 4px; }
+  .price-amount { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; }
+  .price-period { font-size: 14px; color: var(--muted); }
+  .price-annual { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+  .price-annual strong { color: var(--green); }
+
+  .plan-cta {
+    width: 100%; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 700;
+    cursor: pointer; border: none; margin-bottom: 20px; transition: opacity 0.15s;
+    /* trial_language: "start free trial" / "continue free" */
+  }
+  .cta-primary { background: var(--blue); color: #fff; }
+  .cta-primary:hover { opacity: 0.9; }
+  .cta-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .cta-ghost:hover { border-color: #484f58; }
+
+  .plan-note { font-size: 11px; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  .features { list-style: none; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .feature { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--muted); }
+  .feature-check { color: var(--green); flex-shrink: 0; margin-top: 1px; }
+  .feature-dim { color: #484f58; }
+  .feature-check.dim { color: #484f58; }
+
+  /* ── Commitment escalation row ── */
+  .escalation-strip {
+    max-width: 900px; margin: 0 auto 48px; padding: 0 20px;
+    /* commitment_escalation: show what user "loses" by not upgrading */
+  }
+  .escalation-card {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  }
+  .escalation-copy { flex: 1; }
+  .escalation-copy h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .escalation-copy p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .escalation-cta {
+    flex-shrink: 0; background: var(--blue); color: #fff; border: none;
+    padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .escalation-sub { font-size: 11px; color: var(--muted); margin-top: 4px; text-align: right; }
+
+  /* ── Social proof ── */
+  .social-proof { max-width: 900px; margin: 0 auto 60px; padding: 0 20px; }
+  .social-proof h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; text-align: center; }
+  .testimonials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .testimonial { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .stars { color: var(--amber); font-size: 12px; margin-bottom: 8px; }
+  .testimonial p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
+  .reviewer { font-size: 11px; font-weight: 600; color: var(--text); }
+  .reviewer-role { font-size: 11px; color: var(--muted); }
+
+  /* ── FAQ / commitment framing ── */
+  .faq { max-width: 640px; margin: 0 auto 80px; padding: 0 20px; }
+  .faq h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+  .faq-item { border-bottom: 1px solid var(--border); padding: 16px 0; }
+  .faq-q { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .faq-a { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* ── Footer urgency ── */
+  .footer-cta {
+    background: linear-gradient(135deg, rgba(29,106,229,0.08), rgba(29,106,229,0.04));
+    border-top: 1px solid rgba(29,106,229,0.2); padding: 32px 20px; text-align: center;
+  }
+  .footer-cta h3 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .footer-cta p { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+  .footer-cta-btn {
+    background: var(--blue); color: #fff; border: none; padding: 14px 36px;
+    border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  /* recurring_billing framing */
+  .footer-billing { font-size: 11px; color: var(--muted); margin-top: 10px; }
+
+  /* ── Demo Panel ── */
+  .demo-panel {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    background: rgba(13,17,23,0.97); border: 1px solid #30363d; border-radius: 14px;
+    padding: 16px 18px; width: 220px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6); backdrop-filter: blur(12px); font-size: 12px;
+  }
+  .demo-label { color: #8b949e; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; margin-bottom: 10px; }
+  .demo-scenario { font-size: 13px; font-weight: 600; color: #e6edf3; margin-bottom: 4px; }
+  .demo-signals { font-size: 11px; color: #8b949e; margin-bottom: 10px; line-height: 1.6; }
+  .demo-meta { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; border-top: 1px solid #21262d; padding-top: 10px; }
+  .demo-meta-row { display: flex; align-items: center; justify-content: space-between; font-size: 10px; }
+  .demo-meta-key { color: #5a5a62; }
+  .demo-meta-event { color: #f0a830; font-weight: 600; }
+  .demo-meta-state { color: #5a9a78; font-weight: 600; }
+  .demo-meta-mech  { color: #818cf8; font-weight: 600; }
+  .demo-meta-tier  { color: #94a3b8; font-weight: 600; }
+  .demo-btn {
+    width: 100%; background: #1d6ae5; color: #fff; border: none;
+    padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .demo-btn:hover { opacity: 0.85; }
+  .demo-btn:disabled { opacity: 0.4; cursor: default; }
+  .demo-status { font-size: 11px; color: #3fb950; margin-top: 8px; text-align: center; min-height: 16px; }
+
+  @media (max-width: 700px) {
+    .plans { grid-template-columns: 1fr; }
+    .testimonials { grid-template-columns: 1fr; }
+    .escalation-card { flex-direction: column; }
+    nav { padding: 16px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- trial_language: trial expires, creates urgency -->
+<div class="trial-banner">
+  Your free trial ends in <span class="trial-countdown" id="trial-days">3 days</span>
+  — upgrade now to keep your workspace
+</div>
+
+<nav>
+  <div class="logo">Clarity<span>.</span></div>
+  <span class="nav-trial-pill">Free trial · 3 days left</span>
+</nav>
+
+<div class="hero">
+  <!-- trial_language: explicit "free trial ending" framing -->
+  <div class="hero-eyebrow">Your free trial is ending soon</div>
+  <h1>Keep everything you've built.<br>Choose a plan today.</h1>
+  <p>Your notes, projects, and integrations stay intact when you upgrade. Let your trial expire and everything gets locked.</p>
+  <!-- commitment_escalation: loss framing — "locked" if no action -->
+  <div class="hero-urgency">
+    <span class="urgency-dot"></span>
+    Introductory pricing ends when your trial expires
+  </div>
+</div>
+
+<!-- commitment_escalation: annual billing anchored first, monthly framed as "more expensive" -->
+<div class="billing-toggle">
+  <span class="toggle-label inactive" id="monthly-label">Monthly</span>
+  <div class="toggle-track" onclick="toggleBilling()" id="toggle">
+    <div class="toggle-thumb" id="toggle-thumb"></div>
+  </div>
+  <span class="toggle-label active" id="annual-label">Annual <span class="save-badge">Save 40%</span></span>
+</div>
+
+<div class="plans">
+
+  <!-- Free tier — shown to create contrast, "what you're losing" -->
+  <div class="plan-card">
+    <div class="plan-name">Free</div>
+    <div class="plan-price">
+      <span class="price-amount">$0</span>
+      <span class="price-period">/mo</span>
+    </div>
+    <div class="price-annual">After trial expires</div>
+    <!-- trial_language: "continue for free" but with heavy restrictions -->
+    <button class="plan-cta cta-ghost">Continue free</button>
+    <div class="plan-note">Limited features · no export</div>
+    <ul class="features">
+      <li class="feature"><span class="feature-check">✓</span> 3 projects</li>
+      <li class="feature"><span class="feature-check dim">✗</span> <span class="feature-dim">Unlimited notes</span></li>
+      <li class="feature"><span class="feature-check dim">✗</span> <span class="feature-dim">Team collaboration</span></li>
+      <li class="feature"><span class="feature-check dim">✗</span> <span class="feature-dim">Integrations</span></li>
+      <li class="feature"><span class="feature-check dim">✗</span> <span class="feature-dim">Version history</span></li>
+      <li class="feature"><span class="feature-check dim">✗</span> <span class="feature-dim">Export (PDF, Notion, MD)</span></li>
+    </ul>
+  </div>
+
+  <!-- Pro — featured, commitment_escalation anchor -->
+  <div class="plan-card featured">
+    <div class="popular-badge">Most popular</div>
+    <div class="plan-name">Pro</div>
+    <div class="plan-price">
+      <!-- recurring_billing: monthly billed annually framing -->
+      <span class="price-amount" id="pro-price">$8</span>
+      <span class="price-period">/mo</span>
+    </div>
+    <div class="price-annual" id="pro-billing">
+      <!-- recurring_billing: total annual commitment surfaced -->
+      Billed annually · <strong>Save $48/year</strong>
+    </div>
+    <!-- trial_language: "start your pro plan" — positioned as continuing, not new purchase -->
+    <button class="plan-cta cta-primary" id="pro-cta">Upgrade to Pro</button>
+    <div class="plan-note" id="pro-note">Locks in trial pricing · cancel anytime</div>
+    <ul class="features">
+      <li class="feature"><span class="feature-check">✓</span> Unlimited projects</li>
+      <li class="feature"><span class="feature-check">✓</span> Unlimited notes & docs</li>
+      <li class="feature"><span class="feature-check">✓</span> 5 team members</li>
+      <li class="feature"><span class="feature-check">✓</span> All integrations</li>
+      <li class="feature"><span class="feature-check">✓</span> 90-day version history</li>
+      <li class="feature"><span class="feature-check">✓</span> Export (all formats)</li>
+    </ul>
+  </div>
+
+  <!-- Team — higher commitment tier -->
+  <div class="plan-card">
+    <div class="plan-name">Team</div>
+    <div class="plan-price">
+      <span class="price-amount" id="team-price">$16</span>
+      <span class="price-period">/mo per seat</span>
+    </div>
+    <div class="price-annual" id="team-billing">Billed annually · <strong>Save $96/seat/year</strong></div>
+    <button class="plan-cta cta-ghost">Start team trial</button>
+    <div class="plan-note">Everything in Pro, plus:</div>
+    <ul class="features">
+      <li class="feature"><span class="feature-check">✓</span> Unlimited seats</li>
+      <li class="feature"><span class="feature-check">✓</span> Admin controls</li>
+      <li class="feature"><span class="feature-check">✓</span> SSO / SAML</li>
+      <li class="feature"><span class="feature-check">✓</span> Audit logs</li>
+      <li class="feature"><span class="feature-check">✓</span> Unlimited version history</li>
+      <li class="feature"><span class="feature-check">✓</span> Priority support</li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- commitment_escalation: "what you'll lose" strip -->
+<div class="escalation-strip">
+  <div class="escalation-card">
+    <div class="escalation-copy">
+      <h3>Don't lose your work when the trial ends</h3>
+      <!-- trial_language + commitment_escalation: loss aversion framing -->
+      <p>Your 3 projects and all connected integrations will be locked in 3 days. Upgrade today and keep trial pricing — rates go up after your trial expires.</p>
+    </div>
+    <div>
+      <button class="escalation-cta">Upgrade Now</button>
+      <!-- recurring_billing: monthly equivalent surfaced prominently -->
+      <div class="escalation-sub">From $8/mo · cancel anytime</div>
+    </div>
+  </div>
+</div>
+
+<!-- Social proof — reduces friction for conversion -->
+<div class="social-proof">
+  <h2>Trusted by 40,000+ teams</h2>
+  <div class="testimonials">
+    <div class="testimonial">
+      <div class="stars">★★★★★</div>
+      <p>"Switched from Notion after the trial. The migration took 5 minutes and I've never looked back. The AI summaries alone are worth the subscription."</p>
+      <div class="reviewer">Meera L.</div>
+      <div class="reviewer-role">Product Designer · Fintech</div>
+    </div>
+    <div class="testimonial">
+      <div class="stars">★★★★★</div>
+      <p>"We use the Team plan across 12 people. The audit logs and admin controls are exactly what our compliance team needed. Clean UI, zero bloat."</p>
+      <div class="reviewer">James T.</div>
+      <div class="reviewer-role">Engineering Lead · SaaS</div>
+    </div>
+    <div class="testimonial">
+      <div class="stars">★★★★☆</div>
+      <p>"The annual billing made sense once I did the math — saving $48 just by committing for a year. The integrations with Slack and Linear are seamless."</p>
+      <div class="reviewer">Anika R.</div>
+      <div class="reviewer-role">Solo founder</div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ — addresses cancel friction, reinforces commitment framing -->
+<div class="faq">
+  <h2>Common questions</h2>
+  <div class="faq-item">
+    <div class="faq-q">What happens when my trial ends?</div>
+    <!-- trial_language: explicit lock-in language -->
+    <div class="faq-a">Your workspace is locked immediately — you won't be able to access notes, projects, or exports. Upgrading before the trial ends preserves your trial pricing, which is lower than our standard rate.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">Can I cancel the annual plan?</div>
+    <!-- recurring_billing: non-refundable annual commitment disclosed in FAQ, not upfront -->
+    <div class="faq-a">You can cancel at any time to stop renewal. Annual plans are non-refundable for the current billing period. Monthly plans can be cancelled with 30 days notice.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">Is the discount for the first year only?</div>
+    <!-- commitment_escalation: implies price goes up — creates urgency to commit now -->
+    <div class="faq-a">The 40% annual discount applies as long as you stay subscribed. If you cancel and re-subscribe later, standard pricing applies — you won't be able to reclaim the introductory rate.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">Can I switch from monthly to annual later?</div>
+    <div class="faq-a">Yes, but you'll pay the standard annual rate at that time. Upgrading now while you're in your trial locks in the promotional rate.</div>
+  </div>
+</div>
+
+<!-- Footer urgency strip -->
+<div class="footer-cta">
+  <h3>Lock in your trial pricing before it expires</h3>
+  <!-- trial_language: "start your plan" vs "buy" -->
+  <p>Trial pricing ends in 3 days. Monthly billing available, or save 40% with annual.</p>
+  <button class="footer-cta-btn">Start Your Pro Plan</button>
+  <!-- recurring_billing: auto-renew disclosed only in fine print -->
+  <div class="footer-billing">Auto-renews annually · Cancel anytime · Secure payment via Stripe</div>
+</div>
+
+<!-- Demo panel -->
+<div class="demo-panel">
+  <div class="demo-label">Demo Scenario 04</div>
+  <div class="demo-scenario">Subscription Funnel</div>
+  <div class="demo-signals">
+    · trial_language · recurring_billing<br>
+    · commitment_escalation
+  </div>
+  <div class="demo-meta">
+    <div class="demo-meta-row"><span class="demo-meta-key">Event</span><span class="demo-meta-event">subscription_funnel</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">State</span><span class="demo-meta-state">decision_fatigue</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">Mechanic</span><span class="demo-meta-mech">commitment_escalation</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">Tier</span><span class="demo-meta-tier">full card</span></div>
+  </div>
+  <button class="demo-btn" id="trigger-btn" onclick="triggerDemo()">▶ Activate Now</button>
+  <div class="demo-status" id="demo-status"></div>
+</div>
+
+<script>
+  // ── Billing toggle (annual ↔ monthly) ────────────────────────────────────────
+  let isAnnual = true
+
+  function toggleBilling() {
+    isAnnual = !isAnnual
+    const thumb  = document.getElementById('toggle-thumb')
+    const mLabel = document.getElementById('monthly-label')
+    const aLabel = document.getElementById('annual-label')
+    thumb.style.transform = isAnnual ? 'translateX(22px)' : 'translateX(0)'
+    mLabel.className = `toggle-label ${isAnnual ? 'inactive' : 'active'}`
+    aLabel.className = `toggle-label ${isAnnual ? 'active' : 'inactive'}`
+
+    // Update prices — recurring_billing: monthly total vs annual commitment
+    document.getElementById('pro-price').textContent   = isAnnual ? '$8'  : '$13'
+    document.getElementById('team-price').textContent  = isAnnual ? '$16' : '$27'
+    document.getElementById('pro-billing').innerHTML   = isAnnual
+      ? 'Billed annually · <strong>Save $48/year</strong>'
+      : '<span style="color:#d29922">$96 more per year than annual</span>'
+    document.getElementById('team-billing').innerHTML  = isAnnual
+      ? 'Billed annually · <strong>Save $96/seat/year</strong>'
+      : '<span style="color:#d29922">$132 more/seat/year than annual</span>'
+    document.getElementById('pro-cta').textContent     = isAnnual ? 'Upgrade to Pro' : 'Upgrade (monthly)'
+    document.getElementById('pro-note').textContent    = isAnnual
+      ? 'Locks in trial pricing · cancel anytime'
+      : 'Billed monthly · switch to annual to save'
+  }
+
+  // ── Trial countdown — updates banner every minute ────────────────────────────
+  // (visible text "3 days" but could be hours to create more pressure)
+  let trialHours = 72
+  setInterval(() => {
+    trialHours = Math.max(0, trialHours - 1)
+    const el = document.getElementById('trial-days')
+    if (trialHours >= 48) el.textContent = `${Math.ceil(trialHours/24)} days`
+    else if (trialHours >= 1) el.textContent = `${trialHours} hours`
+    else el.textContent = 'less than 1 hour'
+  }, 60000)
+
+  // ── Auto-scroll through pricing options ─────────────────────────────────────
+  let userScrolled = false
+  window.addEventListener('scroll', () => { userScrolled = true }, { once: true })
+
+  setTimeout(() => {
+    if (userScrolled) return
+    const target = document.body.scrollHeight * 0.88
+    const duration = 24000
+    const startTime = performance.now()
+    const startY = window.scrollY
+    function step(now) {
+      const t = Math.min((now - startTime) / duration, 1)
+      const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t
+      window.scrollTo(0, startY + (target - startY) * ease)
+      if (t < 1 && !userScrolled) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }, 2000)
+
+  // ── Demo trigger ─────────────────────────────────────────────────────────────
+  function triggerDemo() {
+    const btn    = document.getElementById('trigger-btn')
+    const status = document.getElementById('demo-status')
+    btn.disabled = true
+    btn.textContent = 'Signal sent…'
+    document.dispatchEvent(new CustomEvent('ca:demo-trigger'))
+    status.textContent = '✓ Signal dispatched to extension'
+    setTimeout(() => {
+      btn.disabled = false
+      btn.textContent = '▶ Activate Now'
+      status.textContent = ''
+    }, 4000)
+  }
+</script>
+</body>
+</html>
