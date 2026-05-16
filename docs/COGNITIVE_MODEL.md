@@ -36,6 +36,16 @@ Open-ended, curiosity-driven browsing. Not compulsive, but not tightly goal-dire
 
 ---
 
+### `passive_consumption`
+
+Drifting, low-engagement scrolling without intent. The user is present but not purposeful — time is passing, content is moving, but there is no goal directing the session. Often a precursor to compulsive loop states when the feed is designed to hold passive attention.
+
+`HEALTH_SCORE = 0.6`. The primary signal is extended session time with low interaction variety and shallow engagement signals. The system holds back (3-minute entry delay, 1.5× cooldown) — passive consumption is not intrinsically harmful, and over-firing here would create friction during normal browsing.
+
+**Key signals:** extended session without scroll velocity spikes, low interaction rate, lack of multi-domain variety, absence of detector signals.
+
+---
+
 ### `compulsive_loop`
 
 Repetitive engagement with a single content stream in a way that resists natural disengagement. The user is scrolling continuously without apparent goal, in a context designed to prevent stopping (infinite feed, autoplay chain, comment thread).
@@ -44,7 +54,7 @@ Repetitive engagement with a single content stream in a way that resists natural
 
 **Key signals:** high scroll velocity, single-domain dwell, feed height growth, autoplay detection, doom-scroll flag, session duration > 15 min.
 
-The `engagement_loop` intervention strategy applies here. Entry delay is 30 seconds (give the user a brief window before the first nudge). Session cap is 4 — after 4 interventions in a session without recovery, the system backs off.
+The `engagement_loop` intervention strategy applies here. Entry delay is 2 minutes (let the state stabilize before the first nudge). Session cap is 3 — after 3 quick-dismissals in a session, the system backs off for that state.
 
 ---
 
@@ -69,18 +79,6 @@ Competing contexts, rapid task-switching, and interrupted workflows. The user is
 **Key signals:** high tab switch velocity, above-average open tab count, rapid_interaction rate across multiple domains, multi-domain session within short window.
 
 Intervention strategy is conservative (1.3× cooldown scale, high entry delay) — fragmented attention states are common and often transient. Over-firing in this state would add to the fragmentation rather than reduce it.
-
----
-
-### `cognitive_fatigue`
-
-Degraded intentionality from extended session duration or late-night browsing. The user has been online long enough that cognitive resources for intentional decision-making are depleted.
-
-`HEALTH_SCORE = 0.4`. This is a latent vulnerability state — the user is more susceptible to manipulation in this state, but the primary intervention is not a nudge about the current page. The appropriate response is to note the session length.
-
-**Key signals:** session duration > 40 min, late-night flag (22:00–04:00 local time), low-confidence scroll continuity (slow, unfocused).
-
-Strategy: highest cooldown scale (1.5×), lowest session cap (1). A single gentle observation about session duration is sufficient; repeated nudging in fatigue state is counterproductive.
 
 ---
 
@@ -112,7 +110,7 @@ When a transition occurs:
 
 A recovery transition is defined as: `(from === 'compulsive_loop' || from === 'emotionally_reactive') && HEALTH_SCORE[to] < HEALTH_SCORE[from]`.
 
-Note the direction: lower health score = worse state. Recovery means moving to a higher HEALTH_SCORE state. This is intentionally strict — moving from `compulsive_loop` to `exploratory_browsing` counts as recovery; moving to `cognitive_fatigue` does not.
+Note the direction: lower health score = worse state. Recovery means moving to a higher HEALTH_SCORE state. This is intentionally strict — moving from `compulsive_loop` to `exploratory_browsing` counts as recovery; moving to `passive_consumption` or `fragmented_attention` does not.
 
 If a recovery transition occurs within 15 minutes of a delivered nudge (`POST_NUDGE_RECOVERY_WINDOW_MS`), it is attributed as `post_nudge_recovery` for evaluation purposes. This is a correlation signal, not a causal attribution.
 

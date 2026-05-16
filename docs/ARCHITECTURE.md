@@ -113,8 +113,8 @@ State scoring uses `HEALTH_SCORE` weights:
 const HEALTH_SCORE: Record<CognitiveState, number> = {
   intentional_browsing:  1.0,
   exploratory_browsing:  0.8,
+  passive_consumption:   0.6,
   decision_fatigue:      0.5,
-  cognitive_fatigue:     0.4,
   fragmented_attention:  0.35,
   compulsive_loop:       0.2,
   emotionally_reactive:  0.1,
@@ -165,21 +165,43 @@ The strategy resolver translates the cognitive state + drift + session history i
 
 | State | Min Confidence | Preferred Tier | Cooldown Scale | Entry Delay | Session Cap |
 |---|---|---|---|---|---|
-| `intentional_browsing` | — | `none` | — | — | 0 |
-| `exploratory_browsing` | 0.65 | `subtle` | 1.2 | 60s | 2 |
-| `compulsive_loop` | 0.55 | `subtle` | 1.0 | 30s | 4 |
-| `emotionally_reactive` | 0.60 | `full` | 1.1 | 45s | 3 |
-| `fragmented_attention` | 0.60 | `subtle` | 1.3 | 90s | 2 |
-| `cognitive_fatigue` | 0.70 | `subtle` | 1.5 | 120s | 1 |
-| `decision_fatigue` | 0.65 | `full` | 1.0 | 60s | 3 |
+| `intentional_browsing` | 0.90 | `none` | 3.0× | — | 1 |
+| `exploratory_browsing` | 0.78 | `subtle` | 2.0× | 5 min | 2 |
+| `passive_consumption` | 0.55 | `subtle` | 1.5× | 3 min | 3 |
+| `compulsive_loop` | 0.60 | `subtle` | 0.70× | 2 min | 3 |
+| `emotionally_reactive` | 0.58 | `full` | 0.65× | 30 s | 2 |
+| `fragmented_attention` | 0.72 | `subtle` | 1.80× | 4 min | 2 |
+| `decision_fatigue` | 0.58 | `full` | 0.85× | 3 min | 3 |
 
-Five dynamic overrides are applied after base strategy:
+Six dynamic overrides are applied in priority order (first matching condition returns early):
 
-1. **Rapid escalation** → `minConfidence -= 0.10`, `preferredTier = 'full'`
-2. **Recovering trajectory** → `preferredTier = 'none'` (unconditional suppression)
-3. **Persistence > 45 min in compulsive/reactive** → `cooldownScale *= 1.8` (deep loop, interventions not working)
-4. **Session cap reached** → `preferredTier = 'none'`
-5. **State responsiveness < 20%** (from user profile) → `cooldownScale *= 1.5` (applied in background/index.ts after strategy resolution)
+1. **Recovering trajectory** → `preferredTier = 'none'`, `cooldownScale *= 2.0` — never interrupt a correction already in progress
+2. **State entry delay active** → `preferredTier = 'none'` — let the new state stabilize before the first nudge
+3. **Session dismissal cap reached** → `preferredTier = 'none'` — user has opted out for this state this session
+4. **Long-term stable compulsive/reactive (> 30 min)** → `cooldownScale *= 2.0`, `preferredTier = 'subtle'` — user has settled; continuing to nudge adds pressure without value
+5. **Rapid escalation** → `cooldownScale *= 0.60` — bring the intervention forward before the state deepens
+6. **State responsiveness < 20%** (from user profile, applied in `background/index.ts`) → `cooldownScale *= 1.5` — user is persistently unreceptive; reduce frequency rather than escalate
+
+### Presence Modulation
+
+**File:** `src/background/presence.ts`
+
+After the dynamic overrides, `resolveStrategy()` applies a final bias layer derived from the user's Angel Presence setting (0.0–1.0, default 0.45). `derivePresence()` converts the slider level into a `PresenceProfile`:
+
+```typescript
+interface PresenceProfile {
+  level:           number      // raw 0–1 value
+  zone:            'quiet' | 'adaptive' | 'attentive'
+  cooldownScale:   number      // 1.5 → 1.0 → 0.5 across the range
+  confidenceDelta: number      // +0.08 → 0.0 → -0.08
+  entryDelayScale: number      // 1.5 → 1.0 → 0.5
+  sessionCapDelta: number      // -1 | 0 | +1 per zone
+}
+```
+
+Zone boundaries: quiet (≤ 0.33), adaptive (0.33–0.66), attentive (≥ 0.67). The returned strategy multiplies cooldowns by `presence.cooldownScale`, clamps `minConfidence ± presence.confidenceDelta`, scales `stateEntryDelayMs` by `presence.entryDelayScale`, and adjusts `sessionDismissalCap` by `presence.sessionCapDelta`.
+
+This is applied as a bias on top of the dynamic overrides, not before them — the recovery/suppression logic always takes precedence.
 
 ---
 

@@ -30,6 +30,8 @@ npm run typecheck  # TypeScript strict check (no build)
 
 After any source edit, click the reload icon on the Angel card at `chrome://extensions`.
 
+**VS Code:** open `angel.code-workspace` and use the **Launch Chrome (Extension)** debug configuration (`F5`). It builds, opens a clean Chrome profile with the extension loaded, and attaches the debugger. The **Full Test: Extension + Demo** configuration also starts the demo server and opens `http://localhost:3001`.
+
 ---
 
 ## High-Value Contribution Areas
@@ -94,12 +96,13 @@ Adding a new state requires updating:
 
 ### 4. Intervention Strategy
 
-**Location:** `src/background/intervention-strategy.ts`
+**Locations:** `src/background/intervention-strategy.ts`, `src/background/presence.ts`
 
-The `STATE_STRATEGY` table defines baseline intervention behavior per cognitive state. `resolveStrategy()` applies 5 dynamic overrides. Contributions here:
+The `STATE_STRATEGY` table defines baseline intervention behavior per cognitive state. `resolveStrategy()` applies 6 dynamic overrides and then a presence bias layer. Contributions here:
 
-- Calibrating the `minConfidence`, `cooldownScale`, and `sessionDismissalCap` values per state based on observed behavior
+- Calibrating the `minConfidence`, `cooldownScale`, `stateEntryDelayMs`, and `sessionDismissalCap` values per state based on observed behavior
 - Adding new override conditions for specific edge cases (e.g., detecting when a user has been in a loop across multiple sessions, not just within one)
+- Adjusting presence zone boundaries or the scaling functions in `derivePresence()` — the three knobs it exposes are `cooldownScale`, `confidenceDelta`, `entryDelayScale`, and `sessionCapDelta`
 
 Changes here directly affect user experience. Test against demo pages and aim for the minimum intervention frequency that still produces recovery transitions.
 

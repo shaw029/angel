@@ -61,10 +61,11 @@ Four principles govern every design decision:
 
 ## Key Features
 
-- **Real-time cognitive state estimation** — 7 distinct states (intentional, exploratory, compulsive loop, emotionally reactive, fragmented attention, cognitive fatigue, decision fatigue) estimated from behavioral signals without any page content analysis
+- **Real-time cognitive state estimation** — 7 distinct states (intentional, exploratory, passive consumption, compulsive loop, emotionally reactive, fragmented attention, decision fatigue) estimated from behavioral signals without any page content analysis
 - **On-device Gemma 4 2B inference** — runs on WebGPU (preferred) or WASM fallback; no API keys, no server, no inference calls leaving the device
 - **Manipulation Interpretation Layer** — mechanic-specific framing templates (urgency, engagement loops, commitment escalation, attention fragmentation, scarcity, social proof) that name what is happening rather than moralizing about it
 - **Adaptive intervention strategy** — per-state strategy matrix with dynamic overrides for drift trajectory, session persistence, and user responsiveness history
+- **Angel Presence** — a 0–1 slider that biases the adaptive system: quiet end extends cooldowns, raises confidence thresholds, and lowers session caps; attentive end does the inverse. The default (0.45) is a conservative adaptive midpoint; the underlying cognitive modeling is unchanged regardless of setting
 - **Longitudinal resilience modeling** — weekly pattern snapshots, EMA-based profile evolution, tolerance/recovery tracking that adapts to individual behavioral rhythms
 - **Evaluation framework** — measures awareness quality (post-nudge recovery rate, reflective engagement depth, recovery acceleration) rather than screen time
 - **Tiered delivery** — subtle pill overlays for low-confidence/compulsive states; full card interventions for high-confidence decision-pressure moments
@@ -130,7 +131,7 @@ flowchart TB
 | **AI Pipeline** | Classifies the event type, compresses session context into a ~50-token state vector. This is the synthesis step — raw signals become a cognitive narrative. |
 | **Cognitive State Estimator** | Maps the compressed context onto the 7-state model using signal weights + EMA smoothing. Runs synchronously — no I/O, deterministic. |
 | **Drift Tracker** | Looks at the state history window to detect trajectories: `stable`, `escalating`, `rapid_escalation`, `recovering`, `volatile`. Determines whether an intervention should soften, skip, or escalate. |
-| **Adaptive Strategy Resolver** | Per-state strategy matrix with 5 dynamic overrides. Decides minimum confidence, preferred tier, cooldown scaling, and whether this state has reached its session cap. |
+| **Adaptive Strategy Resolver** | Per-state strategy matrix with 6 dynamic overrides plus Angel Presence bias. Decides minimum confidence, preferred tier, cooldown scaling, entry delay, and session cap. |
 | **Intervention Gate** | Stacked cooldown multipliers: base × event-type scale × cognitive-state scale × strategy scale × suppression multiplier. Single source of truth for whether a tier is allowed. |
 | **Manipulation Interpreter** | Maps detected mechanics to framing templates. Uses a day-indexed hash (not hour/random) to cycle template slots daily — variety without per-session repetition. |
 | **Gemma** | Generates the intervention text from the state vector + interpretation context. The model is prompted to reason from conclusions, not raw signals, keeping token budgets tight. |
@@ -148,13 +149,12 @@ stateDiagram-v2
     [*] --> intentional_browsing
 
     intentional_browsing --> exploratory_browsing : increased variety
+    exploratory_browsing --> passive_consumption : low engagement drift
     exploratory_browsing --> compulsive_loop : high velocity + depth
     exploratory_browsing --> fragmented_attention : rapid context switching
+    passive_consumption --> compulsive_loop : feed trap
     compulsive_loop --> emotionally_reactive : checkout pressure / urgency
-    compulsive_loop --> cognitive_fatigue : prolonged session
     emotionally_reactive --> compulsive_loop : pressure deferred
-    fragmented_attention --> cognitive_fatigue : sustained fragmentation
-    cognitive_fatigue --> intentional_browsing : session break
     compulsive_loop --> intentional_browsing : recovery transition
     emotionally_reactive --> intentional_browsing : recovery transition
 ```
@@ -163,10 +163,10 @@ stateDiagram-v2
 |---|---|---|
 | `intentional_browsing` | Goal-directed, deliberate | Low dwell variance, bounded scroll, purposeful tab switching |
 | `exploratory_browsing` | Open-ended but not compulsive | Moderate scroll, multiple domains, no doom-scroll velocity |
+| `passive_consumption` | Drifting, low-engagement session | Extended session without depth, low interaction rate, ambient scrolling |
 | `compulsive_loop` | Repetitive, hard-to-disengage pattern | High scroll velocity, single-domain, long session, feed growth |
 | `emotionally_reactive` | Decision-making under manufactured pressure | Countdown timers, urgency language, checkout signals, social proof |
 | `fragmented_attention` | Competing contexts, rapid switching | Tab count, switching velocity, incomplete task patterns |
-| `cognitive_fatigue` | Degraded intentionality from prolonged session | Late-night flag, session length, recovery duration history |
 | `decision_fatigue` | Commitment architecture exploitation | Subscription funnel signals, trial language, annual billing anchoring |
 
 The **Drift Tracker** maintains a rolling window of recent cognitive states to compute a trajectory (`stable` / `escalating` / `rapid_escalation` / `recovering` / `volatile`). A `recovering` trajectory suppresses interventions; `rapid_escalation` lowers confidence thresholds. The tracker prevents the system from firing when the user is already correcting course.
@@ -248,7 +248,9 @@ interface InterventionStrategy {
 }
 ```
 
-Five dynamic overrides: rapid escalation trajectory lowers thresholds; recovering trajectory sets `preferredTier: 'none'`; persistence > 45 min in a compulsive state increases cooldowns; session cap reached disables further firing; state acceptance rate < 20% extends cooldowns by 1.5×.
+Five dynamic overrides: recovering trajectory sets `preferredTier: 'none'` (never interrupt a correction already in progress); state entry delay enforces a stabilization window before the first nudge; session dismissal cap reached disables further firing for that state; persistence > 30 min in a stable compulsive/reactive state backs off (user has settled); rapid escalation shortens cooldowns to bring the intervention forward. Separately, state acceptance rate < 20% (from profile) extends cooldowns by 1.5×.
+
+The **Angel Presence** slider (0.0–1.0) feeds into `resolveStrategy()` as a final bias layer: it scales cooldowns, shifts confidence thresholds, and adjusts entry delays and session caps — without touching the cognitive model or gate logic. Zone boundaries: quiet (≤ 0.33), adaptive (0.33–0.66, default 0.45), attentive (≥ 0.67).
 
 ---
 
@@ -396,6 +398,7 @@ angel/
 │   │   ├── drift.ts          # Trajectory analysis, HEALTH_SCORE table
 │   │   ├── gate.ts           # Cooldown enforcement, tier selection
 │   │   ├── intervention-strategy.ts  # STATE_STRATEGY table, resolveStrategy()
+│   │   ├── presence.ts       # derivePresence() — presence level → PresenceProfile bias
 │   │   └── phrase-cache.ts   # Recent phrase ring buffer
 │   │
 │   ├── content/              # Page observation

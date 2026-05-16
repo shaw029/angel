@@ -169,7 +169,7 @@ The number of nudges shown is shown in the popup as context. It is not framed as
 
 ## Popup Display Philosophy
 
-The `InsightPanel` in the popup shows at most 3 rows of data, chosen from available metrics in priority order. It appears only when there are ≥ 5 interventions on record (below this, users see "Building your awareness picture — a few more sessions and patterns will emerge").
+The `InsightPanel` in the popup shows at most 3 rows of data, chosen from available metrics in priority order. It appears only when there are ≥ 5 interventions on record (below this, users see "Still learning your patterns.").
 
 The framing is observational: "Loop exits after nudge: 68% ↑" — not "Great job!" or "Needs improvement." The numbers are descriptive artifacts that the user can interpret for themselves, not gamification scores.
 
