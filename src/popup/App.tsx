@@ -16,37 +16,44 @@ const STATE_DEFAULTS: Omit<StorageState, 'modelStatus'> = {
 
 
 function ModelStatusBadge({ status }: { status: ModelLoadStatus }) {
-  // Track the highest progress seen so the bar never moves backwards.
+  // Never let the bar go backwards — brief dips happen when a file completes
+  // and leaves the active set while the next large file starts from 0.
   const [displayPct, setDisplayPct] = useState(0)
 
   useEffect(() => {
     if (status.phase === 'downloading') {
-      const incoming = Math.round(status.progress * 100)
-      setDisplayPct(prev => Math.max(prev, incoming))
+      setDisplayPct(prev => Math.max(prev, Math.round(status.progress * 100)))
     }
   }, [status])
 
   if (status.phase === 'idle' || status.phase === 'checking') return null
 
-  if (status.phase === 'downloading' || status.phase === 'loading') {
-    const showPct = status.phase === 'downloading'
+  if (status.phase === 'downloading') {
     return (
       <div className="mt-3">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs text-ink-muted">Setting up your companion…</span>
-          {showPct && (
-            <span className="text-xs tabular-nums text-ink-muted">{displayPct}%</span>
-          )}
+          <span className="text-xs tabular-nums text-ink-muted">{displayPct}%</span>
         </div>
         <div className="h-1 w-full rounded-full bg-neutral-200 overflow-hidden">
-          {showPct ? (
-            <div
-              className="h-full rounded-full bg-sage transition-all duration-700 ease-out"
-              style={{ width: `${displayPct}%` }}
-            />
-          ) : (
-            <div className="absolute h-full w-1/3 rounded-full bg-sage animate-slide" />
-          )}
+          <div
+            className="h-full rounded-full bg-sage transition-all duration-700 ease-out"
+            style={{ width: `${displayPct}%` }}
+          />
+        </div>
+        <p className="mt-1.5 text-[10px] text-ink-muted">
+          This happens once — the model stays on your device.
+        </p>
+      </div>
+    )
+  }
+
+  if (status.phase === 'loading') {
+    return (
+      <div className="mt-3">
+        <span className="text-xs text-ink-muted">Setting up your companion…</span>
+        <div className="mt-1.5 h-1 w-full rounded-full bg-neutral-200 overflow-hidden relative">
+          <div className="absolute h-full w-1/3 rounded-full bg-sage animate-slide" />
         </div>
         <p className="mt-1.5 text-[10px] text-ink-muted">
           This happens once — the model stays on your device.

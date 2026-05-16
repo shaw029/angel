@@ -45,9 +45,12 @@ class GemmaEngine {
   private initPromise: Promise<void> | null = null
   private progressCb: ((s: ModelLoadStatus) => void) | null = null
   private _device: Device = 'wasm'
-  private filesLoaded  = 0
-  private currentFile  = ''
-  private fileProgress = new Map<string, number>()  // per-file 0–1, aggregated for display
+  private filesLoaded   = 0
+  private currentFile   = ''
+  // Byte-weighted progress: tracks only files currently downloading.
+  // Keyed by filename, value is { loaded, total } in bytes.
+  // Files are removed on 'done' so completed ones don't inflate the denominator.
+  private activeBytes = new Map<string, { loaded: number; total: number }>()
 
   get isReady(): boolean { return this.pipe !== null }
   get device(): Device   { return this._device }
@@ -120,20 +123,24 @@ class GemmaEngine {
           const fileName = info.file ?? info.name ?? ''
 
           if (info.status === 'progress' && info.progress !== undefined) {
-            this.fileProgress.set(fileName, (info.progress ?? 0) / 100)
-            const vals = [...this.fileProgress.values()]
-            const aggregate = vals.reduce((s, v) => s + v, 0) / vals.length
-            this.emit({
-              phase: 'downloading',
-              progress: aggregate,
-              file: fileName,
-            })
+            const loaded = info.loaded ?? 0
+            const total  = info.total  ?? 0
+            if (total > 0) {
+              this.activeBytes.set(fileName, { loaded, total })
+            }
+            const vals        = [...this.activeBytes.values()]
+            const totalLoaded = vals.reduce((s, v) => s + v.loaded, 0)
+            const totalBytes  = vals.reduce((s, v) => s + v.total,  0)
+            const progress    = totalBytes > 0
+              ? totalLoaded / totalBytes
+              : (info.progress ?? 0) / 100
+            this.emit({ phase: 'downloading', progress, file: fileName })
           } else if (info.status === 'initiate' || info.status === 'download') {
             if (fileName) this.currentFile = fileName
             this.emit({ phase: 'loading', file: this.currentFile, filesLoaded: this.filesLoaded })
           } else if (info.status === 'done') {
+            this.activeBytes.delete(fileName)
             this.filesLoaded++
-            // Don't update currentFile on done — keep showing the in-progress file
             this.emit({ phase: 'loading', file: this.currentFile, filesLoaded: this.filesLoaded })
           }
         },
