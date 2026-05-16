@@ -3,11 +3,11 @@ import { getState, patchState } from '@storage/index'
 import { ensureOffscreenDocument } from './offscreen'
 import { compress } from '@ai/pipeline'
 import { computeTier, isAnyTierAllowed, afterIntervention, afterDismissal } from './gate'
-import { incrementPattern, getMemorySummary, recordInterventionOutcome, recordSessionEnd, recordStateTransition, recordStateInterventionOutcome, getCognitiveProfile, getStateAcceptanceRate } from '@memory/index'
+import { incrementPattern, getMemorySummary, recordInterventionOutcome, recordSessionEnd, recordStateTransition, recordStateInterventionOutcome, recordReflectiveEngagement, getCognitiveProfile, getStateAcceptanceRate } from '@memory/index'
 import { resolveIntensity } from '@ai/guidance'
 import { getRecentPhrases, recordPhrase } from './phrase-cache'
 import { estimateCognitiveState } from './cognitive-state'
-import { analyzeDrift, driftCooldownScale } from './drift'
+import { analyzeDrift, driftCooldownScale, HEALTH_SCORE } from './drift'
 import { resolveStrategy } from './intervention-strategy'
 import type { RollingCognitiveContext } from './cognitive-state'
 import type { InterventionStrategy } from './intervention-strategy'
@@ -43,6 +43,14 @@ let lastShownCogState: CognitiveState     | null = null
 // Used by resolveStrategy to enforce per-state session caps.
 // Resets naturally when the service worker restarts (new session).
 const sessionQuickDismissalsByState = new Map<CognitiveState, number>()
+
+// Evaluation: timestamp of most recent shown intervention, used to detect
+// post-nudge recovery transitions.
+let lastNudgeAt: number | null = null
+
+// Evaluation thresholds
+const REFLECTIVE_DWELL_MS          = 8_000        // genuine read+reflect threshold
+const POST_NUDGE_RECOVERY_WINDOW_MS = 15 * 60_000  // nudge → recovery attribution window
 
 // Latest model status relayed from offscreen — injected into GET_STATE responses
 let latestModelStatus: ModelLoadStatus = { phase: 'idle' }
@@ -117,6 +125,12 @@ async function dispatch(
         void incrementPattern('interventions_quick_dismissed')
       }
 
+      // Evaluation: reflective engagement = accepted and dwell ≥ 8 s
+      if (accepted && dwellMs >= REFLECTIVE_DWELL_MS) {
+        void incrementPattern('reflective_engagements')
+        void recordReflectiveEngagement(dwellMs)
+      }
+
       // Profile: record tone effectiveness and tolerance signal
       if (lastShownTone) {
         void recordInterventionOutcome(lastShownTone, accepted, quickDismiss)
@@ -189,13 +203,30 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
 
   // Profile: record state transitions for vulnerability + escalation/recovery tracking
   if (cognitiveState.transition) {
+    const t = cognitiveState.transition
     void recordStateTransition(
-      cognitiveState.transition.from,
-      cognitiveState.transition.to,
+      t.from,
+      t.to,
       rawCtx.session_context.minutes_active,
       cognitiveState.durationMs,
       new Date().getHours(),
     )
+
+    // Evaluation: track compulsive and reactive state entries
+    if (t.to === 'compulsive_loop')      void incrementPattern('compulsive_loop_entries')
+    if (t.to === 'emotionally_reactive') void incrementPattern('reactive_entries')
+
+    // Evaluation: track recoveries — and whether a nudge preceded them
+    const isRecovery = (
+      (t.from === 'compulsive_loop' || t.from === 'emotionally_reactive') &&
+      HEALTH_SCORE[t.to] < HEALTH_SCORE[t.from]
+    )
+    if (isRecovery) {
+      void incrementPattern('recovery_transitions')
+      if (lastNudgeAt !== null && Date.now() - lastNudgeAt < POST_NUDGE_RECOVERY_WINDOW_MS) {
+        void incrementPattern('post_nudge_recoveries')
+      }
+    }
   }
 
   // Drift analysis — reads from the updated history, no I/O
@@ -273,9 +304,10 @@ async function onIntervention(intervention: Intervention) {
   // Cache phrase for variety enforcement — fire-and-forget
   void recordPhrase(intervention.message)
 
-  // Track tone and cognitive state so DISMISSED can record outcomes correctly
+  // Track tone, cognitive state, and nudge timestamp so DISMISSED can record outcomes
   lastShownTone     = intervention.tone
   lastShownCogState = pendingCogState ?? null
+  lastNudgeAt       = Date.now()
 
   pendingTabId     = null
   pendingEventType = null

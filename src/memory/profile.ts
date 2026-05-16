@@ -45,6 +45,11 @@ export interface CognitiveProfile {
   // Per-state intervention outcome tracking — accumulates over sessions.
   // Optional: absent in pre-existing profiles, populated on first outcome write.
   stateStats?: Partial<Record<CognitiveState, CogStateStats>>
+
+  // EMA of dwell time (ms) on accepted interventions.
+  // Captures whether nudges are being genuinely read vs reflexively clicked.
+  // null until first accepted intervention.
+  reflectiveDwellEma: number | null
 }
 
 // ─── EMA parameters ───────────────────────────────────────────────────────────
@@ -55,6 +60,7 @@ export interface CognitiveProfile {
 const ALPHA_VULN       = 0.08
 const ALPHA_ESCALATION = 0.20
 const ALPHA_RECOVERY   = 0.20
+const ALPHA_DWELL      = 0.15   // medium inertia — session-level signal
 
 const TOLERANCE_DROP     = 0.12   // per quick-dismiss event
 const TOLERANCE_RECOVERY = 0.03   // per session end (natural recovery)
@@ -82,6 +88,7 @@ function blank(): CognitiveProfile {
     toleranceLevel:          1.0,
     escalationDepthMinutes:  null,
     recoveryDurationMinutes: null,
+    reflectiveDwellEma:      null,
   }
 }
 
@@ -201,6 +208,18 @@ export async function recordStateTransition(
         ? recovMin
         : ema(p.recoveryDurationMinutes, recovMin, ALPHA_RECOVERY)
     }
+  })
+}
+
+/**
+ * Called when the user accepts an intervention and dwells ≥ REFLECTIVE threshold.
+ * Tracks whether nudges are being genuinely engaged with over time.
+ */
+export async function recordReflectiveEngagement(dwellMs: number): Promise<void> {
+  await mutate(p => {
+    p.reflectiveDwellEma = p.reflectiveDwellEma === null
+      ? dwellMs
+      : ema(p.reflectiveDwellEma, dwellMs, ALPHA_DWELL)
   })
 }
 

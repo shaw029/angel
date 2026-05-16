@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { StorageState, ModelLoadStatus } from '@shared/types'
+import type { StorageState, ModelLoadStatus, EvaluationMetrics, TrendDirection } from '@shared/types'
 import { MSG, COOLDOWN_DEFAULT_MINUTES } from '@shared/constants'
+import { getEvaluationMetrics } from '@memory/evaluation'
 
 const STATE_DEFAULTS: Omit<StorageState, 'modelStatus'> = {
   enabled:                true,
@@ -91,9 +92,115 @@ function ModelStatusBadge({ status }: { status: ModelLoadStatus }) {
   return null
 }
 
+// ─── Insight panel ────────────────────────────────────────────────────────────
+// Observational, non-gamified. Shows what's been building, not a score.
+
+function trendLabel(dir: TrendDirection): string {
+  if (dir === 'improving')         return '↑'
+  if (dir === 'needs_attention')   return '↓'
+  if (dir === 'stable')            return '→'
+  return ''
+}
+
+function trendColor(dir: TrendDirection): string {
+  if (dir === 'improving')       return 'text-sage'
+  if (dir === 'needs_attention') return 'text-amber-400'
+  return 'text-ink-muted'
+}
+
+interface InsightRow {
+  label: string
+  value: string
+  trend?: TrendDirection
+}
+
+function buildInsightRows(m: EvaluationMetrics): InsightRow[] {
+  const rows: InsightRow[] = []
+
+  if (m.postNudgeRecoveryRate !== null) {
+    const pct = Math.round(m.postNudgeRecoveryRate * 100)
+    rows.push({
+      label: 'Loop exits after nudge',
+      value: `${pct}%`,
+      trend: m.recoveryTrend,
+    })
+  }
+
+  if (m.reflectiveEngagementRate !== null) {
+    const pct = Math.round(m.reflectiveEngagementRate * 100)
+    rows.push({
+      label: 'Nudges with reflection',
+      value: `${pct}%`,
+      trend: m.engagementTrend,
+    })
+  }
+
+  if (m.recoveryDurationMinutes !== null) {
+    rows.push({
+      label: 'Avg loop recovery',
+      value: `${Math.round(m.recoveryDurationMinutes)} min`,
+      trend: m.recoveryTrend,
+    })
+  }
+
+  if (m.awarenessBuilding && m.escalationDepthMinutes !== null) {
+    rows.push({
+      label: 'Catching loops at',
+      value: `${Math.round(m.escalationDepthMinutes)} min in`,
+    })
+  }
+
+  return rows.slice(0, 3)
+}
+
+function InsightPanel({ metrics }: { metrics: EvaluationMetrics }) {
+  const hasData = metrics.totalInterventions >= 5
+
+  if (!hasData) {
+    return (
+      <div className="mt-4 pt-3 border-t border-neutral-100">
+        <p className="text-[11px] text-ink-muted leading-relaxed">
+          Building your awareness picture — a few more sessions and patterns will emerge.
+        </p>
+      </div>
+    )
+  }
+
+  const rows = buildInsightRows(metrics)
+  if (rows.length === 0) return null
+
+  const weekLabel = metrics.weeksActive > 0
+    ? `${metrics.weeksActive} week${metrics.weeksActive !== 1 ? 's' : ''}`
+    : 'This session'
+
+  return (
+    <div className="mt-4 pt-3 border-t border-neutral-100">
+      <p className="text-[10px] text-ink-muted mb-2">{weekLabel} of awareness data</p>
+      <div className="space-y-1.5">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between">
+            <span className="text-[11px] text-ink-muted">{row.label}</span>
+            <span className="flex items-center gap-1">
+              <span className="text-[11px] font-medium text-ink-secondary">{row.value}</span>
+              {row.trend && row.trend !== 'insufficient_data' && (
+                <span className={`text-[10px] font-medium ${trendColor(row.trend)}`}>
+                  {trendLabel(row.trend)}
+                </span>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── App ──────────────────────────────────────────────────────────────────────
+
 export function App() {
   const [state,       setState      ] = useState<Omit<StorageState, 'modelStatus'> | null>(null)
   const [modelStatus, setModelStatus] = useState<ModelLoadStatus>({ phase: 'idle' })
+  const [metrics,     setMetrics    ] = useState<EvaluationMetrics | null>(null)
 
   // Read state directly from storage — no service worker round-trip needed
   useEffect(() => {
@@ -103,6 +210,8 @@ export function App() {
     chrome.storage.session.get('modelStatus', (result) => {
       if (result.modelStatus) setModelStatus(result.modelStatus as ModelLoadStatus)
     })
+    // Evaluation metrics — read from IDB directly (same extension origin)
+    getEvaluationMetrics().then(setMetrics).catch(() => null)
   }, [])
 
   // Live model progress — two sources so we never miss an update:
@@ -150,7 +259,7 @@ export function App() {
   return (
     <div className="w-60 p-5 bg-surface font-sans">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-ink-primary">Cognitive Assistant</span>
+        <span className="text-sm font-medium text-ink-primary">Angel</span>
         <button
           onClick={toggle}
           role="switch"
@@ -178,6 +287,8 @@ export function App() {
           {state.interventionCount} nudge{state.interventionCount !== 1 ? 's' : ''} offered
         </p>
       )}
+
+      {metrics && <InsightPanel metrics={metrics} />}
 
       <ModelStatusBadge status={modelStatus} />
     </div>

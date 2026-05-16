@@ -254,6 +254,61 @@ export interface CognitiveStateEstimate {
   durationMs: number                                    // ms in current state
 }
 
+// ─── Evaluation framework ────────────────────────────────────────────────────
+// All metrics are local-only, aggregated, and privacy-preserving.
+// No URLs, content, or raw event streams — only derived behavioral statistics.
+
+export type TrendDirection =
+  | 'improving'          // metric is trending better over last 2 weekly periods
+  | 'stable'             // metric is roughly flat
+  | 'needs_attention'    // metric trending worse — not alarming, just informational
+  | 'insufficient_data'  // fewer than 2 comparable periods
+
+export interface WeeklyTrendSnapshot {
+  week:                  string   // ISO 8601: '2025-W18'
+  compulsiveEntries:     number   // transitions into compulsive_loop
+  reactiveEntries:       number   // transitions into emotionally_reactive
+  recoveryTransitions:   number   // exiting compulsive/reactive → healthier state
+  postNudgeRecoveries:   number   // subset: recovery within 15 min of a nudge
+  reflectiveEngagements: number   // accepted interventions with dwell ≥ 8 s
+  interventionsShown:    number
+}
+
+export interface EvaluationMetrics {
+  // ── Raw availability ──
+  weeksActive:        number
+  totalInterventions: number
+  acceptanceRate:     number   // 0–1, always available
+
+  // ── Engagement quality ──────────────────────────────────────────────────
+  // % accepted interventions where dwell ≥ 8 s (genuine read + reflection)
+  reflectiveEngagementRate: number | null
+
+  // ── Loop interruption ────────────────────────────────────────────────────
+  // % compulsive-state interventions followed by recovery within 15 min
+  postNudgeRecoveryRate: number | null
+
+  // ── Recovery speed (EMA) — lower = faster, better ───────────────────────
+  recoveryDurationMinutes: number | null
+
+  // ── Escalation awareness (EMA) — higher = catching loops earlier, better ─
+  escalationDepthMinutes: number | null
+
+  // ── Persistent engagement health ─────────────────────────────────────────
+  // 1.0 = never fatigued; drops on quick-dismiss bursts
+  toleranceLevel: number
+
+  // ── Computed trend directions (for UI and demo) ───────────────────────────
+  recoveryTrend:   TrendDirection   // based on recovery_transitions weekly delta
+  engagementTrend: TrendDirection   // based on reflective_engagements weekly delta
+
+  // True if escalationDepthMinutes EMA is trending upward (later in session)
+  awarenessBuilding: boolean
+
+  // ── Longitudinal data (last 8 weeks, oldest first) ────────────────────────
+  weeklyTrends: WeeklyTrendSnapshot[]
+}
+
 export interface CompressedContext {
   event_type:      EventType
   signals:         SignalLabel[]

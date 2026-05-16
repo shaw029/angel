@@ -13,6 +13,7 @@ export {
   recordSessionEnd,
   recordStateTransition,
   recordStateInterventionOutcome,
+  recordReflectiveEngagement,
   getStateAcceptanceRate,
 } from './profile'
 
@@ -30,6 +31,12 @@ export type PatternKey =
   | 'interventions_shown'             // total interventions delivered
   | 'interventions_accepted'          // action button clicked
   | 'interventions_quick_dismissed'   // dismissed in < 3 s
+  // ── Evaluation metrics (accumulated, snapshotted weekly) ──────────────────
+  | 'compulsive_loop_entries'         // transitions into compulsive_loop
+  | 'reactive_entries'                // transitions into emotionally_reactive
+  | 'recovery_transitions'            // exiting compulsive/reactive → healthier state
+  | 'post_nudge_recoveries'           // subset: recovery within 15 min of a nudge
+  | 'reflective_engagements'          // accepted interventions with dwell ≥ 8 s
 
 // Patterns that represent browsing behavior (used for dominant_pattern in summary)
 const BEHAVIORAL_PATTERNS: readonly PatternKey[] = [
