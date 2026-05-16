@@ -12,6 +12,8 @@ export {
   recordInterventionOutcome,
   recordSessionEnd,
   recordStateTransition,
+  recordStateInterventionOutcome,
+  getStateAcceptanceRate,
 } from './profile'
 
 // ─── Pattern keys ─────────────────────────────────────────────────────────────

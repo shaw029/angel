@@ -1,4 +1,5 @@
 import type { StorageState, DismissalRecord, InterventionTier, EventType, CognitiveState } from '@shared/types'
+import type { InterventionStrategy } from './intervention-strategy'
 import { GATE } from '@shared/constants'
 
 // ─── Event-type cooldown scaling ──────────────────────────────────────────────
@@ -15,6 +16,7 @@ const EVENT_COOLDOWN_SCALE: Partial<Record<EventType, number>> = {
 // ─── Cognitive-state cooldown scaling ─────────────────────────────────────────
 // Applied on top of event-type scaling. Compulsive/reactive states warrant
 // faster response; intentional/fragmented states warrant backing off.
+// Strategy cooldowns (from intervention-strategy.ts) stack on top of these.
 
 const COGNITIVE_COOLDOWN_SCALE: Partial<Record<CognitiveState, number>> = {
   compulsive_loop:      0.6,   // can't stop — intervene sooner
@@ -35,16 +37,17 @@ function cooldownScale(eventType: EventType | undefined, cogState?: CognitiveSta
 /**
  * Returns what tier of intervention (if any) is permitted right now.
  *
- * Decision logic:
- *  1. confidence < 0.5          → none (below minimum threshold)
- *  2. within subtle cooldown    → none (all tiers share this minimum gap)
- *  3. confidence ≥ 0.8 AND full cooldown elapsed → full
- *  4. otherwise                 → subtle
- *     (this covers: 0.5–0.8 range, OR high-confidence inside full cooldown window)
+ * Decision logic (evaluated in order):
+ *  1. confidence < strategy.minConfidence     → none
+ *  2. strategy.preferredTier === 'none'       → none (state-level suppression)
+ *  3. within subtle cooldown                  → none
+ *  4. strategy.preferredTier === 'subtle'     → subtle (caps full-card promotions)
+ *  5. strategy prefers full OR confidence ≥ 0.8, and full cooldown elapsed → full
+ *  6. otherwise                               → subtle
  *
- * High-confidence detections that arrive inside the full-card window are
- * downgraded to subtle rather than suppressed entirely. This preserves signal
- * without spamming the user.
+ * The strategy cooldownScale stacks with event-type and cognitive-state scales.
+ * High-confidence detections inside the full-card window are downgraded to
+ * subtle rather than suppressed — preserves signal without spamming.
  */
 export function computeTier(
   confidence:   number,
@@ -52,23 +55,33 @@ export function computeTier(
   now:          number = Date.now(),
   eventType?:   EventType,
   cogState?:    CognitiveState,
+  strategy?:    InterventionStrategy,
 ): InterventionTier {
-  if (confidence < 0.5) return 'none'
+  const minConf = strategy?.minConfidence ?? 0.50
+  if (confidence < minConf) return 'none'
 
-  const multiplier     = (state.suppressionMultiplier ?? 1.0) * cooldownScale(eventType, cogState)
+  // State-level suppression (recovery, entry delay, session cap)
+  if (strategy?.preferredTier === 'none') return 'none'
+
+  const multiplier = (state.suppressionMultiplier ?? 1.0)
+    * cooldownScale(eventType, cogState)
+    * (strategy?.cooldownScale ?? 1.0)
+
   const subtleCooldown = GATE.SUBTLE_COOLDOWN_MS * multiplier
   const fullCooldown   = GATE.FULL_COOLDOWN_MS   * multiplier
 
-  // Most-recent intervention of any tier sets the minimum gap
   const lastAny = Math.max(
     state.lastFullIntervention   ?? 0,
     state.lastSubtleIntervention ?? 0,
   )
   if (now - lastAny < subtleCooldown) return 'none'
 
-  if (confidence >= 0.8 && now - (state.lastFullIntervention ?? 0) >= fullCooldown) {
-    return 'full'
-  }
+  // Strategy caps tier at subtle (low-footprint states: passive, compulsive, fragmented)
+  if (strategy?.preferredTier === 'subtle') return 'subtle'
+
+  // Full-tier attempt: strategy prefers full OR high-confidence default
+  const wantsFull = strategy?.preferredTier === 'full' || confidence >= 0.8
+  if (wantsFull && now - (state.lastFullIntervention ?? 0) >= fullCooldown) return 'full'
 
   return 'subtle'
 }
@@ -82,8 +95,15 @@ export function isAnyTierAllowed(
   now:        number = Date.now(),
   eventType?: EventType,
   cogState?:  CognitiveState,
+  strategy?:  InterventionStrategy,
 ): boolean {
-  const multiplier     = (state.suppressionMultiplier ?? 1.0) * cooldownScale(eventType, cogState)
+  // State-level suppression check — no need to compute cooldowns
+  if (strategy?.preferredTier === 'none') return false
+
+  const multiplier = (state.suppressionMultiplier ?? 1.0)
+    * cooldownScale(eventType, cogState)
+    * (strategy?.cooldownScale ?? 1.0)
+
   const subtleCooldown = GATE.SUBTLE_COOLDOWN_MS * multiplier
   const lastAny = Math.max(
     state.lastFullIntervention   ?? 0,

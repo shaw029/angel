@@ -10,6 +10,11 @@ interface StyleStats {
   accepted: number
 }
 
+interface CogStateStats {
+  shown:    number
+  accepted: number
+}
+
 export interface CognitiveProfile {
   id:           typeof PROFILE_KEY
   version:      1
@@ -36,6 +41,10 @@ export interface CognitiveProfile {
   // EMA of minutes spent in compulsive_loop before transitioning to a healthier state.
   // null until MIN_FOR_RECOVERY observations.
   recoveryDurationMinutes: number | null
+
+  // Per-state intervention outcome tracking — accumulates over sessions.
+  // Optional: absent in pre-existing profiles, populated on first outcome write.
+  stateStats?: Partial<Record<CognitiveState, CogStateStats>>
 }
 
 // ─── EMA parameters ───────────────────────────────────────────────────────────
@@ -54,6 +63,7 @@ const TOLERANCE_RECOVERY = 0.03   // per session end (natural recovery)
 const MIN_FOR_STYLE         = 5
 const MIN_FOR_VULNERABILITY = 15
 const MIN_FOR_ESCALATION    = 8
+const MIN_FOR_STATE_RATE    = 5   // min shows before per-state acceptance rate is returned
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -194,6 +204,38 @@ export async function recordStateTransition(
   })
 }
 
+/**
+ * Records the outcome of an intervention shown while in a specific cognitive state.
+ * Builds a per-state responsiveness model used by the gate to personalize timing.
+ */
+export async function recordStateInterventionOutcome(
+  state:        CognitiveState,
+  accepted:     boolean,
+  _quickDismiss: boolean,
+): Promise<void> {
+  await mutate(p => {
+    if (!p.stateStats) p.stateStats = {}
+    const ss = p.stateStats[state] ?? { shown: 0, accepted: 0 }
+    ss.shown++
+    if (accepted) ss.accepted++
+    p.stateStats[state] = ss
+  })
+}
+
+/**
+ * Returns the per-state acceptance rate for use in gate cooldown adjustment.
+ * Returns null if fewer than minShown interventions have been shown in this state.
+ */
+export function getStateAcceptanceRate(
+  profile:  CognitiveProfile,
+  state:    CognitiveState,
+  minShown: number = MIN_FOR_STATE_RATE,
+): number | null {
+  const ss = profile.stateStats?.[state]
+  if (!ss || ss.shown < minShown) return null
+  return ss.accepted / ss.shown
+}
+
 // ─── Internal ─────────────────────────────────────────────────────────────────
 
 function ema(prev: number, obs: number, alpha: number): number {
@@ -204,8 +246,12 @@ async function mutate(fn: (p: CognitiveProfile) => void): Promise<void> {
   try {
     const db     = await openMemoryDB()
     const stored = await dbGet<CognitiveProfile>(db, STORE.COGNITIVE_PROFILE, PROFILE_KEY)
-    const p      = stored
-      ? { ...stored, styleStats: { ...stored.styleStats } }
+    const p: CognitiveProfile = stored
+      ? {
+          ...stored,
+          styleStats: { ...stored.styleStats },
+          stateStats: stored.stateStats ? { ...stored.stateStats } : undefined,
+        }
       : blank()
     p.updatedAt = Date.now()
     fn(p)

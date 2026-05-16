@@ -3,18 +3,21 @@ import { getState, patchState } from '@storage/index'
 import { ensureOffscreenDocument } from './offscreen'
 import { compress } from '@ai/pipeline'
 import { computeTier, isAnyTierAllowed, afterIntervention, afterDismissal } from './gate'
-import { incrementPattern, getMemorySummary, recordInterventionOutcome, recordSessionEnd, recordStateTransition } from '@memory/index'
+import { incrementPattern, getMemorySummary, recordInterventionOutcome, recordSessionEnd, recordStateTransition, recordStateInterventionOutcome, getCognitiveProfile, getStateAcceptanceRate } from '@memory/index'
 import { resolveIntensity } from '@ai/guidance'
 import { getRecentPhrases, recordPhrase } from './phrase-cache'
 import { estimateCognitiveState } from './cognitive-state'
 import { analyzeDrift, driftCooldownScale } from './drift'
+import { resolveStrategy } from './intervention-strategy'
 import type { RollingCognitiveContext } from './cognitive-state'
+import type { InterventionStrategy } from './intervention-strategy'
 import type { PatternKey } from '@memory/index'
 import type { Message } from '@shared/messages'
 import { MSG, GATE } from '@shared/constants'
 import type {
   BrowsingSignal,
   BehavioralEvent,
+  CognitiveState,
   DetectionResult,
   ModelLoadStatus,
   Intervention,
@@ -30,9 +33,16 @@ chrome.runtime.onInstalled.addListener(() => void ensureOffscreenDocument())
 chrome.runtime.onStartup.addListener(()   => void ensureOffscreenDocument())
 
 // Track which tab triggered an AI inference so the intervention routes back correctly
-let pendingTabId:     number           | null = null
-let pendingEventType: EventType        | null = null
-let lastShownTone:    InterventionStyle | null = null  // tone of most recently shown intervention
+let pendingTabId:      number             | null = null
+let pendingEventType:  EventType          | null = null
+let pendingStrategy:   InterventionStrategy | null = null
+let lastShownTone:     InterventionStyle  | null = null
+let lastShownCogState: CognitiveState     | null = null
+
+// Session-scoped quick-dismissal counter per cognitive state.
+// Used by resolveStrategy to enforce per-state session caps.
+// Resets naturally when the service worker restarts (new session).
+const sessionQuickDismissalsByState = new Map<CognitiveState, number>()
 
 // Latest model status relayed from offscreen — injected into GET_STATE responses
 let latestModelStatus: ModelLoadStatus = { phase: 'idle' }
@@ -111,6 +121,17 @@ async function dispatch(
       if (lastShownTone) {
         void recordInterventionOutcome(lastShownTone, accepted, quickDismiss)
       }
+
+      // Profile: record per-state responsiveness for adaptive suppression
+      if (lastShownCogState) {
+        void recordStateInterventionOutcome(lastShownCogState, accepted, quickDismiss)
+
+        // Session cap: track quick-dismissals per state in-memory
+        if (quickDismiss) {
+          const prev = sessionQuickDismissalsByState.get(lastShownCogState) ?? 0
+          sessionQuickDismissalsByState.set(lastShownCogState, prev + 1)
+        }
+      }
       break
     }
 
@@ -178,15 +199,24 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
   }
 
   // Drift analysis — reads from the updated history, no I/O
-  const drift       = analyzeDrift(cognitiveState.state, nextCogCtx.history)
-  const driftScale  = driftCooldownScale(drift)
+  const drift      = analyzeDrift(cognitiveState.state, nextCogCtx.history)
+  const driftScale = driftCooldownScale(drift)
 
   // Apply drift-based cooldown adjustment alongside existing suppression
   const adjustedState = driftScale !== 1.0
     ? { ...state, suppressionMultiplier: (state.suppressionMultiplier ?? 1.0) * driftScale }
     : state
 
-  if (!isAnyTierAllowed(adjustedState, Date.now(), rawCtx.event_type, cognitiveState.state)) return
+  // Resolve intervention strategy for current state, trajectory, and session history
+  const sessionDismissals = sessionQuickDismissalsByState.get(cognitiveState.state) ?? 0
+  let strategy = resolveStrategy(
+    cognitiveState.state,
+    drift,
+    cognitiveState.durationMs,
+    sessionDismissals,
+  )
+
+  if (!isAnyTierAllowed(adjustedState, Date.now(), rawCtx.event_type, cognitiveState.state, strategy)) return
 
   // Record behavioral patterns — fire-and-forget, non-critical
   void recordPatterns(rawCtx)
@@ -196,10 +226,19 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
   const intensity     = resolveIntensity(rawCtx.event_type, memory)
   const recentPhrases = await getRecentPhrases()
 
+  // Responsiveness modifier: if this user rarely engages during this cognitive state,
+  // extend cooldowns further rather than continuing to fire unproductive interventions.
+  const profile         = await getCognitiveProfile().catch(() => null)
+  const stateAcceptance = profile ? getStateAcceptanceRate(profile, cognitiveState.state) : null
+  if (stateAcceptance !== null && stateAcceptance < 0.20) {
+    strategy = { ...strategy, cooldownScale: strategy.cooldownScale * 1.5 }
+  }
+
   const ctx: CompressedContext = { ...rawCtx, memory, intensity, recentPhrases, cognitiveState, drift }
 
   pendingTabId     = tabId
   pendingEventType = rawCtx.event_type
+  pendingStrategy  = strategy
   await ensureOffscreenDocument()
   chrome.runtime.sendMessage({ type: MSG.AI_CONTEXT, payload: ctx })
 }
@@ -207,13 +246,21 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
 async function onIntervention(intervention: Intervention) {
   if (pendingTabId === null) return
 
-  const state = await getState()
+  const state         = await getState()
   const pendingCogState = pendingTabId !== null ? tabCognitiveContext.get(pendingTabId)?.state : undefined
-  const tier  = computeTier(intervention.confidence, state, Date.now(), pendingEventType ?? undefined, pendingCogState)
+  const tier          = computeTier(
+    intervention.confidence,
+    state,
+    Date.now(),
+    pendingEventType ?? undefined,
+    pendingCogState,
+    pendingStrategy ?? undefined,
+  )
 
   if (tier === 'none') {
     pendingTabId     = null
     pendingEventType = null
+    pendingStrategy  = null
     return
   }
 
@@ -226,11 +273,13 @@ async function onIntervention(intervention: Intervention) {
   // Cache phrase for variety enforcement — fire-and-forget
   void recordPhrase(intervention.message)
 
-  // Track tone so DISMISSED can record outcome against correct style
-  lastShownTone = intervention.tone
+  // Track tone and cognitive state so DISMISSED can record outcomes correctly
+  lastShownTone     = intervention.tone
+  lastShownCogState = pendingCogState ?? null
 
   pendingTabId     = null
   pendingEventType = null
+  pendingStrategy  = null
 }
 
 // ─── Pattern recording ────────────────────────────────────────────────────────
