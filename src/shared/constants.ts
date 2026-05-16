@@ -1,5 +1,5 @@
 export const HEURISTIC = {
-  IDLE_THRESHOLD_S: 120,
+  IDLE_THRESHOLD_S: 60,           // was 120 — 1 min passive reading/watching is enough signal
   TAB_SWITCH_THRESHOLD: 8,
   MIN_PAGE_TIME_S: 30,
   EXCESSIVE_SCROLL_DEPTH: 0.6,

@@ -284,9 +284,10 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
 async function onIntervention(intervention: Intervention) {
   if (pendingTabId === null) return
 
-  const state         = await getState()
-  const pendingCogState = pendingTabId !== null ? tabCognitiveContext.get(pendingTabId)?.state : undefined
-  const tier          = computeTier(
+  const state           = await getState()
+  const pendingCogState = tabCognitiveContext.get(pendingTabId)?.state
+
+  const tier = computeTier(
     intervention.confidence,
     state,
     Date.now(),
@@ -295,30 +296,32 @@ async function onIntervention(intervention: Intervention) {
     pendingStrategy ?? undefined,
   )
 
-  if (tier === 'none') {
-    pendingTabId     = null
-    pendingEventType = null
-    pendingStrategy  = null
-    return
-  }
+  // Capture and clear pending state before any async work so future signals aren't blocked
+  const targetTabId = pendingTabId
+  pendingTabId      = null
+  pendingEventType  = null
+  pendingStrategy   = null
 
-  await patchState(afterIntervention(tier, state))
-  void incrementPattern('interventions_shown')
+  if (tier === 'none') return
 
   const tiered: Intervention = { ...intervention, tier }
-  chrome.tabs.sendMessage(pendingTabId, { type: MSG.INTERVENTION, payload: tiered })
 
-  // Cache phrase for variety enforcement — fire-and-forget
+  // Attempt delivery first — only update cooldowns/count if the tab still exists.
+  // Without this, a closed tab burns cooldown budget with no nudge shown.
+  try {
+    await chrome.tabs.sendMessage(targetTabId, { type: MSG.INTERVENTION, payload: tiered })
+  } catch {
+    return  // Tab closed or content script disconnected — skip state update
+  }
+
+  // Delivery succeeded — record state, patterns, and tracking metadata
+  await patchState(afterIntervention(tier, state))
+  void incrementPattern('interventions_shown')
   void recordPhrase(intervention.message)
 
-  // Track tone, cognitive state, and nudge timestamp so DISMISSED can record outcomes
   lastShownTone     = intervention.tone
   lastShownCogState = pendingCogState ?? null
   lastNudgeAt       = Date.now()
-
-  pendingTabId     = null
-  pendingEventType = null
-  pendingStrategy  = null
 }
 
 // ─── Pattern recording ────────────────────────────────────────────────────────
