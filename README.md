@@ -438,6 +438,17 @@ angel/
 
 ---
 
+## Documentation
+
+| Document | Description |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layer-by-layer technical deep-dive: all 9 execution layers, data flow, performance characteristics, and extension lifecycle |
+| [docs/COGNITIVE_MODEL.md](docs/COGNITIVE_MODEL.md) | The 7-state cognitive model, drift tracking, HEALTH_SCORE table, user profile structure, and weekly snapshot design |
+| [docs/EVALUATION.md](docs/EVALUATION.md) | Measurement philosophy, all five core metrics (post-nudge recovery, reflective engagement, escalation depth, awareness building), and what Angel explicitly does not measure |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Setup instructions, high-value contribution areas (detectors, templates, cognitive model, strategy, evaluation), code conventions, and privacy invariants |
+
+---
+
 ## Development Setup
 
 **Requirements:** Node 18+, Chrome 116+, ~4 GB free disk space
