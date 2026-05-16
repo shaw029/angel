@@ -104,15 +104,22 @@ export function Hero({ onInstall }: HeroProps) {
         </motion.div>
       </div>
 
-      {/* Browser popup mockup */}
+      {/* Mockups — popup + nudge card */}
       <motion.div
-        className="relative z-10 mt-20 w-full max-w-xs mx-auto"
+        className="relative z-10 mt-20 w-full max-w-2xl mx-auto grid grid-cols-1 gap-5 sm:grid-cols-2 items-start"
         variants={fadeUp}
         initial="hidden"
         animate="visible"
         custom={0.65}
       >
-        <PopupMockup />
+        <div className="flex flex-col gap-2">
+          <p className="text-center text-[10px] tracking-widest uppercase text-ink-faint">Extension popup</p>
+          <PopupMockup />
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-center text-[10px] tracking-widest uppercase text-ink-faint">In-page nudge</p>
+          <NudgeMockup />
+        </div>
       </motion.div>
 
       {/* Scroll hint */}
@@ -176,9 +183,9 @@ function PopupMockup() {
         <div className="mt-3 pt-3 border-t border-border/60">
           <p className="text-[10px] text-ink-muted mb-2">2 weeks of awareness data</p>
           <div className="space-y-1.5">
-            <MetricRow label="Loop exits after nudge" value="64%" up />
-            <MetricRow label="Nudges with reflection" value="48%" up />
-            <MetricRow label="Avg loop recovery" value="11 min" />
+            <MetricRow label="Stepped away after nudge" value="64%" up />
+            <MetricRow label="Paused to reflect" value="48%" up />
+            <MetricRow label="Avg time to recover" value="11 min" />
           </div>
         </div>
 
@@ -211,6 +218,55 @@ function MetricRow({ label, value, up }: { label: string; value: string; up?: bo
         <span className="text-[11px] font-medium text-ink-secondary">{value}</span>
         {up && <span className="text-[10px] font-medium text-sage">↑</span>}
       </span>
+    </div>
+  )
+}
+
+function NudgeMockup() {
+  return (
+    <div className="rounded-2xl bg-white/90 backdrop-blur-sm shadow-2xl shadow-ink-primary/8 border border-border/60 overflow-hidden">
+      {/* Simulated page content behind nudge */}
+      <div className="bg-neutral-50 px-5 py-4 border-b border-border/40">
+        <div className="space-y-2">
+          <div className="h-2 w-3/4 rounded-full bg-neutral-200" />
+          <div className="h-2 w-full rounded-full bg-neutral-200" />
+          <div className="h-2 w-5/6 rounded-full bg-neutral-200" />
+          <div className="h-2 w-2/3 rounded-full bg-neutral-200" />
+        </div>
+      </div>
+
+      {/* Nudge card */}
+      <div className="p-5">
+        {/* Tag */}
+        <div className="mb-3 flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-sage" />
+          <span className="text-[10px] font-medium tracking-wide text-ink-muted">Angel</span>
+        </div>
+
+        {/* Mechanic observation */}
+        <p className="text-[11px] leading-relaxed text-ink-muted italic mb-3">
+          "This feed is designed to feel like it never ends."
+        </p>
+
+        <div className="h-px bg-border/60 mb-3" />
+
+        {/* Reflective message */}
+        <p className="text-sm font-medium leading-relaxed text-ink-primary mb-4">
+          You've been scrolling for a while. What were you actually looking for?
+        </p>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <button className="flex-1 rounded-full bg-sage px-4 py-2 text-xs font-medium text-white">
+            Take a moment
+          </button>
+          <button className="h-8 w-8 rounded-full border border-border flex items-center justify-center text-ink-muted">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

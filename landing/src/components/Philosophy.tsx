@@ -119,7 +119,7 @@ export function Philosophy() {
           viewport={{ once: true }}
           variants={fadeUp}
         >
-          Designed around autonomy-supportive intervention theory (Deci & Ryan), dark pattern research (Mathur et al.), and the documented failure modes of restriction-based digital wellbeing tools (Lyngs et al.).
+          Grounded in research on digital wellbeing, persuasive technology, and autonomy-supportive design.
         </motion.p>
       </div>
     </section>
