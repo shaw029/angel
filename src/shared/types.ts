@@ -36,6 +36,15 @@ export interface DismissalRecord {
   dwellMs:   number  // ms the nudge was visible before the user dismissed it
 }
 
+export type ManipulationMechanic =
+  | 'urgency_amplification'
+  | 'engagement_loop'
+  | 'commitment_escalation'
+  | 'social_momentum'
+  | 'variable_reward'
+  | 'attention_capture'
+  | 'decision_pressure'
+
 export interface InferenceInput {
   event_type:      EventType
   signals:         SignalLabel[]
@@ -45,6 +54,7 @@ export interface InferenceInput {
   recentPhrases?:  string[]             // recent nudge text for variety enforcement
   cognitiveState?: CognitiveStateEstimate
   drift?:          DriftEstimate
+  interpretation?: { explanation: string; mechanic: ManipulationMechanic | null }
 }
 
 export interface InferenceOutput {
@@ -56,12 +66,14 @@ export interface InferenceOutput {
 }
 
 export interface Intervention {
-  id:         string
-  message:    string
-  tone:       InterventionStyle
-  action:     SuggestedAction
-  confidence: number                          // 0–1 from InferenceOutput
-  tier:       Exclude<InterventionTier, 'none'>  // resolved by background gate
+  id:          string
+  message:     string
+  tone:        InterventionStyle
+  action:      SuggestedAction
+  confidence:  number                          // 0–1 from InferenceOutput
+  tier:        Exclude<InterventionTier, 'none'>  // resolved by background gate
+  observation?: string                         // mechanic + cognitive note, shown in FullCard
+  mechanic?:   ManipulationMechanic | null
 }
 
 export interface StorageState {

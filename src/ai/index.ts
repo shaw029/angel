@@ -1,5 +1,6 @@
 import type { CompressedContext, Intervention } from '@shared/types'
 import { infer } from './infer'
+import { generateInterpretation } from './interpretation'
 
 export { infer } from './infer'
 
@@ -10,6 +11,8 @@ export { infer } from './infer'
  * Returns null if inference is unavailable or decision_state is not 'intervene'.
  */
 export async function generateIntervention(ctx: CompressedContext): Promise<Intervention | null> {
+  const interpretation = generateInterpretation(ctx, ctx.recentPhrases ?? [])
+
   const output = await infer({
     event_type:      ctx.event_type,
     signals:         ctx.signals,
@@ -19,6 +22,9 @@ export async function generateIntervention(ctx: CompressedContext): Promise<Inte
     recentPhrases:   ctx.recentPhrases,
     cognitiveState:  ctx.cognitiveState,
     drift:           ctx.drift,
+    interpretation:  interpretation.mechanic
+      ? { explanation: interpretation.explanation, mechanic: interpretation.mechanic }
+      : undefined,
   })
 
   // decision_state and confidence together determine tier — gate happens in background.
@@ -26,11 +32,13 @@ export async function generateIntervention(ctx: CompressedContext): Promise<Inte
   if (!output || output.decision_state !== 'intervene' || output.confidence < 0.5) return null
 
   return {
-    id:         crypto.randomUUID(),
-    message:    output.intervention_message,
-    tone:       output.intervention_style,
-    action:     output.suggested_action,
-    confidence: output.confidence,
-    tier:       'subtle',  // placeholder — background gate overwrites this before forwarding
+    id:          crypto.randomUUID(),
+    message:     output.intervention_message,
+    tone:        output.intervention_style,
+    action:      output.suggested_action,
+    confidence:  output.confidence,
+    tier:        'subtle',  // placeholder — background gate overwrites this before forwarding
+    observation: interpretation.observation || undefined,
+    mechanic:    interpretation.mechanic,
   }
 }

@@ -10,6 +10,7 @@ import { buildContextBlock } from './guidance'
  */
 export function buildInferencePrompt(input: InferenceInput): ChatMessage[] {
   const { event_type, signals, session_context: sc, memory, intensity, recentPhrases, cognitiveState, drift } = input
+  // `input.interpretation` accessed directly below — no need to destructure
 
   const ctx = [
     `pattern:${event_type}`,
@@ -20,13 +21,16 @@ export function buildInferencePrompt(input: InferenceInput): ChatMessage[] {
     signals.length > 0 ? `signals:${signals.join(',')}` : null,
   ].filter(Boolean).join(' ')
 
-  const memLine      = memory ? formatMemoryLine(memory)  : null
-  const guidanceLine = buildContextBlock(event_type, intensity ?? 'gentle')
-  const avoidLine    = recentPhrases && recentPhrases.length > 0
+  const memLine       = memory ? formatMemoryLine(memory)  : null
+  const guidanceLine  = buildContextBlock(event_type, intensity ?? 'gentle')
+  const avoidLine     = recentPhrases && recentPhrases.length > 0
     ? recentPhrases.map(p => `"${p}"`).join(' ')
     : null
-  const cogLine      = cognitiveState
+  const cogLine       = cognitiveState
     ? formatCognitiveLine(cognitiveState)
+    : null
+  const mechanicLine  = input.interpretation?.mechanic
+    ? `${input.interpretation.mechanic}: ${input.interpretation.explanation}`
     : null
   // Only include drift line when direction is meaningful and confidence is sufficient
   const driftLine    = drift && drift.direction !== 'stable' && drift.confidence >= 0.45
@@ -38,6 +42,7 @@ export function buildInferencePrompt(input: InferenceInput): ChatMessage[] {
     cogLine       ? `[mind] ${cogLine}` : null,
     driftLine     ? `[drift] ${driftLine}` : null,
     memLine       ? `[memory] ${memLine}` : null,
+    mechanicLine  ? `[mechanic] ${mechanicLine}` : null,
     `[guidance] ${guidanceLine}`,
     avoidLine     ? `[avoid] ${avoidLine}` : null,
     '',

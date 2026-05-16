@@ -38,7 +38,7 @@ interface NudgeProps {
 
 export function Nudge({ intervention, onDismiss }: NudgeProps) {
   const [visible, setVisible] = useState(true)
-  const { message, tone, action, tier } = intervention
+  const { message, tone, action, tier, observation } = intervention
 
   function dismiss(outcome: 'accepted' | 'dismissed' = 'dismissed') {
     setVisible(false)
@@ -55,7 +55,7 @@ export function Nudge({ intervention, onDismiss }: NudgeProps) {
   return (
     <AnimatePresence>
       {visible && (tier === 'full'
-        ? <FullCard message={message} tone={tone} action={action} onDismiss={dismiss} />
+        ? <FullCard message={message} tone={tone} action={action} observation={observation} onDismiss={dismiss} />
         : <SubtlePill message={message} tone={tone} onDismiss={() => dismiss('dismissed')} />
       )}
     </AnimatePresence>
@@ -65,13 +65,14 @@ export function Nudge({ intervention, onDismiss }: NudgeProps) {
 // ─── Full companion card (confidence ≥ 0.8) ──────────────────────────────────
 
 interface FullCardProps {
-  message:   string
-  tone:      InterventionStyle
-  action:    SuggestedAction
-  onDismiss: (outcome: 'accepted' | 'dismissed') => void
+  message:      string
+  tone:         InterventionStyle
+  action:       SuggestedAction
+  observation?: string
+  onDismiss:    (outcome: 'accepted' | 'dismissed') => void
 }
 
-function FullCard({ message, tone, action, onDismiss }: FullCardProps) {
+function FullCard({ message, tone, action, observation, onDismiss }: FullCardProps) {
   const actionLabel = ACTION_LABELS[action]
 
   return (
@@ -106,8 +107,15 @@ function FullCard({ message, tone, action, onDismiss }: FullCardProps) {
         </button>
       </div>
 
+      {/* Observation — mechanic context, lighter than main message */}
+      {observation && (
+        <p className="px-4 pt-2.5 text-[11px] leading-[1.5] font-normal text-neutral-400">
+          {observation}
+        </p>
+      )}
+
       {/* Message */}
-      <p className={`px-4 pt-2.5 text-[13px] leading-[1.6] font-normal ${TEXT_STYLES[tone]}`}>
+      <p className={`px-4 ${observation ? 'pt-1.5' : 'pt-2.5'} text-[13px] leading-[1.6] font-normal ${TEXT_STYLES[tone]}`}>
         {message}
       </p>
 
