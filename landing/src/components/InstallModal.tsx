@@ -7,12 +7,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 const RELEASES_URL = 'https://github.com/shaw029/angel/releases/latest/download/angel-extension.zip'
 
 const steps = [
-  { n: '1', text: 'Download the Angel ZIP from the link below' },
-  { n: '2', text: 'Unzip the downloaded folder anywhere on your computer' },
-  { n: '3', text: 'Open Chrome and navigate to chrome://extensions' },
-  { n: '4', text: 'Enable Developer Mode using the toggle in the top-right corner' },
-  { n: '5', text: 'Click "Load unpacked" and select the unzipped Angel folder' },
-  { n: '6', text: 'Angel is now running. The icon will appear in your toolbar' },
+  { n: '1', text: 'Download the ZIP below' },
+  { n: '2', text: 'Unzip it anywhere' },
+  { n: '3', text: 'Go to chrome://extensions in Chrome' },
+  { n: '4', text: 'Turn on Developer Mode — toggle in the top right' },
+  { n: '5', text: 'Click "Load unpacked" and select the folder' },
+  { n: '6', text: "That's it. Angel will appear in your toolbar" },
 ]
 
 export function InstallModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -77,15 +77,11 @@ export function InstallModal({ open, onClose }: { open: boolean; onClose: () => 
 
             {/* Header */}
             <div className="mb-7">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-sage" />
-                <span className="text-xs font-semibold tracking-widest uppercase text-sage">Manual install</span>
-              </div>
               <h2 className="text-xl font-semibold tracking-tight text-ink-primary">
-                Install Angel from GitHub
+                Get set up in two minutes.
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-                No account. No store. No data shared. The extension runs entirely on your device — you can verify every line of code before installing.
+                No account, no store. Runs entirely on your device.
               </p>
             </div>
 
@@ -109,18 +105,18 @@ export function InstallModal({ open, onClose }: { open: boolean; onClose: () => 
               className="flex w-full items-center justify-center gap-2 rounded-full bg-ink-primary px-6 py-3 text-sm font-medium text-surface hover:bg-ink-secondary transition-colors duration-200"
             >
               <DownloadIcon />
-              Download latest release
+              Download Angel
             </a>
 
             <p className="mt-4 text-center text-xs text-ink-muted">
-              Hosted on GitHub Releases ·{' '}
+              Open source ·{' '}
               <a
                 href="https://github.com/shaw029/angel"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline underline-offset-2 hover:text-ink-secondary transition-colors"
               >
-                View source
+                View source on GitHub
               </a>
             </p>
           </motion.div>
