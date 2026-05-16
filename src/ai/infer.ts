@@ -6,7 +6,7 @@ import { parseAndValidate, SchemaError } from './schema'
 import { isTooSimilar } from './guidance'
 
 const MAX_RETRIES    = 3
-const MAX_NEW_TOKENS = 150  // enough for a complete JSON response (~80 tokens) with headroom
+const MAX_NEW_TOKENS = 120  // compact JSON output is ~70–80 tokens; 120 gives safe headroom
 
 /**
  * Runs structured JSON inference against the local Gemma model.

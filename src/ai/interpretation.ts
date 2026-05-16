@@ -144,6 +144,17 @@ export interface InterpretationResult {
   observation: string
 }
 
+// ─── Diversity slot ───────────────────────────────────────────────────────────
+// Deterministic but varied: different per mechanic, different each day,
+// offset by session phrase count for within-session spread.
+
+function hashSlot(mechanic: string, poolSize: number, offset: number): number {
+  const day = Math.floor(Date.now() / 86_400_000)  // calendar day index since epoch
+  let h = day
+  for (const c of mechanic) h = (Math.imul(h, 31) + c.charCodeAt(0)) | 0
+  return Math.abs(h + offset) % poolSize
+}
+
 // ─── Generation ───────────────────────────────────────────────────────────────
 
 /**
@@ -169,9 +180,10 @@ export function generateInterpretation(
   const eligible  = templates.filter(t => passesToneGuard(t) && !isTooSimilar(t, recentPhrases))
   const pool      = eligible.length > 0 ? eligible : [...templates]
 
-  // Rotate deterministically: hour-of-day + phrase cache size → stable within session,
-  // different across sessions without randomness
-  const slot        = (new Date().getHours() + recentPhrases.length) % pool.length
+  // Rotate deterministically: hash of (mechanic + day-index) + phrase cache size.
+  // Different phrase per mechanic per day; offset by recentPhrases.length for
+  // within-session variety. Avoids hour-based periodicity (same phrase same time daily).
+  const slot        = hashSlot(mechanic, pool.length, recentPhrases.length)
   const explanation = pool[slot]!
 
   // Cognitive note — only when state adds meaningful context to this mechanic
