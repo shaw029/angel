@@ -3,139 +3,146 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 const slides = [
   {
-    number: '01',
+    label: 'Privacy',
     title: 'Private by design.',
-    body: 'Everything runs locally on-device with Gemma. What you do online stays with you.',
-    accent: 'No server. No account. No data leaving your browser — ever.',
+    body: 'Everything runs locally with Gemma.\nYour browsing data never leaves your device.',
+    note: 'No server. No account. No data leaving your browser — ever.',
   },
   {
-    number: '02',
+    label: 'Adaptivity',
     title: 'Built for different vulnerabilities.',
-    body: 'Different people struggle with different kinds of online pressure. Angel learns what tends to pull you deeper.',
-    accent: 'Your profile exists only on your device, adapting to your patterns over weeks.',
+    body: 'Different people struggle with different kinds of online pressure.\nAngel adapts to the patterns that tend to pull you deeper.',
+    note: 'Your profile exists only on your device, evolving quietly over weeks.',
   },
   {
-    number: '03',
+    label: 'Resilience',
     title: 'Designed for what comes next.',
-    body: 'Online manipulation is becoming more personal, emotional, and difficult to recognize. As AI systems evolve, Angel evolves with them.',
-    accent: 'Built on research — not productivity metrics or screen time quotas.',
+    body: 'Online influence systems are becoming more adaptive, emotional, and difficult to recognize.\nAngel evolves alongside them.',
+    note: 'Built on research — not productivity metrics or screen time quotas.',
   },
 ]
 
+// Pure cross-fade — no lateral movement
 const variants = {
-  enter: (dir: number) => ({
-    x: dir > 0 ? 40 : -40,
-    opacity: 0,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    transition: { duration: 0.45, ease: [0.25, 0.1, 0.25, 1] },
-  },
-  exit: (dir: number) => ({
-    x: dir > 0 ? -40 : 40,
-    opacity: 0,
-    transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] },
-  }),
+  enter:  { opacity: 0 },
+  center: { opacity: 1, transition: { duration: 0.6, ease: 'easeOut' } },
+  exit:   { opacity: 0, transition: { duration: 0.4, ease: 'easeIn' } },
 }
 
 export function FeatureCarousel() {
-  const [index, setIndex]   = useState(0)
-  const [dir,   setDir]     = useState(1)
+  const [index,  setIndex]  = useState(0)
   const [paused, setPaused] = useState(false)
 
-  const advance = useCallback((step: number) => {
-    setDir(step)
-    setIndex(i => (i + step + slides.length) % slides.length)
+  const goTo = useCallback((i: number) => {
+    setIndex(((i % slides.length) + slides.length) % slides.length)
   }, [])
 
   useEffect(() => {
     if (paused) return
-    const id = setInterval(() => advance(1), 5500)
+    const id = setInterval(() => setIndex(i => (i + 1) % slides.length), 7000)
     return () => clearInterval(id)
-  }, [paused, advance])
+  }, [paused])
 
   return (
     <section
-      className="py-28 px-6 bg-sage-light/30"
+      className="py-24 px-6 border-y border-border/60"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-2xl mx-auto">
 
-        {/* Header */}
-        <div className="mb-12 text-center">
-          <p className="text-xs font-semibold tracking-widest uppercase text-ink-muted mb-4">Features</p>
+        {/* Section label */}
+        <div className="mb-14 text-center">
+          <p className="text-xs font-semibold tracking-widest uppercase text-ink-muted">
+            Designed for a Different Internet
+          </p>
         </div>
 
-        {/* Slide */}
-        <div className="relative overflow-hidden min-h-[200px]">
-          <AnimatePresence mode="wait" custom={dir}>
+        {/* Slide area — fixed height prevents layout shift */}
+        <div className="relative min-h-[200px] sm:min-h-[180px]">
+          <AnimatePresence mode="wait">
             <motion.div
               key={index}
-              custom={dir}
               variants={variants}
               initial="enter"
               animate="center"
               exit="exit"
               className="text-center"
             >
-              <span className="text-xs font-semibold tracking-widest text-ink-muted/50 select-none">
-                {slides[index].number} / {String(slides.length).padStart(2, '0')}
+              {/* Eyebrow */}
+              <span className="inline-block text-[11px] font-semibold tracking-widest uppercase text-sage/70 mb-6">
+                {slides[index].label}
               </span>
 
-              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-ink-primary sm:text-4xl">
+              {/* Title */}
+              <h2 className="text-3xl font-semibold tracking-tight text-ink-primary sm:text-4xl leading-tight">
                 {slides[index].title}
               </h2>
 
-              <p className="mt-5 text-lg leading-relaxed text-ink-muted max-w-xl mx-auto">
+              {/* Body — preserve newlines */}
+              <p className="mt-6 text-lg leading-relaxed text-ink-muted max-w-lg mx-auto whitespace-pre-line">
                 {slides[index].body}
               </p>
 
-              <p className="mt-4 text-sm text-ink-secondary/70 max-w-md mx-auto italic">
-                {slides[index].accent}
+              {/* Supporting note */}
+              <p className="mt-5 text-sm text-ink-secondary/60 italic">
+                {slides[index].note}
               </p>
             </motion.div>
           </AnimatePresence>
         </div>
 
         {/* Navigation */}
-        <div className="mt-10 flex items-center justify-center gap-6">
+        <div className="mt-12 flex items-center justify-center gap-5">
           <button
-            onClick={() => advance(-1)}
-            className="h-9 w-9 rounded-full border border-border flex items-center justify-center text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors"
-            aria-label="Previous"
+            onClick={() => goTo(index - 1)}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors"
+            aria-label="Previous principle"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
 
-          <div className="flex gap-2">
+          {/* Progress dots */}
+          <div className="flex items-center gap-2">
             {slides.map((_, i) => (
               <button
                 key={i}
-                onClick={() => { setDir(i > index ? 1 : -1); setIndex(i) }}
-                className={`rounded-full transition-all duration-300 ${
-                  i === index
-                    ? 'h-2 w-6 bg-sage'
-                    : 'h-2 w-2 bg-border hover:bg-ink-faint'
-                }`}
+                onClick={() => goTo(i)}
                 aria-label={`Go to slide ${i + 1}`}
+                className={`rounded-full transition-all duration-500 ${
+                  i === index
+                    ? 'h-1.5 w-8 bg-sage'
+                    : 'h-1.5 w-1.5 bg-border hover:bg-ink-faint'
+                }`}
               />
             ))}
           </div>
 
           <button
-            onClick={() => advance(1)}
-            className="h-9 w-9 rounded-full border border-border flex items-center justify-center text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors"
-            aria-label="Next"
+            onClick={() => goTo(index + 1)}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors"
+            aria-label="Next principle"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 18l6-6-6-6" />
             </svg>
           </button>
         </div>
+
+        {/* Subtle auto-progress line */}
+        {!paused && (
+          <div className="mt-6 mx-auto max-w-xs overflow-hidden">
+            <motion.div
+              key={`progress-${index}`}
+              className="h-px bg-sage/30 origin-left"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 7, ease: 'linear' }}
+            />
+          </div>
+        )}
       </div>
     </section>
   )

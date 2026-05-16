@@ -11,7 +11,11 @@ const fadeUp = {
   }),
 }
 
-export function Hero() {
+interface HeroProps {
+  onInstall: () => void
+}
+
+export function Hero({ onInstall }: HeroProps) {
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6 pt-24 pb-16">
 
@@ -76,6 +80,7 @@ export function Hero() {
           Most people have very little visibility into how these systems shape their behavior over time. Angel helps you stay aware and intentional while navigating increasingly persuasive digital environments.
         </motion.p>
 
+        {/* Primary CTAs */}
         <motion.div
           className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3"
           variants={fadeUp}
@@ -100,6 +105,29 @@ export function Hero() {
             Add to Chrome
             <span className="rounded-sm bg-border px-1.5 py-0.5 text-[10px] font-medium text-ink-muted">Soon</span>
           </a>
+        </motion.div>
+
+        {/* Secondary: manual install */}
+        <motion.div
+          className="mt-4 flex items-center justify-center"
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          custom={0.6}
+        >
+          <button
+            onClick={onInstall}
+            className="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink-primary transition-colors duration-200 group"
+          >
+            <span className="underline underline-offset-4 decoration-border group-hover:decoration-ink-muted transition-colors">
+              Install manually from GitHub
+            </span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 group-hover:opacity-100 transition-opacity">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
         </motion.div>
       </div>
 
@@ -161,7 +189,6 @@ function PopupMockup() {
             <span className="h-1.5 w-1.5 rounded-full bg-sage" />
             <span className="text-sm font-medium text-ink-primary">Angel</span>
           </div>
-          {/* Toggle (on) */}
           <div className="relative inline-flex h-5 w-9 rounded-full bg-sage">
             <span className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-white shadow" />
           </div>
@@ -180,14 +207,12 @@ function PopupMockup() {
           </div>
         </div>
 
-        {/* Presence slider */}
         <div className="mt-3 pt-3 border-t border-border/60">
           <div className="flex items-baseline justify-between mb-2.5">
             <p className="text-[10px] font-semibold tracking-widest uppercase text-ink-muted">Presence</p>
             <p className="text-[10px] text-ink-muted">How present Angel feels.</p>
           </div>
-          <div className="h-0.5 w-full rounded-full overflow-hidden" style={{ background: 'linear-gradient(to right, #4A7C59 45%, #E5E5E5 45%)' }}>
-          </div>
+          <div className="h-0.5 w-full rounded-full overflow-hidden" style={{ background: 'linear-gradient(to right, #4A7C59 45%, #E5E5E5 45%)' }} />
           <div className="flex justify-between mt-1.5">
             <span className="text-[10px] text-ink-muted">Quiet</span>
             <span className="text-[10px] text-ink-muted">Attentive</span>
