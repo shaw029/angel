@@ -84,7 +84,7 @@ export function HowItWorks() {
           viewport={{ once: true }}
           variants={fadeUp}
         >
-          Angel observes without judgment. The patterns it detects are descriptions of your environment — not assessments of your choices.
+          Angel observes without judgment. The patterns it detects are descriptions of your environment — not assessments of your choices. Grounded in research on digital wellbeing, persuasive technology, and autonomy-supportive design.
         </motion.p>
       </div>
     </section>

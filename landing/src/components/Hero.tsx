@@ -96,7 +96,7 @@ export function Hero({ onInstall }: HeroProps) {
           </a>
           <button
             onClick={onInstall}
-            className="inline-flex items-center gap-2 rounded-full border border-border px-7 py-3 text-sm font-medium text-ink-secondary hover:border-ink-muted hover:text-ink-primary transition-colors duration-200"
+            className="inline-flex items-center gap-2 rounded-full bg-ink-primary px-7 py-3 text-sm font-medium text-surface hover:bg-ink-secondary transition-colors duration-200"
           >
             <DownloadIcon />
             Install Locally

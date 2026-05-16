@@ -91,36 +91,6 @@ export function Philosophy() {
           </motion.div>
         </motion.div>
 
-        {/* Featured quote */}
-        <motion.div
-          className="mt-16 text-center"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-40px' }}
-          variants={fadeUp}
-        >
-          <div className="mx-auto max-w-2xl">
-            <div className="mb-4 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-            <blockquote>
-              <p className="text-xl font-medium leading-relaxed text-ink-primary sm:text-2xl">
-                "Helping users become more resilient to manipulation<br className="hidden sm:block" />
-                rather than dependent on protection."
-              </p>
-            </blockquote>
-            <div className="mt-4 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-          </div>
-        </motion.div>
-
-        {/* Research grounding note */}
-        <motion.p
-          className="mt-12 text-center text-sm text-ink-muted max-w-xl mx-auto"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeUp}
-        >
-          Grounded in research on digital wellbeing, persuasive technology, and autonomy-supportive design.
-        </motion.p>
       </div>
     </section>
   )
