@@ -14,55 +14,43 @@ const STATE_DEFAULTS: Omit<StorageState, 'modelStatus'> = {
   suppressionMultiplier:  1.0,
 }
 
-function friendlyFileName(file: string): string {
-  if (!file) return ''
-  if (file.includes('decoder') || file.includes('model_merged') || file.endsWith('.onnx')) {
-    return 'loading model weights (large file, may take a few minutes)…'
-  }
-  if (file.includes('tokenizer')) return 'loading tokenizer…'
-  if (file.includes('config'))    return 'loading config…'
-  const base = file.split('/').pop() ?? file
-  return base.length > 40 ? base.slice(0, 40) + '…' : base
-}
 
 function ModelStatusBadge({ status }: { status: ModelLoadStatus }) {
+  // Track the highest progress seen so the bar never moves backwards.
+  const [displayPct, setDisplayPct] = useState(0)
+
+  useEffect(() => {
+    if (status.phase === 'downloading') {
+      const incoming = Math.round(status.progress * 100)
+      setDisplayPct(prev => Math.max(prev, incoming))
+    }
+  }, [status])
+
   if (status.phase === 'idle' || status.phase === 'checking') return null
 
-  if (status.phase === 'downloading') {
-    const pct = Math.round(status.progress * 100)
+  if (status.phase === 'downloading' || status.phase === 'loading') {
+    const showPct = status.phase === 'downloading'
     return (
       <div className="mt-3">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-ink-muted">Downloading model…</span>
-          <span className="text-xs text-ink-muted">{pct}%</span>
-        </div>
-        <div className="h-1 w-full rounded-full bg-neutral-200 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-sage transition-all duration-300"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <p className="mt-1 text-[10px] text-ink-muted truncate">{status.file}</p>
-      </div>
-    )
-  }
-
-  if (status.phase === 'loading') {
-    const label = friendlyFileName(status.file)
-    return (
-      <div className="mt-3">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-ink-muted">Downloading model…</span>
-          {(status.filesLoaded ?? 0) > 0 && (
-            <span className="text-xs text-ink-muted">{status.filesLoaded} files</span>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs text-ink-muted">Setting up your companion…</span>
+          {showPct && (
+            <span className="text-xs tabular-nums text-ink-muted">{displayPct}%</span>
           )}
         </div>
-        <div className="h-1 w-full rounded-full bg-neutral-200 overflow-hidden relative">
-          <div className="absolute h-full w-1/3 rounded-full bg-sage animate-slide" />
+        <div className="h-1 w-full rounded-full bg-neutral-200 overflow-hidden">
+          {showPct ? (
+            <div
+              className="h-full rounded-full bg-sage transition-all duration-700 ease-out"
+              style={{ width: `${displayPct}%` }}
+            />
+          ) : (
+            <div className="absolute h-full w-1/3 rounded-full bg-sage animate-slide" />
+          )}
         </div>
-        {label && (
-          <p className="mt-1 text-[10px] text-ink-muted truncate">{label}</p>
-        )}
+        <p className="mt-1.5 text-[10px] text-ink-muted">
+          This happens once — the model stays on your device.
+        </p>
       </div>
     )
   }

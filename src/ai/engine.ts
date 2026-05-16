@@ -45,8 +45,9 @@ class GemmaEngine {
   private initPromise: Promise<void> | null = null
   private progressCb: ((s: ModelLoadStatus) => void) | null = null
   private _device: Device = 'wasm'
-  private filesLoaded = 0
-  private currentFile  = ''  // last file to start downloading (not last to finish)
+  private filesLoaded  = 0
+  private currentFile  = ''
+  private fileProgress = new Map<string, number>()  // per-file 0–1, aggregated for display
 
   get isReady(): boolean { return this.pipe !== null }
   get device(): Device   { return this._device }
@@ -119,9 +120,12 @@ class GemmaEngine {
           const fileName = info.file ?? info.name ?? ''
 
           if (info.status === 'progress' && info.progress !== undefined) {
+            this.fileProgress.set(fileName, (info.progress ?? 0) / 100)
+            const vals = [...this.fileProgress.values()]
+            const aggregate = vals.reduce((s, v) => s + v, 0) / vals.length
             this.emit({
               phase: 'downloading',
-              progress: (info.progress ?? 0) / 100,
+              progress: aggregate,
               file: fileName,
             })
           } else if (info.status === 'initiate' || info.status === 'download') {
