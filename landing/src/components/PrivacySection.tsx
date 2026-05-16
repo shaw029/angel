@@ -81,9 +81,9 @@ export function PrivacySection() {
 
 function LocalFlowDiagram() {
   const nodes = [
-    { icon: <EyeIcon />,    label: 'Behavioral signals',  sub: 'Scroll · session · patterns' },
-    { icon: <GemmaIcon />,  label: 'Gemma 4 2B',          sub: 'Local inference · WebGPU/WASM' },
-    { icon: <NudgeIcon />,  label: 'Reflective nudge',    sub: 'Personalized · in-browser' },
+    { icon: <EyeIcon />,    label: 'Behavioral signals',  sub: 'What you do stays private' },
+    { icon: <GemmaIcon />,  label: 'Gemma 4 2B',          sub: 'Thinking happens on-device' },
+    { icon: <NudgeIcon />,  label: 'Reflective nudge',    sub: 'Support without surveillance' },
   ]
 
   return (
