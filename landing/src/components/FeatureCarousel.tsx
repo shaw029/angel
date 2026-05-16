@@ -39,7 +39,7 @@ export function FeatureCarousel() {
 
   useEffect(() => {
     if (paused) return
-    const id = setInterval(() => setIndex(i => (i + 1) % slides.length), 7000)
+    const id = setInterval(() => setIndex(i => (i + 1) % slides.length), 3000)
     return () => clearInterval(id)
   }, [paused])
 
@@ -50,13 +50,6 @@ export function FeatureCarousel() {
       onMouseLeave={() => setPaused(false)}
     >
       <div className="max-w-2xl mx-auto">
-
-        {/* Section label */}
-        <div className="mb-14 text-center">
-          <p className="text-xs font-semibold tracking-widest uppercase text-ink-muted">
-            Designed for a Different Internet
-          </p>
-        </div>
 
         {/* Slide area — fixed height prevents layout shift */}
         <div className="relative min-h-[200px] sm:min-h-[180px]">
