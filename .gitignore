@@ -12,6 +12,9 @@ public/ort-wasm-simd-threaded.asyncify.wasm
 .AppleDouble
 .LSOverride
 
+# Chrome debug profile (created by launch configs)
+.chrome-debug-profile/
+
 # Editor
 .vscode/settings.json.bak
 

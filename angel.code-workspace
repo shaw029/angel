@@ -1,0 +1,191 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "never"
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "typescript.preferences.importModuleSpecifier": "non-relative",
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true
+    },
+    "files.exclude": {
+      "**/.DS_Store": true,
+      "**/node_modules": true
+    }
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Build (once)",
+        "type": "shell",
+        "command": "npm run build",
+        "options": { "cwd": "${workspaceFolder}" },
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": ["$tsc"],
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Build (watch)",
+        "type": "shell",
+        "command": "npm run dev",
+        "options": { "cwd": "${workspaceFolder}" },
+        "group": "build",
+        "isBackground": true,
+        "problemMatcher": {
+          "owner": "typescript",
+          "pattern": {
+            "regexp": "^(.*):(\\d+):(\\d+) - (error|warning) TS(\\d+): (.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "code": 5,
+            "message": 6
+          },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "vite",
+            "endsPattern": "built in"
+          }
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated"
+        }
+      },
+      {
+        "label": "Type check",
+        "type": "shell",
+        "command": "npm run typecheck",
+        "options": { "cwd": "${workspaceFolder}" },
+        "group": "test",
+        "problemMatcher": ["$tsc"],
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Start (build + demo)",
+        "type": "shell",
+        "command": "npm run start",
+        "options": { "cwd": "${workspaceFolder}" },
+        "group": "build",
+        "isBackground": true,
+        "problemMatcher": {
+          "owner": "typescript",
+          "pattern": {
+            "regexp": "^(.*):(\\d+):(\\d+) - (error|warning) TS(\\d+): (.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "code": 5,
+            "message": 6
+          },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "vite",
+            "endsPattern": "built in"
+          }
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated"
+        }
+      },
+      {
+        "label": "Demo pages",
+        "type": "shell",
+        "command": "npm run demo",
+        "options": { "cwd": "${workspaceFolder}" },
+        "group": "build",
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated"
+        }
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Launch Chrome (Extension)",
+        "type": "chrome",
+        "request": "launch",
+        "url": "https://google.com",
+        "webRoot": "${workspaceFolder}/dist",
+        "runtimeArgs": [
+          "--load-extension=${workspaceFolder}/dist",
+          "--user-data-dir=${workspaceFolder}/.chrome-debug-profile"
+        ],
+        "preLaunchTask": "Build (once)"
+      },
+      {
+        "name": "Dev: Watch + Launch",
+        "type": "chrome",
+        "request": "launch",
+        "url": "https://google.com",
+        "webRoot": "${workspaceFolder}/dist",
+        "runtimeArgs": [
+          "--load-extension=${workspaceFolder}/dist",
+          "--user-data-dir=${workspaceFolder}/.chrome-debug-profile"
+        ],
+        "preLaunchTask": "Build (watch)"
+      },
+      {
+        "name": "Full Test: Extension + Demo",
+        "type": "chrome",
+        "request": "launch",
+        "url": "http://localhost:3001",
+        "webRoot": "${workspaceFolder}/dist",
+        "runtimeArgs": [
+          "--load-extension=${workspaceFolder}/dist",
+          "--user-data-dir=${workspaceFolder}/.chrome-debug-profile"
+        ],
+        "preLaunchTask": "Start (build + demo)"
+      },
+      {
+        "name": "Attach to Chrome",
+        "type": "chrome",
+        "request": "attach",
+        "port": 9222,
+        "webRoot": "${workspaceFolder}/dist"
+      }
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "esbenp.prettier-vscode",
+      "dbaeumer.vscode-eslint",
+      "bradlc.vscode-tailwindcss",
+      "ms-vscode.vscode-typescript-next",
+      "christian-kohler.path-intellisense"
+    ]
+  }
+}
