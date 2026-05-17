@@ -14,7 +14,13 @@ document.addEventListener('scroll', () => {
   maxScrollDepth = Math.max(maxScrollDepth, scrollDepth())
 }, { passive: true })
 
-document.addEventListener('click', () => { lastInteractionTime = Date.now() })
+document.addEventListener('click', (e) => {
+  // Ignore clicks on the nudge host — dismissing a nudge is not a page interaction
+  // and should not reset idle time, which would suppress the next heuristic signal.
+  if ((e.target as Element)?.closest?.('#ca-nudge-host') === null) {
+    lastInteractionTime = Date.now()
+  }
+})
 document.addEventListener('keydown', () => { lastInteractionTime = Date.now() })
 
 export function snapshot(switchCount: number): BrowsingSignal {
