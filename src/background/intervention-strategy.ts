@@ -39,7 +39,7 @@ const STATE_STRATEGY: Record<CognitiveState, InterventionStrategy> = {
     preferredTier:       'none',
     cooldownScale:       3.0,
     stateEntryDelayMs:   0,
-    sessionDismissalCap: 1,
+    sessionDismissalCap: 3,
   },
 
   // Exploratory state is healthy — let it run. Subtle only, long warmup.
@@ -48,7 +48,7 @@ const STATE_STRATEGY: Record<CognitiveState, InterventionStrategy> = {
     preferredTier:       'subtle',
     cooldownScale:       2.0,
     stateEntryDelayMs:   5 * 60_000,
-    sessionDismissalCap: 2,
+    sessionDismissalCap: 4,
   },
 
   // The primary intervention window. Subtle tier preserves flow.
@@ -58,7 +58,7 @@ const STATE_STRATEGY: Record<CognitiveState, InterventionStrategy> = {
     preferredTier:       'subtle',
     cooldownScale:       1.5,
     stateEntryDelayMs:   3 * 60_000,
-    sessionDismissalCap: 3,
+    sessionDismissalCap: 6,
   },
 
   // Loop state: shorter cooldown (state persists), but subtle only.
@@ -69,7 +69,7 @@ const STATE_STRATEGY: Record<CognitiveState, InterventionStrategy> = {
     preferredTier:       'subtle',
     cooldownScale:       0.70,
     stateEntryDelayMs:   2 * 60_000,
-    sessionDismissalCap: 3,
+    sessionDismissalCap: 6,
   },
 
   // Purchase pressure: decision window is short, stakes are real.
@@ -80,7 +80,7 @@ const STATE_STRATEGY: Record<CognitiveState, InterventionStrategy> = {
     preferredTier:       'full',
     cooldownScale:       0.65,
     stateEntryDelayMs:   30_000,
-    sessionDismissalCap: 2,
+    sessionDismissalCap: 5,
   },
 
   // Already overwhelmed — needs strong signal before firing, and minimal footprint.
@@ -90,7 +90,7 @@ const STATE_STRATEGY: Record<CognitiveState, InterventionStrategy> = {
     preferredTier:       'subtle',
     cooldownScale:       1.80,
     stateEntryDelayMs:   4 * 60_000,
-    sessionDismissalCap: 2,
+    sessionDismissalCap: 5,
   },
 
   // Extended purchase/research context: calm full card is genuinely welcome.
@@ -99,7 +99,7 @@ const STATE_STRATEGY: Record<CognitiveState, InterventionStrategy> = {
     preferredTier:       'full',
     cooldownScale:       0.85,
     stateEntryDelayMs:   3 * 60_000,
-    sessionDismissalCap: 3,
+    sessionDismissalCap: 6,
   },
 }
 
