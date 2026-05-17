@@ -39,7 +39,7 @@ export interface DismissalRecord {
 export type ManipulationMechanic =
   | 'urgency_amplification'
   | 'engagement_loop'
-  | 'commitment_escalation'
+  | 'emotional_escalation'
   | 'social_momentum'
   | 'variable_reward'
   | 'attention_capture'

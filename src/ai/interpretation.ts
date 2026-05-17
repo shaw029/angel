@@ -21,7 +21,7 @@ export function classifyMechanic(ctx: CompressedContext): ManipulationMechanic |
 
   if (s.has('social_proof_live'))                           return 'social_momentum'
   if (et === 'checkout_pressure')                           return 'urgency_amplification'
-  if (et === 'subscription_funnel')                         return 'commitment_escalation'
+  if (et === 'subscription_funnel')                         return 'emotional_escalation'
   if (s.has('autoplay_media') && s.has('infinite_feed'))    return 'variable_reward'
   if (s.has('infinite_feed')  || s.has('doom_scrolling'))   return 'engagement_loop'
   if (s.has('autoplay_media'))                              return 'engagement_loop'
@@ -36,60 +36,60 @@ export function classifyMechanic(ctx: CompressedContext): ManipulationMechanic |
 // Ordered from most contextual to most general — selection rotates deterministically.
 
 const MECHANIC_TEMPLATES: Record<ManipulationMechanic, readonly string[]> = {
-  urgency_amplification: [
-    'This page repeatedly emphasizes a sense of time pressure.',
-    'Urgency signals appear with regularity across this page.',
-    'This page is designed to make time feel more limited than it may be.',
-    'Multiple elements here emphasize the cost of waiting.',
-    'The framing on this page tends to compress decision-making time.',
-  ],
-
   engagement_loop: [
-    'This feed is designed to continue without a natural stopping point.',
-    'Content here appears structured to extend the session gradually.',
-    'There is no designed end to this type of feed — it continues as long as you scroll.',
-    'This format removes the natural moments where a session would ordinarily pause.',
-    'The content delivery here makes it easy to lose track of time.',
+    'This feed is designed to keep you scrolling.',
+    'The next thing is always meant to feel worth checking.',
+    'Some feeds are built to make time disappear.',
+    'One more scroll is exactly what this feed is designed for.',
+    'This kind of feed rarely gives you a natural place to stop.',
   ],
 
-  commitment_escalation: [
-    'This interaction is building toward a longer-term commitment.',
-    'The flow here is designed to make a recurring arrangement feel natural.',
-    'Patterns like this are often built so the ongoing nature is easy to overlook at first.',
-    'What begins as a trial here typically transitions into a recurring relationship.',
-    'This page is oriented toward establishing an ongoing arrangement.',
+  urgency_amplification: [
+    'This page is trying to speed up your decision.',
+    'You probably have more time than this countdown suggests.',
+    'Some pages are designed to make waiting feel risky.',
+    'This offer may feel more urgent than it actually is.',
+    'Pressure changes how decisions feel.',
   ],
 
-  social_momentum: [
-    'Live activity here creates a sense of shared momentum.',
-    'Real-time signals on this page can make waiting feel conspicuous.',
-    'Seeing others engage in real time can subtly increase the sense of pressure.',
-    'Social presence indicators like these can change how a decision feels.',
-    'This page uses the visible activity of others to create a sense of movement.',
-  ],
-
-  variable_reward: [
-    'Content variety in feeds like this can make it harder to find a natural stopping point.',
-    'The unpredictability of what comes next is part of what keeps this type of feed engaging.',
-    'Feeds built on varied content keep anticipation active in a way that regular content does not.',
-    'The mix of content types here is calibrated to maintain interest across the session.',
-    'This format is designed so the next item always feels worth checking.',
+  emotional_escalation: [
+    'Feeds like this can make everything feel more intense.',
+    'The more emotional the feed gets, the harder it is to look away.',
+    'This kind of feed can make it hard for your mind to settle.',
+    'Some feeds become harder to leave the deeper you get into them.',
+    'This kind of feed keeps finding new ways to pull you in.',
   ],
 
   attention_capture: [
-    'This page uses several attention-directing patterns simultaneously.',
-    'Multiple elements here appear designed to hold focus.',
-    'The layout and language here work together to maintain engagement.',
-    'Attention on this page is being actively shaped by its design.',
-    'Several elements here combine to create a particular kind of pull.',
+    'Several things on this page are competing for your attention at once.',
+    'This page is working hard to keep your focus moving.',
+    'Pages like this are built to keep your mind busy.',
+    'Feeds like this make it easy to stay longer than you planned.',
+    'Some pages are designed so your mind never really gets a break.',
+  ],
+
+  social_momentum: [
+    'Some feeds are designed to keep you coming back to check reactions.',
+    'Some platforms are designed to make attention feel personal.',
+    'Social metrics can quietly shape how you feel.',
+    'This kind of feed makes it hard not to check one more time.',
+    'A few likes or comments can quickly start feeling bigger than they are.',
+  ],
+
+  variable_reward: [
+    'The next thing always feels like it might be worth checking.',
+    'The surprise of what comes next is part of what keeps this engaging.',
+    'Feeds like this are built around anticipation.',
+    'This experience is designed so the next thing always feels interesting.',
+    'Feeds like this keep giving your mind something new to chase.',
   ],
 
   decision_pressure: [
-    'Multiple signals here appear designed to compress decision-making time.',
-    'This page combines time pressure with scarcity signals.',
-    'The combination of urgency and limited availability here is a common way decisions get accelerated.',
-    'Decisions made under this kind of combined pressure often feel more final than they are.',
-    'Time limits and scarcity cues here work together to create a sense of urgency.',
+    'This page is trying to make the decision feel urgent.',
+    'Limited-time offers can make waiting feel harder than it is.',
+    'When everything feels urgent, it gets harder to think clearly.',
+    'This page really wants a quick decision.',
+    'The pressure here may feel bigger than the actual decision.',
   ],
 }
 
