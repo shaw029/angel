@@ -248,12 +248,12 @@ function PopupMockup() {
 
 function NudgeMockup() {
   return (
-    <div className="flex flex-col items-center w-[268px] gap-3">
-      {/* Subtle pill — ambient, non-demanding */}
-      <div className="self-end flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-neutral-200 bg-white/95 shadow-[0_2px_12px_rgba(0,0,0,0.15),0_1px_4px_rgba(0,0,0,0.08)] max-w-[224px] select-none">
+    <div className="flex flex-col items-center w-[268px] gap-2.5">
+      {/* Gentle pill — passive/exploratory state */}
+      <div className="self-start flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-neutral-200 bg-white/95 shadow-[0_2px_12px_rgba(0,0,0,0.15),0_1px_4px_rgba(0,0,0,0.08)] max-w-[220px] select-none">
         <span className="mt-[3px] h-[5px] w-[5px] flex-shrink-0 rounded-full bg-sage" />
         <p className="flex-1 text-[12px] leading-[1.5] text-neutral-500">
-          What brought you here originally?
+          Takes a bit of time to decide. That's fine.
         </p>
         <button className="mt-[1px] flex-shrink-0 h-[16px] w-[16px] flex items-center justify-center rounded-full text-neutral-300" tabIndex={-1}>
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
@@ -262,7 +262,53 @@ function NudgeMockup() {
         </button>
       </div>
 
-      {/* Full companion card */}
+      {/* State-shift label */}
+      <p className="text-[10px] text-ink-muted/50 tracking-wide self-center">· Angel reading the room ·</p>
+
+      {/* Reflective full card — emotional escalation state */}
+      <div className="w-full rounded-2xl border border-neutral-200 bg-sage-light shadow-[0_4px_24px_rgba(0,0,0,0.18),0_1px_6px_rgba(0,0,0,0.10)] select-none">
+        <div className="flex items-center justify-between px-4 pt-3.5">
+          <span className="h-[5px] w-[5px] rounded-full bg-sage/40" />
+          <button className="h-[18px] w-[18px] flex items-center justify-center rounded-full text-neutral-300" tabIndex={-1}>
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+              <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+        <p className="px-4 pt-2.5 text-[11px] leading-[1.5] text-neutral-400">
+          Pressure has been building for a while.
+        </p>
+        <p className="px-4 pt-1.5 text-[13px] leading-[1.6] text-neutral-600">
+          When pressure builds, slowing down is the more deliberate choice.
+        </p>
+        <div className="px-4 pt-3 pb-3.5">
+          <button className="w-full text-left text-[12px] font-medium text-sage px-3 py-1.5 rounded-lg bg-sage/10" tabIndex={-1}>
+            Take your time
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Mockup: Manipulation interpreter output ──────────────────────────────────
+// Shows the Manipulation Interpreter naming the active dark pattern before nudging.
+
+function AwarenessMockup() {
+  return (
+    <div className="flex flex-col items-center w-[268px]">
+      {/* Simulated page content behind the nudge */}
+      <div className="w-full mb-3 rounded-xl bg-neutral-50 border border-border/40 px-4 py-3 space-y-2 opacity-40">
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-16 rounded bg-red-200" />
+          <div className="h-2.5 w-24 rounded-full bg-neutral-200" />
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-neutral-200" />
+        <div className="h-1.5 w-4/5 rounded-full bg-neutral-200" />
+        <div className="h-6 w-full rounded-lg bg-neutral-200" />
+      </div>
+
+      {/* Companion card — mechanism naming */}
       <div className="w-full rounded-2xl border border-neutral-200 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.18),0_1px_6px_rgba(0,0,0,0.10)] select-none">
         <div className="flex items-center justify-between px-4 pt-3.5">
           <span className="h-[5px] w-[5px] rounded-full bg-sage animate-pulse" />
@@ -273,58 +319,15 @@ function NudgeMockup() {
           </button>
         </div>
         <p className="px-4 pt-2.5 text-[11px] leading-[1.5] text-neutral-400">
-          You've been on this page for 18 minutes.
+          Countdown · social proof · scarcity — three signals at once.
         </p>
         <p className="px-4 pt-1.5 text-[13px] leading-[1.6] text-neutral-600">
-          You can take a moment before deciding.
+          None of these are about the product. They're designed to make the decision feel more urgent than it is.
         </p>
         <div className="px-4 pt-3 pb-3.5">
           <button className="w-full text-left text-[12px] font-medium text-sage px-3 py-1.5 rounded-lg bg-sage/10" tabIndex={-1}>
-            Pause for a moment
+            Step back for a moment
           </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Mockup: Awareness building over time ─────────────────────────────────────
-// Matches the real Angel popup insight panel — same labels, same layout.
-
-function AwarenessMockup() {
-  return (
-    <div className="rounded-2xl bg-white shadow-xl shadow-ink-primary/6 border border-border/60 overflow-hidden w-[260px]">
-      {/* Browser toolbar */}
-      <div className="bg-neutral-100 px-3 py-2 flex items-center gap-2 border-b border-border/50">
-        <div className="flex gap-1.5">
-          <div className="h-2 w-2 rounded-full bg-neutral-300" />
-          <div className="h-2 w-2 rounded-full bg-neutral-300" />
-          <div className="h-2 w-2 rounded-full bg-neutral-300" />
-        </div>
-        <div className="flex-1 mx-2 h-4 rounded bg-neutral-200/80" />
-        <div className="h-5 w-5 rounded bg-sage/20 flex items-center justify-center">
-          <span className="text-[8px] font-bold text-sage">A</span>
-        </div>
-      </div>
-
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[13px] font-medium text-ink-primary">Angel</span>
-          <div className="relative inline-flex h-5 w-9 rounded-full bg-sage items-center">
-            <span className="absolute right-0.5 h-4 w-4 rounded-full bg-white shadow-sm" />
-          </div>
-        </div>
-        <p className="text-[11px] leading-relaxed text-ink-muted mb-3">
-          Quietly watching for moments worth pausing on.
-        </p>
-
-        <div className="pt-3 border-t border-border/60">
-          <p className="text-[10px] text-ink-muted mb-2">2 weeks of awareness data</p>
-          <div className="space-y-1.5">
-            <MetricRow label="Stepped away after a nudge" value="64%" up />
-            <MetricRow label="Paused after a nudge"        value="48%" up />
-            <MetricRow label="Avg. time to refocus"        value="11 min" />
-          </div>
         </div>
       </div>
     </div>
