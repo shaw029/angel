@@ -63,3 +63,15 @@ export async function markCached(modelId: string, device: 'webgpu' | 'wasm'): Pr
   }
 }
 
+// Clears any model files left in the Cache API from a previous installation.
+// Called before a fresh download when IDB has no record — prevents the new
+// download from hitting quota that's already consumed by stale files.
+export async function clearStaleModelCaches(): Promise<void> {
+  try {
+    const keys = await caches.keys()
+    await Promise.all(keys.map(k => caches.delete(k)))
+  } catch {
+    // Cache API unavailable or already empty — safe to ignore
+  }
+}
+

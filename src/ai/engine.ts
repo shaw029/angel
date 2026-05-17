@@ -1,7 +1,7 @@
 import { pipeline, env } from '@huggingface/transformers'
 import { MODEL_ID, MODEL_DTYPE_WEBGPU, MODEL_DTYPE_WASM } from '@shared/constants'
 import type { ModelLoadStatus } from '@shared/types'
-import { isCached, markCached } from './cache'
+import { isCached, markCached, clearStaleModelCaches } from './cache'
 
 // Transformers.js progress event shape (v3)
 interface TFProgressEvent {
@@ -113,6 +113,7 @@ class GemmaEngine {
     }
 
     const alreadyCached = await isCached(MODEL_ID, device)
+    if (!alreadyCached) await clearStaleModelCaches()
     const dtype = device === 'webgpu' ? MODEL_DTYPE_WEBGPU : MODEL_DTYPE_WASM
 
     // Intercept console.warn during pipeline() to detect Cache API quota errors.
