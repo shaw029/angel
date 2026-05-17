@@ -5,9 +5,9 @@ import type { Intervention, InterventionStyle, SuggestedAction } from '@shared/t
 // ─── Style maps (full tier) ───────────────────────────────────────────────────
 
 const CARD_STYLES: Record<InterventionStyle, string> = {
-  gentle:     'bg-white border-neutral-100',
-  curious:    'bg-white border-neutral-100',
-  reflective: 'bg-sage-light border-sage/20',
+  gentle:     'bg-white border-neutral-200',
+  curious:    'bg-white border-neutral-200',
+  reflective: 'bg-sage-light border-sage/25',
 }
 
 const DOT_STYLES: Record<InterventionStyle, string> = {
@@ -92,7 +92,7 @@ function FullCard({ message, tone, action, observation, onDismiss }: FullCardPro
       transition={{ type: 'spring', stiffness: 340, damping: 30 }}
       className={`
         w-[268px] rounded-2xl border pointer-events-auto
-        shadow-[0_2px_16px_rgba(0,0,0,0.07),0_1px_4px_rgba(0,0,0,0.04)]
+        shadow-[0_4px_24px_rgba(0,0,0,0.18),0_1px_6px_rgba(0,0,0,0.10)]
         antialiased select-none
         ${CARD_STYLES[tone]}
       `}
@@ -172,9 +172,9 @@ function SubtlePill({ message, tone, onDismiss }: SubtlePillProps) {
       transition={{ duration: 0.18, ease: 'easeOut' }}
       className="
         flex items-start gap-2.5 px-3 py-2.5 pointer-events-auto
-        rounded-xl border border-neutral-100
-        bg-white/88 backdrop-blur-[6px]
-        shadow-[0_1px_8px_rgba(0,0,0,0.06)]
+        rounded-xl border border-neutral-200
+        bg-white/95 backdrop-blur-[6px]
+        shadow-[0_2px_12px_rgba(0,0,0,0.15),0_1px_4px_rgba(0,0,0,0.08)]
         max-w-[224px] antialiased select-none
       "
     >
