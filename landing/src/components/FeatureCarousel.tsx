@@ -57,88 +57,118 @@ export function FeatureCarousel() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="max-w-4xl mx-auto">
-        <div className="rounded-2xl border border-border/60 bg-white shadow-[0_2px_20px_rgba(0,0,0,0.05)] overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={index}
-              variants={fade}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              className="grid grid-cols-1 lg:grid-cols-2"
-            >
-              {/* Text side */}
-              <div className="p-8 lg:p-10 flex flex-col justify-between border-b border-border/60 lg:border-b-0 lg:border-r">
-                <div>
-                  <span className="inline-block text-[11px] font-semibold tracking-widest uppercase text-sage/70 mb-5">
-                    {slides[index].label}
-                  </span>
-                  <h2 className="text-3xl font-semibold tracking-tight text-ink-primary sm:text-4xl leading-tight">
-                    {slides[index].title}
-                  </h2>
-                  <p className="mt-5 text-base leading-relaxed text-ink-muted whitespace-pre-line">
-                    {slides[index].body}
-                  </p>
-                </div>
+      {/* px-12 creates space for the side arrows on desktop */}
+      <div className="max-w-4xl mx-auto lg:px-12">
+        <div className="relative">
 
-                {/* Navigation */}
-                <div className="mt-8 flex items-center gap-4">
-                  <button
-                    onClick={() => goTo(index - 1)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors"
-                    aria-label="Previous"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M15 18l-6-6 6-6" />
-                    </svg>
-                  </button>
+          {/* Prev arrow — desktop only, vertically centered on card */}
+          <button
+            onClick={() => goTo(index - 1)}
+            className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full h-9 w-9 items-center justify-center rounded-full border border-border bg-white text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors shadow-sm z-10"
+            aria-label="Previous"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
 
-                  <div className="flex items-center gap-2">
-                    {slides.map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => goTo(i)}
-                        aria-label={`Slide ${i + 1}`}
-                        className={`rounded-full transition-all duration-500 ${
-                          i === index
-                            ? 'h-1.5 w-8 bg-sage'
-                            : 'h-1.5 w-1.5 bg-border hover:bg-ink-faint'
-                        }`}
-                      />
-                    ))}
+          {/* Card */}
+          <div className="rounded-2xl border border-border/60 bg-white shadow-[0_2px_20px_rgba(0,0,0,0.05)] overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={index}
+                variants={fade}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="grid grid-cols-1 lg:grid-cols-2 lg:min-h-[420px]"
+              >
+                {/* Text side */}
+                <div className="p-8 lg:p-10 flex flex-col border-b border-border/60 lg:border-b-0 lg:border-r">
+                  <div className="flex-1">
+                    <span className="inline-block text-[11px] font-semibold tracking-widest uppercase text-sage/70 mb-5">
+                      {slides[index].label}
+                    </span>
+                    <h2 className="text-3xl font-semibold tracking-tight text-ink-primary sm:text-4xl leading-tight">
+                      {slides[index].title}
+                    </h2>
+                    <p className="mt-5 text-base leading-relaxed text-ink-muted whitespace-pre-line">
+                      {slides[index].body}
+                    </p>
                   </div>
 
-                  <button
-                    onClick={() => goTo(index + 1)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors"
-                    aria-label="Next"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
-                  </button>
+                  {/* Dots + progress (mobile also gets arrows here) */}
+                  <div className="mt-8 flex items-center gap-4">
+                    {/* Mobile-only prev arrow */}
+                    <button
+                      onClick={() => goTo(index - 1)}
+                      className="lg:hidden flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors"
+                      aria-label="Previous"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
+                    </button>
 
-                  {!paused && (
-                    <div className="flex-1 overflow-hidden">
-                      <motion.div
-                        key={`p-${index}`}
-                        className="h-px bg-sage/30 origin-left"
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ duration: 3, ease: 'linear' }}
-                      />
+                    <div className="flex items-center gap-2">
+                      {slides.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => goTo(i)}
+                          aria-label={`Slide ${i + 1}`}
+                          className={`rounded-full transition-all duration-500 ${
+                            i === index
+                              ? 'h-1.5 w-8 bg-sage'
+                              : 'h-1.5 w-1.5 bg-border hover:bg-ink-faint'
+                          }`}
+                        />
+                      ))}
                     </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Visual side */}
-              <div className="p-8 lg:p-10 flex items-center justify-center bg-neutral-50/60">
-                {slides[index].visual}
-              </div>
-            </motion.div>
-          </AnimatePresence>
+                    {/* Mobile-only next arrow */}
+                    <button
+                      onClick={() => goTo(index + 1)}
+                      className="lg:hidden flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors"
+                      aria-label="Next"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
+                    </button>
+
+                    {!paused && (
+                      <div className="flex-1 overflow-hidden">
+                        <motion.div
+                          key={`p-${index}`}
+                          className="h-px bg-sage/30 origin-left"
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: 1 }}
+                          transition={{ duration: 3, ease: 'linear' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Visual side */}
+                <div className="p-8 lg:p-10 flex items-center justify-center bg-neutral-50/60">
+                  {slides[index].visual}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Next arrow — desktop only, vertically centered on card */}
+          <button
+            onClick={() => goTo(index + 1)}
+            className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-full h-9 w-9 items-center justify-center rounded-full border border-border bg-white text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors shadow-sm z-10"
+            aria-label="Next"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+
         </div>
       </div>
     </section>
