@@ -52,14 +52,14 @@ export function FeatureCarousel() {
   }, [paused])
 
   return (
-    <section
-      className="py-16 px-6 border-y border-border/60 overflow-hidden"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
+    <section className="py-16 px-6 border-y border-border/60 overflow-hidden">
       {/* px-12 creates space for the side arrows on desktop */}
       <div className="max-w-4xl mx-auto lg:px-12">
-        <div className="relative">
+        <div
+          className="relative"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
 
           {/* Prev arrow — desktop only, vertically centered on card */}
           <button
