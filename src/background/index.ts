@@ -9,6 +9,7 @@ import { getRecentPhrases, recordPhrase } from './phrase-cache'
 import { estimateCognitiveState } from './cognitive-state'
 import { analyzeDrift, driftCooldownScale, HEALTH_SCORE } from './drift'
 import { resolveStrategy } from './intervention-strategy'
+import { resolveAction } from './action-resolver'
 import { derivePresence } from './presence'
 import type { RollingCognitiveContext } from './cognitive-state'
 import type { InterventionStrategy } from './intervention-strategy'
@@ -304,7 +305,11 @@ async function onIntervention(intervention: Intervention) {
 
   if (tier === 'none') return
 
-  const tiered: Intervention = { ...intervention, tier }
+  const tiered: Intervention = {
+    ...intervention,
+    tier,
+    action: resolveAction(pendingCogState ?? 'intentional_browsing', intervention.mechanic ?? null),
+  }
 
   // Attempt delivery first — only update cooldowns/count if the tab still exists.
   // Without this, a closed tab burns cooldown budget with no nudge shown.

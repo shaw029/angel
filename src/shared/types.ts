@@ -24,7 +24,18 @@ export type HeuristicReason =
 
 export type DecisionState      = 'intervene' | 'observe' | 'skip'
 export type InterventionStyle  = 'gentle' | 'curious' | 'reflective'
-export type SuggestedAction    = 'take_a_break' | 'review_cart' | 'set_a_timer' | 'close_tab' | 'none'
+export type SuggestedAction =
+  | 'pause_for_a_moment'
+  | 'let_this_rest'
+  | 'slow_this_down'
+  | 'take_your_time'
+  | 'come_back_later'
+  | 'one_thing_at_a_time'
+  | 'take_a_breath'
+  | 'reset_attention'
+  | 'check_in_with_yourself'
+  | 'notice_how_you_feel'
+  | 'none'
 
 // 'full'   → confidence ≥ 0.8, full companion card
 // 'subtle' → 0.5 ≤ confidence < 0.8 (or full downgraded by cooldown), compact pill

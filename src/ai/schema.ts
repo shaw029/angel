@@ -10,7 +10,9 @@ import type {
 const DECISION_STATES: readonly DecisionState[]     = ['intervene', 'observe', 'skip']
 const INTERVENTION_STYLES: readonly InterventionStyle[] = ['gentle', 'curious', 'reflective']
 const SUGGESTED_ACTIONS: readonly SuggestedAction[] = [
-  'take_a_break', 'review_cart', 'set_a_timer', 'close_tab', 'none',
+  'pause_for_a_moment', 'let_this_rest', 'slow_this_down', 'take_your_time',
+  'come_back_later', 'one_thing_at_a_time', 'take_a_breath', 'reset_attention',
+  'check_in_with_yourself', 'notice_how_you_feel', 'none',
 ]
 
 // ─── Error ───────────────────────────────────────────────────────────────────

@@ -59,5 +59,5 @@ OUTPUT — single JSON object, no markdown, no text outside JSON.
 {"decision_state":"intervene"|"observe"|"skip","confidence":<0–1>,\
 "intervention_style":"gentle"|"curious"|"reflective",\
 "intervention_message":"<≤20 words>",\
-"suggested_action":"take_a_break"|"review_cart"|"set_a_timer"|"close_tab"|"none"}
+"suggested_action":"pause_for_a_moment"|"let_this_rest"|"slow_this_down"|"take_your_time"|"come_back_later"|"one_thing_at_a_time"|"take_a_breath"|"reset_attention"|"check_in_with_yourself"|"notice_how_you_feel"|"none"}
 THRESHOLDS: skip<0.35 · observe 0.35–0.55 · intervene>0.55`

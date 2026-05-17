@@ -52,7 +52,7 @@ document.addEventListener('ca:demo-trigger', () => {
     id:         crypto.randomUUID(),
     message:    "You can take a moment before deciding.",
     tone:       'gentle',
-    action:     'take_a_break',
+    action:     'pause_for_a_moment',
     confidence: 0.85,
     tier:       'full',
   })

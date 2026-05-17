@@ -286,7 +286,7 @@ function NudgeMockup() {
         {/* Action */}
         <div className="px-4 pt-3 pb-3.5">
           <button className="w-full text-left text-[12px] font-medium text-sage px-3 py-1.5 rounded-lg bg-sage/10" tabIndex={-1}>
-            Take a short break
+            Pause for a moment
           </button>
         </div>
       </div>

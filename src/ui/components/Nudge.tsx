@@ -23,10 +23,16 @@ const TEXT_STYLES: Record<InterventionStyle, string> = {
 }
 
 const ACTION_LABELS: Partial<Record<SuggestedAction, string>> = {
-  take_a_break: 'Take a short break',
-  review_cart:  'Review your cart',
-  set_a_timer:  'Set a timer',
-  close_tab:    'Close this tab',
+  pause_for_a_moment:    'Pause for a moment',
+  let_this_rest:         'Let this rest for now',
+  slow_this_down:        'Slow this down',
+  take_your_time:        'Take your time',
+  come_back_later:       'Come back to this later',
+  one_thing_at_a_time:   'One thing at a time',
+  take_a_breath:         'Take a breath',
+  reset_attention:       'Reset your attention',
+  check_in_with_yourself:'Check in with yourself',
+  notice_how_you_feel:   'Notice how you feel',
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
