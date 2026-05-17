@@ -50,7 +50,8 @@ class GemmaEngine {
   // Byte-weighted progress: tracks only files currently downloading.
   // Keyed by filename, value is { loaded, total } in bytes.
   // Files are removed on 'done' so completed ones don't inflate the denominator.
-  private activeBytes = new Map<string, { loaded: number; total: number }>()
+  private activeBytes  = new Map<string, { loaded: number; total: number }>()
+  private quotaExceeded = false
 
   get isReady(): boolean { return this.pipe !== null }
   get device(): Device   { return this._device }
@@ -91,17 +92,6 @@ class GemmaEngine {
     this.progressCb?.(status)
   }
 
-  private async checkStorageQuota(): Promise<string | undefined> {
-    try {
-      const { quota = 0, usage = 0 } = await navigator.storage.estimate()
-      if (quota > 0 && usage / quota > 0.85) {
-        return 'Storage nearly full — model may reload slowly'
-      }
-    } catch {
-      // API unavailable in this context
-    }
-    return undefined
-  }
 
   private async load(): Promise<void> {
     this.emit({ phase: 'checking' })
@@ -124,6 +114,11 @@ class GemmaEngine {
 
     const alreadyCached = await isCached(MODEL_ID, device)
     const dtype = device === 'webgpu' ? MODEL_DTYPE_WEBGPU : MODEL_DTYPE_WASM
+
+    // Intercept console.warn during pipeline() to detect Cache API quota errors.
+    // The HuggingFace library catches QuotaExceededError internally and logs it
+    // as a warning — it never propagates to our catch block.
+    const restoreWarn = this.interceptQuotaWarnings()
 
     try {
       const raw = await pipeline('text-generation', MODEL_ID, {
@@ -161,7 +156,7 @@ class GemmaEngine {
       this.pipe = raw as unknown as AnyToAnyPipeline
 
       if (!alreadyCached) await markCached(MODEL_ID, device)
-      const storageWarning = await this.checkStorageQuota()
+      const storageWarning = this.quotaExceeded ? 'Storage nearly full — model may reload slowly' : undefined
       this.emit({ phase: 'ready', device, ...(storageWarning ? { storageWarning } : {}) })
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err)
@@ -169,7 +164,20 @@ class GemmaEngine {
       this.emit({ phase: 'error', reason })
       this.initPromise = null
       throw err
+    } finally {
+      restoreWarn()
     }
+  }
+
+  private interceptQuotaWarnings(): () => void {
+    const original = console.warn.bind(console)
+    console.warn = (...args: unknown[]) => {
+      if (args.some(a => typeof a === 'string' && a.includes('QuotaExceededError'))) {
+        this.quotaExceeded = true
+      }
+      original(...args)
+    }
+    return () => { console.warn = original }
   }
 }
 
