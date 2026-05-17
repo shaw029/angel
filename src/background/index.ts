@@ -255,10 +255,11 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
     presence,
   )
 
-  if (!isAnyTierAllowed(adjustedState, Date.now(), rawCtx.event_type, cognitiveState.state, strategy)) return
-
-  // Record behavioral patterns — fire-and-forget, non-critical
+  // Record behavioral patterns regardless of whether an intervention fires.
+  // The gate controls nudge frequency, not behavioural observation.
   void recordPatterns(rawCtx)
+
+  if (!isAnyTierAllowed(adjustedState, Date.now(), rawCtx.event_type, cognitiveState.state, strategy)) return
 
   // Enrich context with memory, intensity, and phrase cache before inference
   const memory        = await getMemorySummary().catch(() => undefined)
