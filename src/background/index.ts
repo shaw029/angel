@@ -165,7 +165,18 @@ async function dispatch(
       return
 
     case MSG.SET_ENABLED:
-      await patchState({ enabled: message.payload })
+      if (message.payload === true) {
+        // Re-enabling: clear cooldown timestamps and session caps so nudges
+        // can fire immediately rather than waiting out a stale cooldown.
+        sessionQuickDismissalsByState.clear()
+        await patchState({
+          enabled:                true,
+          lastFullIntervention:   null,
+          lastSubtleIntervention: null,
+        })
+      } else {
+        await patchState({ enabled: false })
+      }
       break
 
     case MSG.SET_PRESENCE:
