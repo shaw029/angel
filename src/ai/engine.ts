@@ -1,7 +1,7 @@
 import { pipeline, env } from '@huggingface/transformers'
 import { MODEL_ID, MODEL_DTYPE_WEBGPU, MODEL_DTYPE_WASM } from '@shared/constants'
 import type { ModelLoadStatus } from '@shared/types'
-import { isCached, markCached, clearStaleModelCaches } from './cache'
+import { isCached, markCached, clearCachedRecord, clearStaleModelCaches } from './cache'
 
 // Transformers.js progress event shape (v3)
 interface TFProgressEvent {
@@ -159,7 +159,14 @@ class GemmaEngine {
       // Only mark cached if the Cache API writes actually succeeded.
       // If quota was exceeded the files weren't stored, so next session should
       // show the progress bar and retry rather than silently re-downloading.
-      if (!alreadyCached && !this.quotaExceeded) await markCached(MODEL_ID, device)
+      if (!alreadyCached && !this.quotaExceeded) {
+        await markCached(MODEL_ID, device)
+      } else if (alreadyCached && this.quotaExceeded) {
+        // IDB said "cached" but the Cache API files were evicted and couldn't be
+        // re-stored. Clear the stale IDB record so the next session starts clean
+        // (calls clearStaleModelCaches before downloading) rather than looping.
+        await clearCachedRecord(MODEL_ID, device)
+      }
       const storageWarning = this.quotaExceeded ? 'Storage nearly full — model may reload slowly' : undefined
       this.emit({ phase: 'ready', device, ...(storageWarning ? { storageWarning } : {}) })
     } catch (err) {
@@ -178,6 +185,7 @@ class GemmaEngine {
     console.warn = (...args: unknown[]) => {
       if (args.some(a => typeof a === 'string' && a.includes('QuotaExceededError'))) {
         this.quotaExceeded = true
+        return  // handled — storageWarning shown in popup instead
       }
       original(...args)
     }

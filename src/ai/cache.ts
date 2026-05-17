@@ -63,6 +63,19 @@ export async function markCached(modelId: string, device: 'webgpu' | 'wasm'): Pr
   }
 }
 
+export async function clearCachedRecord(modelId: string, device: 'webgpu' | 'wasm'): Promise<void> {
+  try {
+    const db = await openDB()
+    await new Promise<void>((resolve, reject) => {
+      const req = db.transaction(STORE, 'readwrite').objectStore(STORE).delete(`${modelId}:${device}`)
+      req.onsuccess = () => resolve()
+      req.onerror   = () => reject(req.error)
+    })
+  } catch {
+    // Non-critical
+  }
+}
+
 // Clears any model files left in the Cache API from a previous installation.
 // Called before a fresh download when IDB has no record — prevents the new
 // download from hitting quota that's already consumed by stale files.
