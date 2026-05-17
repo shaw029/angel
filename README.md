@@ -81,7 +81,7 @@ Angel is a layered pipeline. Each layer has a single, well-scoped responsibility
 flowchart TB
     subgraph page ["Content Script — Page Context"]
         direction LR
-        DET["Detectors\ncountdown · urgency · billing\nautoplay · infinite-scroll"]
+        DET["Detectors\ncountdown · urgency · billing\nautoplay · infinite-scroll · gamification"]
         TRK["Trackers\nscroll-continuity · session\ninteraction-loop"]
     end
 
@@ -186,6 +186,7 @@ Over time, the **User Profile** builds an EMA-derived model of: optimal interven
 | `infinite-scroll` | Feed container height growth near scroll bottom; `data-infinite` structural fallback | `infinite_feed` |
 | `autoplay` | `<video autoplay>` detection; intersection observer for viewport visibility | `autoplay_media` |
 | `billing` | Text pattern matching for trial language, recurring billing, annual/monthly commitment framing | `trial_language`, `recurring_billing` |
+| `gamification` | Spin/prize/claim language scan + structural check for canvas/SVG inside overlays | `gamification` |
 
 ### Behavioral Trackers
 
@@ -406,7 +407,7 @@ angel/
 │   ├── content/              # Page observation
 │   │   ├── index.ts          # Initialization, 30s signal dispatch loop
 │   │   ├── ui.tsx            # Nudge rendering, dwell timing, outcome reporting
-│   │   ├── detectors/        # 5 structural pattern detectors
+│   │   ├── detectors/        # 6 structural pattern detectors
 │   │   └── trackers/         # 3 behavioral metric trackers
 │   │
 │   ├── memory/               # IndexedDB — longitudinal modeling

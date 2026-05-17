@@ -261,7 +261,7 @@ The content script receives the `Intervention` and renders it using the tier-mat
 - **subtle pill** — small, unobtrusive overlay at the bottom of the viewport, auto-dismisses after 8 seconds
 - **full card** — modal-style card with the manipulation observation (in muted text above), the intervention message, and an action button
 
-Dwell time is measured from render to dismiss. The outcome (`accepted` if action button clicked, `dismissed` otherwise) and `dwellMs` are sent back to the service worker via `MSG.DISMISSED`.
+Dwell time is measured from render to dismiss. The outcome (`accepted` if action button clicked, `dismissed` otherwise), `dwellMs`, and the `tone` of the shown intervention are sent back to the service worker via `MSG.DISMISSED`. Including `tone` in the payload (rather than relying on module-level state) ensures style effectiveness tracking survives service worker restarts.
 
 The service worker uses dwell time to:
 - Classify reflective engagement (≥ 8s accepted = genuine reflection)
