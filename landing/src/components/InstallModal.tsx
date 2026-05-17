@@ -52,13 +52,15 @@ export function InstallModal({ open, onClose }: { open: boolean; onClose: () => 
             aria-hidden="true"
           />
 
-          {/* Panel */}
+          {/* Centering wrapper — positioning only, no animation so Framer Motion
+              transforms on the panel don't clobber CSS translate centering */}
+          <div className="fixed inset-0 z-50 flex items-end justify-center px-4 sm:items-center">
           <motion.div
             key="panel"
             role="dialog"
             aria-modal="true"
             aria-label="Install Angel locally"
-            className="fixed inset-x-4 bottom-0 z-50 mx-auto max-w-lg rounded-t-3xl bg-surface px-7 py-8 shadow-2xl sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-3xl md:px-10 md:py-10"
+            className="w-full max-w-lg rounded-t-3xl bg-surface px-7 py-8 shadow-2xl sm:rounded-3xl md:px-10 md:py-10"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
@@ -120,6 +122,7 @@ export function InstallModal({ open, onClose }: { open: boolean; onClose: () => 
               </a>
             </p>
           </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
