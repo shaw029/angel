@@ -91,6 +91,18 @@ class GemmaEngine {
     this.progressCb?.(status)
   }
 
+  private async checkStorageQuota(): Promise<string | undefined> {
+    try {
+      const { quota = 0, usage = 0 } = await navigator.storage.estimate()
+      if (quota > 0 && usage / quota > 0.85) {
+        return 'Storage nearly full — model may reload slowly'
+      }
+    } catch {
+      // API unavailable in this context
+    }
+    return undefined
+  }
+
   private async load(): Promise<void> {
     this.emit({ phase: 'checking' })
 
@@ -149,7 +161,8 @@ class GemmaEngine {
       this.pipe = raw as unknown as AnyToAnyPipeline
 
       if (!alreadyCached) await markCached(MODEL_ID, device)
-      this.emit({ phase: 'ready', device })
+      const storageWarning = await this.checkStorageQuota()
+      this.emit({ phase: 'ready', device, ...(storageWarning ? { storageWarning } : {}) })
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err)
       console.error('[GemmaEngine] load failed:', err)

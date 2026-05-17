@@ -65,11 +65,16 @@ function ModelStatusBadge({ status }: { status: ModelLoadStatus }) {
 
   if (status.phase === 'ready') {
     return (
-      <div className="mt-3 pt-3 border-t border-neutral-100 flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-sage" />
-        <span className="text-[10px] text-ink-muted">
-          AI ready · {status.device === 'webgpu' ? 'GPU' : 'CPU'}
-        </span>
+      <div className="mt-3 pt-3 border-t border-neutral-100">
+        <div className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-sage" />
+          <span className="text-[10px] text-ink-muted">
+            AI ready · {status.device === 'webgpu' ? 'GPU' : 'CPU'}
+          </span>
+        </div>
+        {status.storageWarning && (
+          <p className="mt-1.5 text-[10px] text-amber-500">{status.storageWarning}</p>
+        )}
       </div>
     )
   }
