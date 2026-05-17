@@ -16,6 +16,13 @@ export interface PresenceProfile {
 
 // Linear formulas centred at 0.5 so that the midpoint is always neutral (×1.0, ±0).
 // Default 0.45 sits just left of centre — slightly conservative by design.
+//
+// Range is intentionally wide so that active (1.0) feels meaningfully different
+// from adaptive — a user who maxes the slider should notice the difference.
+//
+//   quiet  (0.0): cooldown ×1.75, confidence +0.15, entry delay ×1.75, cap −1
+//   adaptive (0.5): cooldown ×1.0,  confidence  0.0,  entry delay ×1.0,  cap  0
+//   active (1.0): cooldown ×0.25, confidence −0.15, entry delay ×0.25, cap +2
 
 export function derivePresence(level: number): PresenceProfile {
   const l = Math.max(0, Math.min(1, level))
@@ -28,9 +35,9 @@ export function derivePresence(level: number): PresenceProfile {
   return {
     level,
     zone,
-    cooldownScale:   1.5 - l,           // quiet 1.5 → adaptive 1.0 → active 0.5
-    confidenceDelta: 0.08 - l * 0.16,   // quiet +0.08 → adaptive 0.0 → active −0.08
-    entryDelayScale: 1.5 - l,           // same shape as cooldown for consistency
-    sessionCapDelta: l <= 0.33 ? -1 : l >= 0.67 ? 1 : 0,
+    cooldownScale:   1.0 + (0.5 - l) * 1.5,  // quiet 1.75 → adaptive 1.0 → active 0.25
+    confidenceDelta: 0.15 - l * 0.30,          // quiet +0.15 → adaptive 0.0 → active −0.15
+    entryDelayScale: 1.0 + (0.5 - l) * 1.5,  // same shape as cooldown
+    sessionCapDelta: l <= 0.33 ? -1 : l >= 0.67 ? 2 : 0,
   }
 }

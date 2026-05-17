@@ -192,10 +192,10 @@ After the dynamic overrides, `resolveStrategy()` applies a final bias layer deri
 interface PresenceProfile {
   level:           number      // raw 0–1 value
   zone:            'quiet' | 'adaptive' | 'active'
-  cooldownScale:   number      // 1.5 → 1.0 → 0.5 across the range
-  confidenceDelta: number      // +0.08 → 0.0 → -0.08
-  entryDelayScale: number      // 1.5 → 1.0 → 0.5
-  sessionCapDelta: number      // -1 | 0 | +1 per zone
+  cooldownScale:   number      // 1.75 → 1.0 → 0.25 across the range
+  confidenceDelta: number      // +0.15 → 0.0 → -0.15
+  entryDelayScale: number      // 1.75 → 1.0 → 0.25
+  sessionCapDelta: number      // -1 | 0 | +2 per zone
 }
 ```
 
