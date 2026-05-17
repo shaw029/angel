@@ -85,6 +85,7 @@ export interface Intervention {
   tier:        Exclude<InterventionTier, 'none'>  // resolved by background gate
   observation?: string                         // mechanic + cognitive note, shown in FullCard
   mechanic?:   ManipulationMechanic | null
+  cogState?:   CognitiveState                  // state when nudge was shown — echoed back in DISMISSED
 }
 
 export interface StorageState {

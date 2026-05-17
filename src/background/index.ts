@@ -34,10 +34,9 @@ chrome.runtime.onInstalled.addListener(() => void ensureOffscreenDocument())
 chrome.runtime.onStartup.addListener(()   => void ensureOffscreenDocument())
 
 // Track which tab triggered an AI inference so the intervention routes back correctly
-let pendingTabId:      number             | null = null
-let pendingEventType:  EventType          | null = null
-let pendingStrategy:   InterventionStrategy | null = null
-let lastShownCogState: CognitiveState     | null = null
+let pendingTabId:     number              | null = null
+let pendingEventType: EventType           | null = null
+let pendingStrategy:  InterventionStrategy | null = null
 
 // Session-scoped quick-dismissal counter per cognitive state.
 // Used by resolveStrategy to enforce per-state session caps.
@@ -111,7 +110,7 @@ async function dispatch(
       break
 
     case MSG.DISMISSED: {
-      const { dwellMs, outcome, tone } = message.payload
+      const { dwellMs, outcome, tone, cogState } = message.payload
       const state = await getState()
       await patchState(afterDismissal({ timestamp: Date.now(), dwellMs }, state))
 
@@ -134,15 +133,14 @@ async function dispatch(
       // Profile: record tone effectiveness — use payload tone (survives SW restarts)
       void recordInterventionOutcome(tone, accepted, quickDismiss)
 
-      // Profile: record per-state responsiveness for adaptive suppression
-      if (lastShownCogState) {
-        void recordStateInterventionOutcome(lastShownCogState, accepted, quickDismiss)
+      // Profile: record per-state responsiveness — cogState echoed from Intervention,
+      // survives service-worker restarts without relying on module-level state
+      void recordStateInterventionOutcome(cogState, accepted, quickDismiss)
 
-        // Session cap: track quick-dismissals per state in-memory
-        if (quickDismiss) {
-          const prev = sessionQuickDismissalsByState.get(lastShownCogState) ?? 0
-          sessionQuickDismissalsByState.set(lastShownCogState, prev + 1)
-        }
+      // Session cap: track quick-dismissals per state in-memory
+      if (quickDismiss) {
+        const prev = sessionQuickDismissalsByState.get(cogState) ?? 0
+        sessionQuickDismissalsByState.set(cogState, prev + 1)
       }
       break
     }
@@ -166,13 +164,16 @@ async function dispatch(
 
     case MSG.SET_ENABLED:
       if (message.payload === true) {
-        // Re-enabling: clear cooldown timestamps and session caps so nudges
-        // can fire immediately rather than waiting out a stale cooldown.
+        // Re-enabling: clear all in-memory and persisted gate state so nudges
+        // can fire immediately on a clean slate.
         sessionQuickDismissalsByState.clear()
+        tabCognitiveContext.clear()  // drop stale drift history so recovery_in_progress doesn't persist
         await patchState({
           enabled:                true,
           lastFullIntervention:   null,
           lastSubtleIntervention: null,
+          suppressionMultiplier:  1.0,
+          recentDismissals:       [],
         })
       } else {
         await patchState({ enabled: false })
@@ -316,7 +317,8 @@ async function onIntervention(intervention: Intervention) {
   const tiered: Intervention = {
     ...intervention,
     tier,
-    action: resolveAction(pendingCogState ?? 'intentional_browsing', intervention.mechanic ?? null),
+    action:   resolveAction(pendingCogState ?? 'intentional_browsing', intervention.mechanic ?? null),
+    cogState: pendingCogState ?? 'intentional_browsing',
   }
 
   // Attempt delivery first — only update cooldowns/count if the tab still exists.
@@ -332,8 +334,7 @@ async function onIntervention(intervention: Intervention) {
   void incrementPattern('interventions_shown')
   void recordPhrase(intervention.message)
 
-  lastShownCogState = pendingCogState ?? null
-  lastNudgeAt       = Date.now()
+  lastNudgeAt = Date.now()
 }
 
 // ─── Pattern recording ────────────────────────────────────────────────────────

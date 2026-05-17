@@ -78,13 +78,13 @@ function showNudge(intervention: Intervention) {
     pointerEvents: 'none',
   })
   document.body.appendChild(hostEl)
-  mountNudge(hostEl, intervention, (outcome) => dismiss(intervention.id, intervention.tone, outcome))
+  mountNudge(hostEl, intervention, (outcome) => dismiss(intervention.id, intervention.tone, intervention.cogState ?? 'intentional_browsing', outcome))
 }
 
-function dismiss(id: string, tone: import('@shared/types').InterventionStyle, outcome: 'accepted' | 'dismissed') {
+function dismiss(id: string, tone: import('@shared/types').InterventionStyle, cogState: import('@shared/types').CognitiveState, outcome: 'accepted' | 'dismissed') {
   const dwellMs = shownAt !== null ? Date.now() - shownAt : 0
 
-  safeSend({ type: MSG.DISMISSED, payload: { id, dwellMs, outcome, tone } })
+  safeSend({ type: MSG.DISMISSED, payload: { id, dwellMs, outcome, tone, cogState } })
 
   hostEl?.remove()
   hostEl  = null

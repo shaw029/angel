@@ -108,7 +108,7 @@ export function analyzeDrift(
 
   // ── Trajectory ──────────────────────────────────────────────────────────────
   const trajectory = detectTrajectory(
-    recent, currentState, direction, velocity, escalatingCount, recoveringCount,
+    recent, currentState, direction, velocity, escalatingCount, recoveringCount, now,
   )
 
   return {
@@ -148,6 +148,10 @@ export function driftCooldownScale(drift: DriftEstimate): number {
 // ─── Trajectory detection ─────────────────────────────────────────────────────
 // Checked in priority order — first match wins.
 
+// Recovery protection lifts after this window — prevents permanent suppression
+// when history is stale and no new transitions occur.
+const RECOVERY_RECENCY_MS = 15 * 60_000
+
 function detectTrajectory(
   history:     CognitiveStateTransition[],
   current:     CognitiveState,
@@ -155,12 +159,18 @@ function detectTrajectory(
   velocity:    number,
   escalating:  number,
   recovering:  number,
+  now:         number,
 ): DriftTrajectory | null {
-  // Recovery takes priority — don't interrupt it
+  // Recovery takes priority — don't interrupt it.
+  // Requires a recent recovering transition so protection lifts naturally
+  // once the user has been stable for >15 min (no new transitions → stale slope).
+  const lastRecovery = history.filter(t => HEALTH_SCORE[t.to] < HEALTH_SCORE[t.from]).at(-1)
   if (
     direction === 'recovering' &&
     recovering >= 2 &&
-    HEALTH_SCORE[current] <= 0.4
+    HEALTH_SCORE[current] <= 0.4 &&
+    lastRecovery !== undefined &&
+    now - lastRecovery.at < RECOVERY_RECENCY_MS
   ) return 'recovery_in_progress'
 
   // Urgency spiral: emotionally_reactive appears in trajectory while escalating
