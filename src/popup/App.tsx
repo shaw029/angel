@@ -209,10 +209,7 @@ function PresenceSlider({
 
   return (
     <div className="mt-3 pt-3 border-t border-neutral-100" style={{ opacity: disabled ? 0.45 : 1 }}>
-      <div className="flex items-baseline justify-between mb-2.5">
-        <p className="text-[10px] font-semibold tracking-widest uppercase text-ink-muted">Presence</p>
-        <p className="text-[10px] text-ink-muted">How much support would you like from Angel?</p>
-      </div>
+      <p className="text-[10px] text-ink-muted mb-2.5">How much support would you like from Angel?</p>
       <input
         type="range"
         min={0}
