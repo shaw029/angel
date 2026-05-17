@@ -11,7 +11,7 @@ const stagger = {
 
 export function PrivacySection() {
   return (
-    <section className="bg-dark-bg text-white py-28 px-6 overflow-hidden">
+    <section className="bg-dark-bg text-white py-20 px-6 overflow-hidden">
       <div className="max-w-5xl mx-auto">
 
         <motion.div

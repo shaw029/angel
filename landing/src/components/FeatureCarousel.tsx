@@ -7,28 +7,24 @@ const slides: Array<{
   label:  string
   title:  string
   body:   string
-  note:   string
   visual: ReactNode
 }> = [
   {
-    label: 'Privacy',
-    title: 'Private by design.',
-    body:  'Everything runs locally with Gemma.\nYour browsing data never leaves your device.',
-    note:  'No server. No account. No data leaving your browser — ever.',
+    label:  'Privacy',
+    title:  'Private by design.',
+    body:   'Everything runs locally with Gemma.\nYour browsing data never leaves your device.',
     visual: <PopupMockup />,
   },
   {
-    label: 'Adaptivity',
-    title: 'Built for different vulnerabilities.',
-    body:  'Different people struggle with different kinds of online pressure.\nAngel adapts to the patterns that tend to pull you deeper.',
-    note:  'Your profile exists only on your device, evolving quietly over weeks.',
+    label:  'Adaptivity',
+    title:  'Built for different vulnerabilities.',
+    body:   'Different people struggle with different kinds of online pressure.\nAngel adapts to the patterns that tend to pull you deeper.',
     visual: <NudgeMockup />,
   },
   {
-    label: 'Resilience',
-    title: 'Designed for what comes next.',
-    body:  'Online influence systems are becoming more adaptive, emotional, and difficult to recognize.\nAngel evolves alongside them.',
-    note:  'Built on research — not productivity metrics or screen time quotas.',
+    label:  'Resilience',
+    title:  'Designed for what comes next.',
+    body:   'Online influence systems are becoming more adaptive, emotional, and difficult to recognize.\nAngel evolves alongside them.',
     visual: <AwarenessMockup />,
   },
 ]
@@ -57,155 +53,161 @@ export function FeatureCarousel() {
 
   return (
     <section
-      className="py-20 px-6 border-y border-border/60 overflow-hidden"
+      className="py-16 px-6 border-y border-border/60 overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="max-w-5xl mx-auto">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={index}
-            variants={fade}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16 items-center"
-          >
-            {/* Text side */}
-            <div>
-              <span className="inline-block text-[11px] font-semibold tracking-widest uppercase text-sage/70 mb-5">
-                {slides[index].label}
-              </span>
-              <h2 className="text-3xl font-semibold tracking-tight text-ink-primary sm:text-4xl leading-tight">
-                {slides[index].title}
-              </h2>
-              <p className="mt-5 text-lg leading-relaxed text-ink-muted whitespace-pre-line">
-                {slides[index].body}
-              </p>
-              <p className="mt-4 text-sm text-ink-secondary/60 italic">
-                {slides[index].note}
-              </p>
-
-              {/* Navigation */}
-              <div className="mt-10 flex items-center gap-5">
-                <button
-                  onClick={() => goTo(index - 1)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors"
-                  aria-label="Previous"
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
-                </button>
-
-                <div className="flex items-center gap-2">
-                  {slides.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => goTo(i)}
-                      aria-label={`Slide ${i + 1}`}
-                      className={`rounded-full transition-all duration-500 ${
-                        i === index
-                          ? 'h-1.5 w-8 bg-sage'
-                          : 'h-1.5 w-1.5 bg-border hover:bg-ink-faint'
-                      }`}
-                    />
-                  ))}
+      <div className="max-w-4xl mx-auto">
+        <div className="rounded-2xl border border-border/60 bg-white shadow-[0_2px_20px_rgba(0,0,0,0.05)] overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={index}
+              variants={fade}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="grid grid-cols-1 lg:grid-cols-2"
+            >
+              {/* Text side */}
+              <div className="p-8 lg:p-10 flex flex-col justify-between border-b border-border/60 lg:border-b-0 lg:border-r">
+                <div>
+                  <span className="inline-block text-[11px] font-semibold tracking-widest uppercase text-sage/70 mb-5">
+                    {slides[index].label}
+                  </span>
+                  <h2 className="text-3xl font-semibold tracking-tight text-ink-primary sm:text-4xl leading-tight">
+                    {slides[index].title}
+                  </h2>
+                  <p className="mt-5 text-base leading-relaxed text-ink-muted whitespace-pre-line">
+                    {slides[index].body}
+                  </p>
                 </div>
 
-                <button
-                  onClick={() => goTo(index + 1)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors"
-                  aria-label="Next"
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </button>
+                {/* Navigation */}
+                <div className="mt-8 flex items-center gap-4">
+                  <button
+                    onClick={() => goTo(index - 1)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors"
+                    aria-label="Previous"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                  </button>
 
-                {/* Progress line */}
-                {!paused && (
-                  <div className="flex-1 overflow-hidden">
-                    <motion.div
-                      key={`p-${index}`}
-                      className="h-px bg-sage/30 origin-left"
-                      initial={{ scaleX: 0 }}
-                      animate={{ scaleX: 1 }}
-                      transition={{ duration: 3, ease: 'linear' }}
-                    />
+                  <div className="flex items-center gap-2">
+                    {slides.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => goTo(i)}
+                        aria-label={`Slide ${i + 1}`}
+                        className={`rounded-full transition-all duration-500 ${
+                          i === index
+                            ? 'h-1.5 w-8 bg-sage'
+                            : 'h-1.5 w-1.5 bg-border hover:bg-ink-faint'
+                        }`}
+                      />
+                    ))}
                   </div>
-                )}
-              </div>
-            </div>
 
-            {/* Visual side */}
-            <div className="w-full">
-              {slides[index].visual}
-            </div>
-          </motion.div>
-        </AnimatePresence>
+                  <button
+                    onClick={() => goTo(index + 1)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted hover:border-ink-muted hover:text-ink-primary transition-colors"
+                    aria-label="Next"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
+                  </button>
+
+                  {!paused && (
+                    <div className="flex-1 overflow-hidden">
+                      <motion.div
+                        key={`p-${index}`}
+                        className="h-px bg-sage/30 origin-left"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ duration: 3, ease: 'linear' }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Visual side */}
+              <div className="p-8 lg:p-10 flex items-center justify-center bg-neutral-50/60">
+                {slides[index].visual}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </section>
   )
 }
 
 // ─── Mockup: Extension popup ──────────────────────────────────────────────────
+// Matches the real Angel popup: toggle, insight metrics, presence slider, model badge.
 
 function PopupMockup() {
   return (
-    <div className="rounded-2xl bg-white shadow-xl shadow-ink-primary/6 border border-border/60 overflow-hidden max-w-xs mx-auto lg:mx-0 lg:ml-auto">
-      {/* Browser chrome */}
-      <div className="bg-neutral-100 px-4 py-2.5 flex items-center gap-2 border-b border-border/50">
+    <div className="rounded-2xl bg-white shadow-xl shadow-ink-primary/6 border border-border/60 overflow-hidden w-[260px]">
+      {/* Browser toolbar */}
+      <div className="bg-neutral-100 px-3 py-2 flex items-center gap-2 border-b border-border/50">
         <div className="flex gap-1.5">
-          <div className="h-2.5 w-2.5 rounded-full bg-neutral-300" />
-          <div className="h-2.5 w-2.5 rounded-full bg-neutral-300" />
-          <div className="h-2.5 w-2.5 rounded-full bg-neutral-300" />
+          <div className="h-2 w-2 rounded-full bg-neutral-300" />
+          <div className="h-2 w-2 rounded-full bg-neutral-300" />
+          <div className="h-2 w-2 rounded-full bg-neutral-300" />
         </div>
-        <div className="flex-1 mx-3 h-5 rounded-md bg-neutral-200/80 flex items-center px-2">
-          <div className="h-1.5 w-20 rounded-full bg-neutral-300" />
-        </div>
+        <div className="flex-1 mx-2 h-4 rounded bg-neutral-200/80" />
         <div className="h-5 w-5 rounded bg-sage/20 flex items-center justify-center">
-          <span className="text-[8px] font-medium text-sage">A</span>
+          <span className="text-[8px] font-bold text-sage">A</span>
         </div>
       </div>
 
-      <div className="p-5">
-        <div className="flex items-center justify-between">
+      {/* Popup body */}
+      <div className="p-4">
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-sage" />
-            <span className="text-sm font-medium text-ink-primary">Angel</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-sage animate-pulse" />
+            <span className="text-[13px] font-medium text-ink-primary">Angel</span>
           </div>
-          <div className="relative inline-flex h-5 w-9 rounded-full bg-sage">
-            <span className="absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-white shadow" />
+          <div className="relative inline-flex h-5 w-9 rounded-full bg-sage items-center">
+            <span className="absolute right-0.5 h-4 w-4 rounded-full bg-white shadow-sm" />
           </div>
         </div>
 
-        <p className="mt-3 text-xs leading-relaxed text-ink-muted">
+        <p className="text-[11px] leading-relaxed text-ink-muted mb-3">
           Quietly watching for moments worth pausing on.
         </p>
 
-        <div className="mt-3 pt-3 border-t border-border/60">
+        {/* Insights */}
+        <div className="pt-3 border-t border-border/60">
           <p className="text-[10px] text-ink-muted mb-2">2 weeks of awareness data</p>
           <div className="space-y-1.5">
-            <MetricRow label="Stepped away after nudge" value="64%" up />
-            <MetricRow label="Paused to reflect"        value="48%" up />
-            <MetricRow label="Avg time to recover"      value="11 min" />
+            <MetricRow label="Loop exits after nudge"  value="64%" up />
+            <MetricRow label="Nudges with reflection"  value="48%" up />
+            <MetricRow label="Avg loop recovery"       value="11 min" />
           </div>
         </div>
 
+        {/* Presence slider */}
         <div className="mt-3 pt-3 border-t border-border/60">
-          <div className="flex items-baseline justify-between mb-2.5">
+          <div className="flex items-baseline justify-between mb-2">
             <p className="text-[10px] font-semibold tracking-widest uppercase text-ink-muted">Presence</p>
             <p className="text-[10px] text-ink-muted">How present Angel feels.</p>
           </div>
-          <div className="h-0.5 w-full rounded-full overflow-hidden"
-            style={{ background: 'linear-gradient(to right, #4A7C59 45%, #E5E5E5 45%)' }} />
-          <div className="flex justify-between mt-1.5">
-            <span className="text-[10px] text-ink-muted">Quiet</span>
-            <span className="text-[10px] text-ink-muted">Attentive</span>
+          <div
+            className="h-0.5 w-full rounded-full overflow-hidden"
+            style={{ background: 'linear-gradient(to right, #4A7C59 45%, #E5E5E5 45%)' }}
+          />
+          <div className="flex justify-between mt-1">
+            <span className="text-[9px] text-ink-muted">Quiet</span>
+            <span className="text-[9px] text-ink-muted">Attentive</span>
           </div>
         </div>
 
+        {/* Model badge */}
         <div className="mt-3 pt-3 border-t border-border/60 flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-sage" />
           <span className="text-[10px] text-ink-muted">AI ready · GPU</span>
@@ -216,43 +218,45 @@ function PopupMockup() {
 }
 
 // ─── Mockup: In-page nudge card ───────────────────────────────────────────────
+// Matches the real FullCard in Nudge.tsx — same structure, dimensions, styling.
 
 function NudgeMockup() {
   return (
-    <div className="rounded-2xl bg-white shadow-xl shadow-ink-primary/6 border border-border/60 overflow-hidden max-w-xs mx-auto lg:mx-0 lg:ml-auto">
-      {/* Simulated page content */}
-      <div className="bg-neutral-50 px-5 py-5 border-b border-border/40 space-y-2">
-        <div className="h-2 w-3/4 rounded-full bg-neutral-200" />
-        <div className="h-2 w-full rounded-full bg-neutral-200" />
-        <div className="h-2 w-5/6 rounded-full bg-neutral-200" />
-        <div className="h-2 w-2/3 rounded-full bg-neutral-200" />
+    <div className="flex flex-col items-center w-[268px]">
+      {/* Simulated page content in the background */}
+      <div className="w-full mb-3 rounded-xl bg-neutral-50 border border-border/40 px-4 py-3 space-y-1.5 opacity-50">
+        <div className="h-1.5 w-3/4 rounded-full bg-neutral-200" />
+        <div className="h-1.5 w-full rounded-full bg-neutral-200" />
+        <div className="h-1.5 w-5/6 rounded-full bg-neutral-200" />
+        <div className="h-1.5 w-2/3 rounded-full bg-neutral-200" />
       </div>
 
-      {/* Nudge card */}
-      <div className="p-5">
-        <div className="mb-3 flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-sage" />
-          <span className="text-[10px] font-medium tracking-wide text-ink-muted">Angel</span>
+      {/* Actual nudge card — pixel-matched to FullCard */}
+      <div className="w-full rounded-2xl border border-neutral-100 bg-white shadow-[0_2px_16px_rgba(0,0,0,0.07),0_1px_4px_rgba(0,0,0,0.04)] select-none">
+        {/* Header: tone dot + dismiss */}
+        <div className="flex items-center justify-between px-4 pt-3.5">
+          <span className="h-[5px] w-[5px] rounded-full bg-sage animate-pulse" />
+          <button className="h-[18px] w-[18px] flex items-center justify-center rounded-full text-neutral-300" tabIndex={-1}>
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+              <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
 
-        <p className="text-[11px] leading-relaxed text-ink-muted italic mb-3">
-          "This feed is designed to feel like it never ends."
+        {/* Observation */}
+        <p className="px-4 pt-2.5 text-[11px] leading-[1.5] text-neutral-400">
+          You've been on this feed for 18 minutes.
         </p>
 
-        <div className="h-px bg-border/60 mb-3" />
-
-        <p className="text-sm font-medium leading-relaxed text-ink-primary mb-4">
-          You've been scrolling for a while. What were you actually looking for?
+        {/* Message */}
+        <p className="px-4 pt-1.5 text-[13px] leading-[1.6] text-neutral-600">
+          You can take a moment before deciding.
         </p>
 
-        <div className="flex items-center gap-2">
-          <button className="flex-1 rounded-full bg-sage px-4 py-2 text-xs font-medium text-white">
-            Take a moment
-          </button>
-          <button className="h-8 w-8 rounded-full border border-border flex items-center justify-center text-ink-muted">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
+        {/* Action */}
+        <div className="px-4 pt-3 pb-3.5">
+          <button className="w-full text-left text-[12px] font-medium text-sage px-3 py-1.5 rounded-lg bg-sage/10" tabIndex={-1}>
+            Take a short break
           </button>
         </div>
       </div>
@@ -261,58 +265,71 @@ function NudgeMockup() {
 }
 
 // ─── Mockup: Awareness building over time ─────────────────────────────────────
+// Popup view showing the insight panel's week-over-week pattern data.
 
 function AwarenessMockup() {
   const weeks = [
-    { label: 'Wk 1', recovery: 28, depth: 4  },
-    { label: 'Wk 2', recovery: 22, depth: 7  },
-    { label: 'Wk 3', recovery: 17, depth: 11 },
-    { label: 'Wk 4', recovery: 11, depth: 16 },
+    { label: 'Wk 1', recovery: 28, resistance: 15 },
+    { label: 'Wk 2', recovery: 20, resistance: 38 },
+    { label: 'Wk 3', recovery: 13, resistance: 60 },
+    { label: 'Wk 4', recovery:  7, resistance: 82 },
   ]
-  const maxRecovery = 28
-  const maxDepth    = 16
+  const maxRecovery   = 28
+  const maxResistance = 82
 
   return (
-    <div className="rounded-2xl bg-white shadow-xl shadow-ink-primary/6 border border-border/60 overflow-hidden max-w-xs mx-auto lg:mx-0 lg:ml-auto">
-      <div className="p-5">
-        <div className="flex items-center gap-1.5 mb-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-sage" />
-          <span className="text-[10px] font-medium tracking-wide text-ink-muted">Angel · Awareness over time</span>
+    <div className="rounded-2xl bg-white shadow-xl shadow-ink-primary/6 border border-border/60 overflow-hidden w-[260px]">
+      {/* Browser toolbar */}
+      <div className="bg-neutral-100 px-3 py-2 flex items-center gap-2 border-b border-border/50">
+        <div className="flex gap-1.5">
+          <div className="h-2 w-2 rounded-full bg-neutral-300" />
+          <div className="h-2 w-2 rounded-full bg-neutral-300" />
+          <div className="h-2 w-2 rounded-full bg-neutral-300" />
         </div>
-        <p className="text-xs text-ink-muted mb-5">Patterns building across 4 weeks</p>
+        <div className="flex-1 mx-2 h-4 rounded bg-neutral-200/80" />
+        <div className="h-5 w-5 rounded bg-sage/20 flex items-center justify-center">
+          <span className="text-[8px] font-bold text-sage">A</span>
+        </div>
+      </div>
 
-        {/* Chart rows */}
-        <div className="space-y-4">
+      <div className="p-4">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-sage" />
+          <span className="text-[11px] font-medium text-ink-primary">Angel</span>
+        </div>
+        <p className="text-[10px] text-ink-muted mb-4">4-week awareness summary</p>
+
+        <div className="space-y-3.5">
           {weeks.map((w) => (
-            <div key={w.label} className="space-y-1.5">
-              <span className="text-[10px] text-ink-muted">{w.label}</span>
+            <div key={w.label} className="space-y-1">
+              <span className="text-[10px] font-medium text-ink-muted">{w.label}</span>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] w-20 text-ink-muted shrink-0">Recovery time</span>
-                <div className="flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                <span className="text-[9px] w-[62px] text-ink-muted/70 shrink-0">Avg recovery</span>
+                <div className="flex-1 h-1 bg-neutral-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-sage/40 transition-all duration-700"
+                    className="h-full rounded-full bg-sage/35 transition-all duration-700"
                     style={{ width: `${(w.recovery / maxRecovery) * 100}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-ink-muted w-8 text-right shrink-0">{w.recovery}m</span>
+                <span className="text-[9px] text-ink-muted w-7 text-right shrink-0">{w.recovery}m</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] w-20 text-ink-muted shrink-0">Loop depth</span>
-                <div className="flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                <span className="text-[9px] w-[62px] text-ink-muted/70 shrink-0">Resistance</span>
+                <div className="flex-1 h-1 bg-neutral-100 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full bg-sage transition-all duration-700"
-                    style={{ width: `${(w.depth / maxDepth) * 100}%` }}
+                    style={{ width: `${(w.resistance / maxResistance) * 100}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-ink-muted w-8 text-right shrink-0">{w.depth}m</span>
+                <span className="text-[9px] text-ink-muted w-7 text-right shrink-0">{w.resistance}%</span>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-5 pt-4 border-t border-border/60 flex items-center justify-between">
-          <span className="text-[10px] text-ink-muted">Recovery time ↓ · Loop resistance ↑</span>
-          <span className="text-[10px] font-medium text-sage">Improving ↑</span>
+        <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
+          <span className="text-[9px] text-ink-muted">Recovery time ↓ · Resistance ↑</span>
+          <span className="text-[9px] font-semibold text-sage">Improving ↑</span>
         </div>
       </div>
     </div>

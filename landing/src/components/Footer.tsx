@@ -2,7 +2,7 @@ const GITHUB_URL = 'https://github.com/shaw029/angel'
 
 export function Footer() {
   return (
-    <footer className="bg-dark-bg text-white/40 py-12 px-6">
+    <footer className="bg-dark-bg text-white/40 py-10 px-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
 

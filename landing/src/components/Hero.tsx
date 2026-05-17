@@ -15,7 +15,7 @@ interface HeroProps {
 
 export function Hero({ onInstall }: HeroProps) {
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6 pt-24 pb-16">
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6 pt-20 pb-12">
 
       {/* Ambient background orbs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
