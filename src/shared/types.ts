@@ -124,6 +124,7 @@ export type DetectorId =
   | 'infinite-scroll'
   | 'recurring-billing'
   | 'urgency-language'
+  | 'gamification-popup'
 
 export type TrackerId =
   | 'session-duration'
@@ -172,6 +173,7 @@ export type SignalLabel =
   | 'session_long'
   | 'doom_scrolling'
   | 'rapid_interaction'
+  | 'gamification'
 
 export type DomainCategory =
   | 'ecommerce'

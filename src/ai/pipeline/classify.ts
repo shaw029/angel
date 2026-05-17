@@ -6,7 +6,7 @@ export function classifyEventType(signals: SignalLabel[]): EventType {
   const hasPricePressure  = s.has('countdown_timer') || s.has('limited_stock') || s.has('social_proof_live')
   const hasBilling        = s.has('recurring_billing') || s.has('trial_language')
   const hasUrgency        = s.has('urgency_language') || hasPricePressure
-  const hasEngagement     = s.has('autoplay_media') || s.has('infinite_feed')
+  const hasEngagement     = s.has('autoplay_media') || s.has('infinite_feed') || s.has('gamification')
   const hasSessionDepth   = s.has('session_long') || s.has('doom_scrolling')
 
   // Most specific classifications first

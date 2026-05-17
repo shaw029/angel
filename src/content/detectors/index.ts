@@ -4,8 +4,9 @@ import { scan as scanAutoplay } from './autoplay'
 import { scan as scanInfiniteScroll, onScroll as infiniteScrollOnScroll } from './infinite-scroll'
 import { scan as scanBilling } from './billing'
 import { scan as scanUrgency } from './urgency'
+import { scan as scanGamification } from './gamification'
 
-const SCANNERS = [scanCountdown, scanAutoplay, scanInfiniteScroll, scanBilling, scanUrgency]
+const SCANNERS = [scanCountdown, scanAutoplay, scanInfiniteScroll, scanBilling, scanUrgency, scanGamification]
 const MUTATION_DEBOUNCE_MS = 1_500   // was 500 — fewer scan batches per structural change
 const PERIODIC_INTERVAL_MS = 20_000  // was 12000 — countdown-only; fits within 30s signal window
 

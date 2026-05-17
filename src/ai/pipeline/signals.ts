@@ -61,6 +61,10 @@ export function extractSignals(
         }
         break
       }
+
+      case 'gamification-popup':
+        labels.add('gamification')
+        break
     }
   }
 

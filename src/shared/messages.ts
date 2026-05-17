@@ -2,6 +2,7 @@ import type {
   BrowsingSignal,
   CompressedContext,
   Intervention,
+  InterventionStyle,
   StorageState,
   BehavioralEvent,
   ModelLoadStatus,
@@ -15,7 +16,7 @@ export type Message =
   | { type: MsgKey['BEHAVIORAL_EVENTS']; payload: BehavioralEvent[] }
   | { type: MsgKey['AI_CONTEXT'];        payload: CompressedContext }
   | { type: MsgKey['INTERVENTION'];      payload: Intervention }
-  | { type: MsgKey['DISMISSED'];         payload: { id: string; dwellMs: number; outcome: 'accepted' | 'dismissed' } }
+  | { type: MsgKey['DISMISSED'];         payload: { id: string; dwellMs: number; outcome: 'accepted' | 'dismissed'; tone: InterventionStyle } }
   | { type: MsgKey['GET_STATE'] }
   | { type: MsgKey['SET_ENABLED'];       payload: boolean }
   | { type: MsgKey['SET_PRESENCE'];      payload: number }

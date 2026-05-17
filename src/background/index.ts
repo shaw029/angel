@@ -25,7 +25,6 @@ import type {
   Intervention,
   CompressedContext,
   EventType,
-  InterventionStyle,
 } from '@shared/types'
 
 // Pre-warm the offscreen document (and start Gemma download) as soon as the
@@ -38,7 +37,6 @@ chrome.runtime.onStartup.addListener(()   => void ensureOffscreenDocument())
 let pendingTabId:      number             | null = null
 let pendingEventType:  EventType          | null = null
 let pendingStrategy:   InterventionStrategy | null = null
-let lastShownTone:     InterventionStyle  | null = null
 let lastShownCogState: CognitiveState     | null = null
 
 // Session-scoped quick-dismissal counter per cognitive state.
@@ -113,7 +111,7 @@ async function dispatch(
       break
 
     case MSG.DISMISSED: {
-      const { dwellMs, outcome } = message.payload
+      const { dwellMs, outcome, tone } = message.payload
       const state = await getState()
       await patchState(afterDismissal({ timestamp: Date.now(), dwellMs }, state))
 
@@ -133,10 +131,8 @@ async function dispatch(
         void recordReflectiveEngagement(dwellMs)
       }
 
-      // Profile: record tone effectiveness and tolerance signal
-      if (lastShownTone) {
-        void recordInterventionOutcome(lastShownTone, accepted, quickDismiss)
-      }
+      // Profile: record tone effectiveness — use payload tone (survives SW restarts)
+      void recordInterventionOutcome(tone, accepted, quickDismiss)
 
       // Profile: record per-state responsiveness for adaptive suppression
       if (lastShownCogState) {
@@ -325,7 +321,6 @@ async function onIntervention(intervention: Intervention) {
   void incrementPattern('interventions_shown')
   void recordPhrase(intervention.message)
 
-  lastShownTone     = intervention.tone
   lastShownCogState = pendingCogState ?? null
   lastNudgeAt       = Date.now()
 }
