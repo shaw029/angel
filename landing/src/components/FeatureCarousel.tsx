@@ -225,7 +225,7 @@ function PopupMockup() {
         <div className="mt-3 pt-3 border-t border-border/60">
           <div className="flex items-baseline justify-between mb-2">
             <p className="text-[10px] font-semibold tracking-widest uppercase text-ink-muted">Presence</p>
-            <p className="text-[10px] text-ink-muted">How present Angel feels.</p>
+            <p className="text-[10px] text-ink-muted">How much support would you like?</p>
           </div>
           <div
             className="h-0.5 w-full rounded-full overflow-hidden"
@@ -233,7 +233,7 @@ function PopupMockup() {
           />
           <div className="flex justify-between mt-1">
             <span className="text-[9px] text-ink-muted">Quiet</span>
-            <span className="text-[9px] text-ink-muted">Attentive</span>
+            <span className="text-[9px] text-ink-muted">Active</span>
           </div>
         </div>
 
