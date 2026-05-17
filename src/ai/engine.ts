@@ -155,7 +155,10 @@ class GemmaEngine {
 
       this.pipe = raw as unknown as AnyToAnyPipeline
 
-      if (!alreadyCached) await markCached(MODEL_ID, device)
+      // Only mark cached if the Cache API writes actually succeeded.
+      // If quota was exceeded the files weren't stored, so next session should
+      // show the progress bar and retry rather than silently re-downloading.
+      if (!alreadyCached && !this.quotaExceeded) await markCached(MODEL_ID, device)
       const storageWarning = this.quotaExceeded ? 'Storage nearly full — model may reload slowly' : undefined
       this.emit({ phase: 'ready', device, ...(storageWarning ? { storageWarning } : {}) })
     } catch (err) {
