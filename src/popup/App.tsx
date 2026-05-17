@@ -121,7 +121,7 @@ function buildInsightRows(m: EvaluationMetrics): InsightRow[] {
   if (m.postNudgeRecoveryRate !== null) {
     const pct = Math.round(m.postNudgeRecoveryRate * 100)
     rows.push({
-      label: 'Loop exits after nudge',
+      label: 'Stepped away after a nudge',
       value: `${pct}%`,
       trend: m.recoveryTrend,
     })
@@ -130,7 +130,7 @@ function buildInsightRows(m: EvaluationMetrics): InsightRow[] {
   if (m.reflectiveEngagementRate !== null) {
     const pct = Math.round(m.reflectiveEngagementRate * 100)
     rows.push({
-      label: 'Nudges with reflection',
+      label: 'Paused after a nudge',
       value: `${pct}%`,
       trend: m.engagementTrend,
     })
@@ -138,7 +138,7 @@ function buildInsightRows(m: EvaluationMetrics): InsightRow[] {
 
   if (m.recoveryDurationMinutes !== null) {
     rows.push({
-      label: 'Avg loop recovery',
+      label: 'Avg. time to refocus',
       value: `${Math.round(m.recoveryDurationMinutes)} min`,
       trend: m.recoveryTrend,
     })
@@ -146,7 +146,7 @@ function buildInsightRows(m: EvaluationMetrics): InsightRow[] {
 
   if (m.awarenessBuilding && m.escalationDepthMinutes !== null) {
     rows.push({
-      label: 'Catching loops at',
+      label: 'How soon Angel steps in',
       value: `${Math.round(m.escalationDepthMinutes)} min in`,
     })
   }

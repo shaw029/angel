@@ -214,9 +214,9 @@ function PopupMockup() {
         <div className="pt-3 border-t border-border/60">
           <p className="text-[10px] text-ink-muted mb-2">2 weeks of awareness data</p>
           <div className="space-y-1.5">
-            <MetricRow label="Loop exits after nudge"  value="64%" up />
-            <MetricRow label="Nudges with reflection"  value="48%" up />
-            <MetricRow label="Avg loop recovery"       value="11 min" />
+            <MetricRow label="Stepped away after a nudge" value="64%" up />
+            <MetricRow label="Paused after a nudge"        value="48%" up />
+            <MetricRow label="Avg. time to refocus"        value="11 min" />
           </div>
         </div>
 
@@ -248,18 +248,22 @@ function PopupMockup() {
 
 function NudgeMockup() {
   return (
-    <div className="flex flex-col items-center w-[268px]">
-      {/* Simulated page content in the background */}
-      <div className="w-full mb-3 rounded-xl bg-neutral-50 border border-border/40 px-4 py-3 space-y-1.5 opacity-50">
-        <div className="h-1.5 w-3/4 rounded-full bg-neutral-200" />
-        <div className="h-1.5 w-full rounded-full bg-neutral-200" />
-        <div className="h-1.5 w-5/6 rounded-full bg-neutral-200" />
-        <div className="h-1.5 w-2/3 rounded-full bg-neutral-200" />
+    <div className="flex flex-col items-center w-[268px] gap-3">
+      {/* Subtle pill — ambient, non-demanding */}
+      <div className="self-end flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-neutral-200 bg-white/95 shadow-[0_2px_12px_rgba(0,0,0,0.15),0_1px_4px_rgba(0,0,0,0.08)] max-w-[224px] select-none">
+        <span className="mt-[3px] h-[5px] w-[5px] flex-shrink-0 rounded-full bg-sage" />
+        <p className="flex-1 text-[12px] leading-[1.5] text-neutral-500">
+          What brought you here originally?
+        </p>
+        <button className="mt-[1px] flex-shrink-0 h-[16px] w-[16px] flex items-center justify-center rounded-full text-neutral-300" tabIndex={-1}>
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+            <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        </button>
       </div>
 
-      {/* Actual nudge card — pixel-matched to FullCard */}
-      <div className="w-full rounded-2xl border border-neutral-100 bg-white shadow-[0_2px_16px_rgba(0,0,0,0.07),0_1px_4px_rgba(0,0,0,0.04)] select-none">
-        {/* Header: tone dot + dismiss */}
+      {/* Full companion card */}
+      <div className="w-full rounded-2xl border border-neutral-200 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.18),0_1px_6px_rgba(0,0,0,0.10)] select-none">
         <div className="flex items-center justify-between px-4 pt-3.5">
           <span className="h-[5px] w-[5px] rounded-full bg-sage animate-pulse" />
           <button className="h-[18px] w-[18px] flex items-center justify-center rounded-full text-neutral-300" tabIndex={-1}>
@@ -268,18 +272,12 @@ function NudgeMockup() {
             </svg>
           </button>
         </div>
-
-        {/* Observation */}
         <p className="px-4 pt-2.5 text-[11px] leading-[1.5] text-neutral-400">
-          You've been on this feed for 18 minutes.
+          You've been on this page for 18 minutes.
         </p>
-
-        {/* Message */}
         <p className="px-4 pt-1.5 text-[13px] leading-[1.6] text-neutral-600">
           You can take a moment before deciding.
         </p>
-
-        {/* Action */}
         <div className="px-4 pt-3 pb-3.5">
           <button className="w-full text-left text-[12px] font-medium text-sage px-3 py-1.5 rounded-lg bg-sage/10" tabIndex={-1}>
             Pause for a moment
@@ -291,18 +289,9 @@ function NudgeMockup() {
 }
 
 // ─── Mockup: Awareness building over time ─────────────────────────────────────
-// Popup view showing the insight panel's week-over-week pattern data.
+// Matches the real Angel popup insight panel — same labels, same layout.
 
 function AwarenessMockup() {
-  const weeks = [
-    { label: 'Wk 1', recovery: 28, resistance: 15 },
-    { label: 'Wk 2', recovery: 20, resistance: 38 },
-    { label: 'Wk 3', recovery: 13, resistance: 60 },
-    { label: 'Wk 4', recovery:  7, resistance: 82 },
-  ]
-  const maxRecovery   = 28
-  const maxResistance = 82
-
   return (
     <div className="rounded-2xl bg-white shadow-xl shadow-ink-primary/6 border border-border/60 overflow-hidden w-[260px]">
       {/* Browser toolbar */}
@@ -319,43 +308,23 @@ function AwarenessMockup() {
       </div>
 
       <div className="p-4">
-        <div className="flex items-center gap-1.5 mb-0.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-sage" />
-          <span className="text-[11px] font-medium text-ink-primary">Angel</span>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[13px] font-medium text-ink-primary">Angel</span>
+          <div className="relative inline-flex h-5 w-9 rounded-full bg-sage items-center">
+            <span className="absolute right-0.5 h-4 w-4 rounded-full bg-white shadow-sm" />
+          </div>
         </div>
-        <p className="text-[10px] text-ink-muted mb-4">4-week awareness summary</p>
+        <p className="text-[11px] leading-relaxed text-ink-muted mb-3">
+          Quietly watching for moments worth pausing on.
+        </p>
 
-        <div className="space-y-3.5">
-          {weeks.map((w) => (
-            <div key={w.label} className="space-y-1">
-              <span className="text-[10px] font-medium text-ink-muted">{w.label}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] w-[62px] text-ink-muted/70 shrink-0">Avg recovery</span>
-                <div className="flex-1 h-1 bg-neutral-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-sage/35 transition-all duration-700"
-                    style={{ width: `${(w.recovery / maxRecovery) * 100}%` }}
-                  />
-                </div>
-                <span className="text-[9px] text-ink-muted w-7 text-right shrink-0">{w.recovery}m</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] w-[62px] text-ink-muted/70 shrink-0">Resistance</span>
-                <div className="flex-1 h-1 bg-neutral-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-sage transition-all duration-700"
-                    style={{ width: `${(w.resistance / maxResistance) * 100}%` }}
-                  />
-                </div>
-                <span className="text-[9px] text-ink-muted w-7 text-right shrink-0">{w.resistance}%</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
-          <span className="text-[9px] text-ink-muted">Recovery time ↓ · Resistance ↑</span>
-          <span className="text-[9px] font-semibold text-sage">Improving ↑</span>
+        <div className="pt-3 border-t border-border/60">
+          <p className="text-[10px] text-ink-muted mb-2">2 weeks of awareness data</p>
+          <div className="space-y-1.5">
+            <MetricRow label="Stepped away after a nudge" value="64%" up />
+            <MetricRow label="Paused after a nudge"        value="48%" up />
+            <MetricRow label="Avg. time to refocus"        value="11 min" />
+          </div>
         </div>
       </div>
     </div>
