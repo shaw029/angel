@@ -63,9 +63,9 @@ Four principles govern every design decision:
 
 - **Real-time cognitive state estimation** — 7 distinct states (intentional, exploratory, passive consumption, compulsive loop, emotionally reactive, fragmented attention, decision fatigue) estimated from behavioral signals without any page content analysis
 - **On-device Gemma 4 2B inference** — runs on WebGPU (preferred) or WASM fallback; no API keys, no server, no inference calls leaving the device
-- **Manipulation Interpretation Layer** — mechanic-specific framing templates (urgency, engagement loops, commitment escalation, attention fragmentation, scarcity, social proof) that name what is happening rather than moralizing about it
+- **Manipulation Interpretation Layer** — mechanic-specific framing templates (urgency amplification, engagement loops, emotional escalation, attention capture, variable reward, social momentum, decision pressure) that name what is happening rather than moralizing about it
 - **Adaptive intervention strategy** — per-state strategy matrix with dynamic overrides for drift trajectory, session persistence, and user responsiveness history
-- **Angel Presence** — a 0–1 slider that biases the adaptive system: quiet end extends cooldowns, raises confidence thresholds, and lowers session caps; attentive end does the inverse. The default (0.45) is a conservative adaptive midpoint; the underlying cognitive modeling is unchanged regardless of setting
+- **Angel Presence** — a 0–1 slider that biases the adaptive system: quiet end extends cooldowns, raises confidence thresholds, and lowers session caps; active end does the inverse. The default (0.45) is a conservative adaptive midpoint; the underlying cognitive modeling is unchanged regardless of setting
 - **Longitudinal resilience modeling** — weekly pattern snapshots, EMA-based profile evolution, tolerance/recovery tracking that adapts to individual behavioral rhythms
 - **Evaluation framework** — measures awareness quality (post-nudge recovery rate, reflective engagement depth, recovery acceleration) rather than screen time
 - **Tiered delivery** — subtle pill overlays for low-confidence/compulsive states; full card interventions for high-confidence decision-pressure moments
@@ -221,12 +221,12 @@ Before inference, the Manipulation Interpreter generates a mechanic-specific fra
 
 ```typescript
 type ManipulationMechanic =
-  | 'urgency_manufacturing'    // countdown timers, artificial deadlines
+  | 'urgency_amplification'    // countdown timers, artificial deadlines
   | 'engagement_loop'          // infinite feed, autoplay chains
-  | 'commitment_escalation'    // trial-to-paid funnels, annual anchoring
-  | 'attention_fragmentation'  // competing contexts, notification pressure
-  | 'scarcity_signaling'       // limited stock, social proof live counts
-  | 'social_proof_pressure'    // "18 people viewing," trending signals
+  | 'emotional_escalation'     // subscription funnels, commitment pressure
+  | 'attention_capture'        // competing contexts, notification pressure
+  | 'variable_reward'          // intermittent reinforcement, feed variability
+  | 'social_momentum'          // "18 people viewing," trending signals
   | 'decision_pressure'        // checkout urgency, time-limited offers
 ```
 
@@ -250,7 +250,7 @@ interface InterventionStrategy {
 
 Five dynamic overrides: recovering trajectory sets `preferredTier: 'none'` (never interrupt a correction already in progress); state entry delay enforces a stabilization window before the first nudge; session dismissal cap reached disables further firing for that state; persistence > 30 min in a stable compulsive/reactive state backs off (user has settled); rapid escalation shortens cooldowns to bring the intervention forward. Separately, state acceptance rate < 20% (from profile) extends cooldowns by 1.5×.
 
-The **Angel Presence** slider (0.0–1.0) feeds into `resolveStrategy()` as a final bias layer: it scales cooldowns, shifts confidence thresholds, and adjusts entry delays and session caps — without touching the cognitive model or gate logic. Zone boundaries: quiet (≤ 0.33), adaptive (0.33–0.66, default 0.45), attentive (≥ 0.67).
+The **Angel Presence** slider (0.0–1.0) feeds into `resolveStrategy()` as a final bias layer: it scales cooldowns, shifts confidence thresholds, and adjusts entry delays and session caps — without touching the cognitive model or gate logic. Zone boundaries: quiet (≤ 0.33), adaptive (0.33–0.66, default 0.45), active (≥ 0.67).
 
 ---
 
@@ -350,6 +350,7 @@ Privacy in Angel is not a setting — it is an architectural consequence.
 | Intervention text generation | ✓ | — |
 | Framing tone adaptation | ✓ (guided by state vector) | ✓ (intensity resolver pre-selects) |
 | Mechanic observation framing | ✓ (from pre-generated observation) | ✓ (interpretation.ts generates input) |
+| Action label selection | — | ✓ (action-resolver.ts — resolveAction()) |
 
 Gemma is used where it adds irreplaceable value: generating natural language that is contextually appropriate, non-judgmental, and varied. Every gating and strategy decision in the pipeline runs without inference.
 
@@ -398,6 +399,7 @@ angel/
 │   │   ├── drift.ts          # Trajectory analysis, HEALTH_SCORE table
 │   │   ├── gate.ts           # Cooldown enforcement, tier selection
 │   │   ├── intervention-strategy.ts  # STATE_STRATEGY table, resolveStrategy()
+│   │   ├── action-resolver.ts # resolveAction() — deterministic action label from state × mechanic
 │   │   ├── presence.ts       # derivePresence() — presence level → PresenceProfile bias
 │   │   └── phrase-cache.ts   # Recent phrase ring buffer
 │   │
@@ -425,8 +427,8 @@ angel/
 │   ├── checkout.html         # emotionally_reactive / decision_pressure
 │   ├── feed.html             # compulsive_loop / engagement_loop
 │   ├── news.html             # fragmented_attention / attention_capture
-│   ├── subscription.html     # decision_fatigue / commitment_escalation
-│   └── tabs.html             # fragmented_attention / attention_fragmentation
+│   ├── subscription.html     # decision_fatigue / emotional_escalation
+│   └── tabs.html             # fragmented_attention / attention_capture
 │
 ├── docs/
 │   ├── ARCHITECTURE.md       # Layer-by-layer technical deep-dive
@@ -482,8 +484,8 @@ npm run demo
 | Artificial Urgency Checkout | `emotionally_reactive` | `decision_pressure` | full card |
 | Infinite Scroll Feed | `compulsive_loop` | `engagement_loop` | subtle pill |
 | Attention Overload News | `fragmented_attention` | `attention_capture` | subtle pill |
-| Subscription Commitment Funnel | `decision_fatigue` | `commitment_escalation` | full card |
-| Distracted Browsing | `fragmented_attention` | `attention_fragmentation` | subtle pill |
+| Subscription Commitment Funnel | `decision_fatigue` | `emotional_escalation` | full card |
+| Distracted Browsing | `fragmented_attention` | `attention_capture` | subtle pill |
 
 ---
 

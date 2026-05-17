@@ -199,7 +199,6 @@ function PopupMockup() {
         {/* Header row */}
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-sage animate-pulse" />
             <span className="text-[13px] font-medium text-ink-primary">Angel</span>
           </div>
           <div className="relative inline-flex h-5 w-9 rounded-full bg-sage items-center">
@@ -223,10 +222,7 @@ function PopupMockup() {
 
         {/* Presence slider */}
         <div className="mt-3 pt-3 border-t border-border/60">
-          <div className="flex items-baseline justify-between mb-2">
-            <p className="text-[10px] font-semibold tracking-widest uppercase text-ink-muted">Presence</p>
-            <p className="text-[10px] text-ink-muted">How much support would you like?</p>
-          </div>
+          <p className="text-[10px] text-ink-muted mb-2">How much support would you like from Angel?</p>
           <div
             className="h-0.5 w-full rounded-full overflow-hidden"
             style={{ background: 'linear-gradient(to right, #4A7C59 45%, #E5E5E5 45%)' }}

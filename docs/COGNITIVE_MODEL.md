@@ -66,7 +66,7 @@ Decision-making under manufactured urgency. The user is in a checkout or decisio
 
 **Key signals:** countdown_timer detection (confirmed decreasing), urgency_language (3+ categories), limited_stock indicators, social_proof_live counts, checkout_pressure event classification.
 
-Interventions target the mechanic specifically: "The urgency here may not reflect your actual timeline." The goal is to restore access to deliberate evaluation, not to suggest a purchase decision.
+Interventions name the mechanic and restore the user's sense that their timeline is their own — not the goal of suggesting a purchase outcome one way or the other.
 
 ---
 
@@ -86,11 +86,11 @@ Intervention strategy is conservative (1.3× cooldown scale, high entry delay) �
 
 Commitment architecture exploitation. The user is navigating a subscription funnel or pricing page designed to wear down resistance to commitment through option complexity, annual vs. monthly anchoring, and trial expiry pressure.
 
-`HEALTH_SCORE = 0.5`. The mechanic is commitment escalation — the funnel is designed so that the path of least cognitive resistance is commitment.
+`HEALTH_SCORE = 0.5`. The mechanic is emotional escalation — the funnel applies emotional pressure to make commitment feel like relief rather than a decision requiring deliberation.
 
 **Key signals:** subscription_funnel event classification, trial_language detection, recurring_billing detection, time-on-pricing-page above threshold.
 
-Intervention: "You've been weighing options for a while. It's fine to decide later." This explicitly names the mechanic (commitment pressure) and restores the user's sense that deferral is a valid choice.
+Intervention framing names the mechanic without prescribing the outcome — restoring the user's awareness that deferral is always a valid choice.
 
 ---
 

@@ -191,7 +191,7 @@ After the dynamic overrides, `resolveStrategy()` applies a final bias layer deri
 ```typescript
 interface PresenceProfile {
   level:           number      // raw 0–1 value
-  zone:            'quiet' | 'adaptive' | 'attentive'
+  zone:            'quiet' | 'adaptive' | 'active'
   cooldownScale:   number      // 1.5 → 1.0 → 0.5 across the range
   confidenceDelta: number      // +0.08 → 0.0 → -0.08
   entryDelayScale: number      // 1.5 → 1.0 → 0.5
@@ -199,7 +199,7 @@ interface PresenceProfile {
 }
 ```
 
-Zone boundaries: quiet (≤ 0.33), adaptive (0.33–0.66), attentive (≥ 0.67). The returned strategy multiplies cooldowns by `presence.cooldownScale`, clamps `minConfidence ± presence.confidenceDelta`, scales `stateEntryDelayMs` by `presence.entryDelayScale`, and adjusts `sessionDismissalCap` by `presence.sessionCapDelta`.
+Zone boundaries: quiet (≤ 0.33), adaptive (0.33–0.66), active (≥ 0.67). The returned strategy multiplies cooldowns by `presence.cooldownScale`, clamps `minConfidence ± presence.confidenceDelta`, scales `stateEntryDelayMs` by `presence.entryDelayScale`, and adjusts `sessionDismissalCap` by `presence.sessionCapDelta`.
 
 This is applied as a bias on top of the dynamic overrides, not before them — the recovery/suppression logic always takes precedence.
 
@@ -248,7 +248,7 @@ The offscreen document:
 4. Applies the similarity check: if the output is too similar to recent phrases, retries once with an increased temperature
 5. Sends `MSG.INTERVENTION` back to the service worker with the final `Intervention`
 
-The service worker then routes the intervention to the correct tab via `chrome.tabs.sendMessage`.
+The service worker then calls `resolveAction(cognitiveState, mechanic)` (`src/background/action-resolver.ts`) to deterministically assign the `action` label, overriding whatever the model suggested. This keeps action selection consistent and tone-controlled without relying on Gemma's classification accuracy across 10+ options. The action is resolved before routing to the content script via `chrome.tabs.sendMessage`.
 
 ---
 
@@ -286,6 +286,7 @@ Page DOM
   → [Offscreen] Manipulation Interpreter
   → [Offscreen] Gemma 4 2B
   → Intervention (tier + message + observation + mechanic)
+  → Action Resolver — resolveAction(cognitiveState, mechanic)
   → Content Script Nudge UI
   → Outcome (dwellMs + accepted/dismissed)
   → Memory (pattern counters + profile updates)

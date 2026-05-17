@@ -62,17 +62,37 @@ Each detector is a self-contained module that exports a `detect(document: Docume
 
 **Location:** `src/ai/interpretation.ts`
 
-The `TEMPLATES` record maps each `ManipulationMechanic` to a pool of 5 framing observations. Adding a new mechanic:
+The `MECHANIC_TEMPLATES` record maps each `ManipulationMechanic` to a pool of 5 framing observations. Adding a new mechanic:
 
 1. Add the mechanic name to the `ManipulationMechanic` type in `src/shared/types.ts`
-2. Add a `templates` entry in `TEMPLATES` with 5 distinct non-judgmental observations
-3. Add a mapping from the relevant `SignalType` to the new mechanic in `pickMechanic()`
+2. Add a `templates` entry in `MECHANIC_TEMPLATES` with 5 distinct non-judgmental observations
+3. Add a mapping from the relevant `SignalType` to the new mechanic in `classifyMechanic()`
 
 **Template writing guidelines:**
 - Describe what the environment is doing, not what the user should do
 - Avoid moralizing ("you shouldn't be here") or prescriptive framing ("close this tab")
 - Prefer mechanic-naming framing: "This timer is designed to..." rather than "You're feeling rushed because..."
 - Each of the 5 templates in a pool should approach the same mechanic from a different angle — not just synonyms
+
+---
+
+### 2b. Companion Action Labels
+
+**Location:** `src/background/action-resolver.ts`, `src/ui/components/Nudge.tsx`, `src/shared/types.ts`
+
+The action label displayed on a nudge is resolved deterministically in the service worker — Gemma does not choose it. `resolveAction(state, mechanic)` maps the current `CognitiveState` × `ManipulationMechanic` pair to a `SuggestedAction`. Adding or changing a label requires updating three places in concert:
+
+1. Add the new key to the `SuggestedAction` union in `src/shared/types.ts`
+2. Add the corresponding display string to `ACTION_LABELS` in `src/ui/components/Nudge.tsx`
+3. Map the appropriate `(state, mechanic)` combinations to the new key in `resolveAction()` in `src/background/action-resolver.ts`
+4. Update `SUGGESTED_ACTIONS` in `src/ai/schema.ts` and the action list in `src/ai/system-prompt.ts` so Gemma's output schema stays in sync (even though Gemma's choice is overridden, the schema validation must pass)
+
+**Label writing guidelines:**
+- Companion-toned, soft, and kind — never directive or alarming
+- 2–4 words, sentence case, no punctuation
+- Name what the user can do with their attention, not what the page is doing wrong
+- Good: "Let this rest", "Come back later", "One thing at a time"
+- Bad: "Stop scrolling", "Close this tab", "You need a break"
 
 ---
 
