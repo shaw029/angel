@@ -248,12 +248,12 @@ function PopupMockup() {
 
 function NudgeMockup() {
   return (
-    <div className="flex flex-col items-center w-[268px] gap-2.5">
-      {/* Gentle pill — passive/exploratory state */}
-      <div className="self-start flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-neutral-200 bg-white/95 shadow-[0_2px_12px_rgba(0,0,0,0.15),0_1px_4px_rgba(0,0,0,0.08)] max-w-[220px] select-none">
+    <div className="flex flex-col items-center w-[268px] gap-3">
+      {/* Subtle pill — ambient, auto-dismisses after 10s */}
+      <div className="self-end flex items-start gap-2.5 px-3 py-2.5 rounded-xl border border-neutral-200 bg-white/95 backdrop-blur-[6px] shadow-[0_2px_12px_rgba(0,0,0,0.15),0_1px_4px_rgba(0,0,0,0.08)] max-w-[224px] select-none">
         <span className="mt-[3px] h-[5px] w-[5px] flex-shrink-0 rounded-full bg-sage" />
         <p className="flex-1 text-[12px] leading-[1.5] text-neutral-500">
-          Takes a bit of time to decide. That's fine.
+          Is this still what you came here for?
         </p>
         <button className="mt-[1px] flex-shrink-0 h-[16px] w-[16px] flex items-center justify-center rounded-full text-neutral-300" tabIndex={-1}>
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
@@ -262,13 +262,10 @@ function NudgeMockup() {
         </button>
       </div>
 
-      {/* State-shift label */}
-      <p className="text-[10px] text-ink-muted/50 tracking-wide self-center">· Angel reading the room ·</p>
-
-      {/* Reflective full card — emotional escalation state */}
-      <div className="w-full rounded-2xl border border-neutral-200 bg-sage-light shadow-[0_4px_24px_rgba(0,0,0,0.18),0_1px_6px_rgba(0,0,0,0.10)] select-none">
+      {/* Full companion card */}
+      <div className="w-full rounded-2xl border border-neutral-200 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.18),0_1px_6px_rgba(0,0,0,0.10)] select-none">
         <div className="flex items-center justify-between px-4 pt-3.5">
-          <span className="h-[5px] w-[5px] rounded-full bg-sage/40" />
+          <span className="h-[5px] w-[5px] rounded-full bg-sage animate-pulse" />
           <button className="h-[18px] w-[18px] flex items-center justify-center rounded-full text-neutral-300" tabIndex={-1}>
             <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
               <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -276,14 +273,14 @@ function NudgeMockup() {
           </button>
         </div>
         <p className="px-4 pt-2.5 text-[11px] leading-[1.5] text-neutral-400">
-          Pressure has been building for a while.
+          You've been on this page for 18 minutes.
         </p>
         <p className="px-4 pt-1.5 text-[13px] leading-[1.6] text-neutral-600">
-          When pressure builds, slowing down is the more deliberate choice.
+          You can take a moment before deciding.
         </p>
         <div className="px-4 pt-3 pb-3.5">
           <button className="w-full text-left text-[12px] font-medium text-sage px-3 py-1.5 rounded-lg bg-sage/10" tabIndex={-1}>
-            Take your time
+            Pause for a moment
           </button>
         </div>
       </div>
@@ -319,14 +316,14 @@ function AwarenessMockup() {
           </button>
         </div>
         <p className="px-4 pt-2.5 text-[11px] leading-[1.5] text-neutral-400">
-          Countdown · social proof · scarcity — three signals at once.
+          When everything feels urgent, it gets harder to think clearly. Right now, decisions may feel more pressing than they actually are.
         </p>
         <p className="px-4 pt-1.5 text-[13px] leading-[1.6] text-neutral-600">
           None of these are about the product. They're designed to make the decision feel more urgent than it is.
         </p>
         <div className="px-4 pt-3 pb-3.5">
           <button className="w-full text-left text-[12px] font-medium text-sage px-3 py-1.5 rounded-lg bg-sage/10" tabIndex={-1}>
-            Step back for a moment
+            Come back to this later
           </button>
         </div>
       </div>

@@ -53,7 +53,7 @@ export function Nudge({ intervention, onDismiss }: NudgeProps) {
 
   // Auto-dismiss: subtle after 7 s, full after 20 s so it never permanently blocks future nudges
   useEffect(() => {
-    const ms = tier === 'subtle' ? 7_000 : 20_000
+    const ms = tier === 'subtle' ? 10_000 : 20_000
     const t = setTimeout(dismiss, ms)
     return () => clearTimeout(t)
   }, [tier])
