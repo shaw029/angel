@@ -24,21 +24,25 @@ This separation is not incidental — it enforces the privacy model. The inferen
 
 ### Detectors
 
-Detectors perform structural DOM analysis. They run on a 30-second interval and on `MutationObserver` notifications when significant DOM changes occur.
+Detectors perform local DOM and text-node analysis. They run on a 30-second interval and on `MutationObserver` notifications when significant DOM changes occur.
+
+Some detectors walk text nodes and regex-match them in memory — for example, the urgency detector matches against 7 language categories, and the countdown detector reads displayed timer text to confirm a decreasing value. No matched text, no page content, and no URLs are stored or emitted downstream. Only structured summaries flow out.
 
 Each detector produces a `DetectionResult`:
 ```typescript
 interface DetectionResult {
-  type:       SignalType    // 'countdown_timer' | 'urgency_language' | etc.
-  confidence: number        // 0–1
-  metadata?:  Record<string, unknown>  // mechanic-specific extras
+  detector:    DetectorId          // 'countdown_timer' | 'urgency_language' | etc.
+  found:       boolean
+  confidence:  number              // 0–1
+  count:       number              // distinct instances; no DOM refs stored
+  categories?: readonly number[]   // sub-pattern indices that fired (detector-specific)
 }
 ```
 
 Detectors are designed to be:
-- **Stateless** — no DOM references persist between runs
-- **Conservative** — two-sample confirmation for timer detection (prevents false positives from static time displays)
-- **Content-blind** — no page text or URLs are stored; regex matches are reduced to boolean/count outputs
+- **Conservative** — two-sample confirmation for anything time-varying (e.g. the countdown detector's `lastSeconds` WeakMap confirms the timer is actually decreasing before flagging)
+- **Privacy-preserving** — page text is regex-matched in memory and immediately discarded; only boolean/count results flow downstream
+- **Selectively stateful** — module-level state is allowed for cross-call continuity (WeakMap for per-element state, plain counters for page-level accumulators)
 
 ### Trackers
 
@@ -48,12 +52,14 @@ Trackers maintain lightweight running state (EMA values, counters) to compute be
 - `session.ts`: Tracks `minutes_active` using `requestAnimationFrame` timestamps, not `Date.now()` — this correctly handles tab backgrounding.
 - `interaction-loop.ts`: Maintains a sliding window of user events (clicks, keypresses, scroll starts). High event rate (> N events / 30s window) contributes to `rapid_interaction` signal.
 
-### Aggregation
+### Two separate event streams
 
-`src/content/index.ts` dispatches a `BrowsingSignal` to the service worker every 30 seconds. The signal contains:
-- All `DetectionResult[]` from the current detector pass
-- Current tracker metrics (`session`, `scrollVelocity`, `tabSwitches`)
-- Nothing else — no URL, no page title, no DOM content
+`src/content/index.ts` sends two distinct message types to the service worker:
+
+- **`BrowsingSignal`** (every 30 seconds) — purely behavioral, page-level metrics: `timeOnPage`, `scrollDepth`, `idleTime`, `switchCount`, `domain`. No detection results, no DOM content.
+- **`BehavioralEvent[]`** — individual detection and tracking events accumulated per tab. Each event is typed as either `kind: 'detection'` (carrying a `DetectionResult`) or `kind: 'tracking'` (carrying a `TrackingResult`).
+
+The service worker keeps a per-tab buffer of `BehavioralEvent[]`. When a `BrowsingSignal` arrives and the heuristic flags it, the service worker fuses both streams by calling `compress()` — which combines the heuristic reasons, the `BrowsingSignal` metrics, and the buffered `BehavioralEvent[]` into a single `CompressedContext` for downstream inference.
 
 ---
 
@@ -61,15 +67,16 @@ Trackers maintain lightweight running state (EMA values, counters) to compute be
 
 **File:** `src/heuristics/index.ts`
 
-The heuristics engine takes the `BrowsingSignal` and makes the binary decision: flag or ignore.
+The heuristics engine evaluates the `BrowsingSignal` and makes the binary decision: flag or ignore. It operates entirely on behavioral metrics — it does not inspect detector results.
 
-Flagging requires two conditions:
-1. At least one detector signal above confidence threshold
-2. At least one behavioral amplifier present (session > N minutes, scroll depth > 60%, doom-scroll flag, high interaction rate)
+Flagging fires when at least one of these behavioral conditions holds:
+- `idleTime ≥ IDLE_THRESHOLD_S` (60 s of inactivity on the page) → `extended-idle`
+- `switchCount ≥ TAB_SWITCH_THRESHOLD` (8 tab-focus events in the signal window) → `rapid-tab-switching`
+- `scrollDepth ≥ 0.60` within `timeOnPage ≤ 300 s` → `excessive-scroll`
 
-This two-factor requirement is the primary false-positive filter. A page that has a countdown timer for a genuine event (a concert starting in 10 minutes) but that the user has been on for 30 seconds should not be flagged. A user who has been on a checkout page for 8 minutes under a live timer, scrolling repeatedly, should be.
+A minimum `timeOnPage` guard (`MIN_PAGE_TIME_S = 30 s`) prevents flagging sessions that haven't had enough time to be meaningful. Confidence is `min(reasons.length / 2, 1)`.
 
-The heuristics engine also pre-classifies the event type when the signal pattern is unambiguous (e.g., `billing` detector + `session` amplifier → `subscription_funnel`). This pre-classification is confirmed or overridden by the AI pipeline.
+When `flagged = true`, the service worker proceeds to the compression step, which merges the behavioral signal with the per-tab detector event buffer.
 
 ---
 
@@ -88,7 +95,7 @@ src/ai/pipeline/
   index.ts     — orchestrates the above into CompressedContext
 ```
 
-The `CompressedContext` is what gets passed through the rest of the pipeline. It contains no raw signals — only derived semantic fields.
+The `CompressedContext` is what gets passed through the rest of the pipeline. It contains no raw signals — only derived semantic fields. Raw HTML, raw page text, CSS selectors, and full URLs must not enter the compressed context; only categorical/numeric fields (`EventType`, `DomainCategory`, `ScrollDepth`, `TimeBucket`, `TabActivity`) are permitted.
 
 ---
 
@@ -108,20 +115,20 @@ interface RollingCognitiveContext {
 }
 ```
 
-State scoring uses `HEALTH_SCORE` weights:
+State scoring uses `HEALTH_SCORE` weights — **lower = healthier/more intentional, higher = more escalated/reactive**:
 ```typescript
 const HEALTH_SCORE: Record<CognitiveState, number> = {
-  intentional_browsing:  1.0,
-  exploratory_browsing:  0.8,
-  passive_consumption:   0.6,
-  decision_fatigue:      0.5,
-  fragmented_attention:  0.35,
-  compulsive_loop:       0.2,
-  emotionally_reactive:  0.1,
+  intentional_browsing:  0.00,
+  exploratory_browsing:  0.20,
+  passive_consumption:   0.40,
+  fragmented_attention:  0.50,
+  decision_fatigue:      0.60,
+  compulsive_loop:       0.85,
+  emotionally_reactive:  0.95,
 }
 ```
 
-EMA smoothing prevents state thrashing on noisy signals. State transitions are detected when the estimated state differs from the current state by more than a hysteresis threshold, and the new state score has been consistent for at least 2 consecutive evaluations.
+**Transition rule:** a transition fires when the top-scoring candidate differs from the current state AND its score exceeds the current state's score by at least `TRANSITION_MARGIN = 0.15`. There is no consecutive-evaluation requirement — the margin alone controls stability. If two states score within 0.15 of each other, the current state is held.
 
 When a transition occurs, the `transition` field is populated and the service worker records it in memory for longitudinal analysis.
 
@@ -131,29 +138,40 @@ When a transition occurs, the `transition` field is populated and the service wo
 
 **File:** `src/background/drift.ts`
 
-Drift analysis looks at the `history` ring buffer from the cognitive state estimator and computes a `DriftEstimate`:
+Drift analysis looks at the 1-hour transition history and computes a `DriftEstimate` using an **exponentially-weighted slope** (half-life = 20 min):
 
 ```typescript
 interface DriftEstimate {
-  trajectory:   DriftTrajectory    // stable | escalating | rapid_escalation | recovering | volatile
-  healthDelta:  number             // recent HEALTH_SCORE change
-  windowSize:   number             // history entries analyzed
+  direction:   DriftDirection   // 'escalating' | 'recovering' | 'stable' | 'fluctuating'
+  confidence:  number           // 0–1: strength of the directional signal
+  depth:       number           // 0–1: HEALTH_SCORE of current state (higher = worse)
+  slope?:      number           // weighted average of per-transition deltas
+  velocity?:   number           // (HEALTH_SCORE[now] - HEALTH_SCORE[first]) / windowMinutes
+  trajectory:  DriftTrajectory | null
 }
 ```
 
-Trajectory determination:
-- **escalating**: HEALTH_SCORE declining over the last N states (gradual worsening)
-- **rapid_escalation**: HEALTH_SCORE dropped by > 0.4 in the last 3 states
-- **recovering**: HEALTH_SCORE improving, current state > previous state
-- **volatile**: frequent oscillation between high and low HEALTH_SCORE states
-- **stable**: minimal variance
+**Direction** is determined from the weighted slope:
 
-`driftCooldownScale()` translates drift into a gate multiplier:
-- `recovering` → 2.5× cooldown (don't interrupt recovery)
-- `volatile` → 1.8× cooldown (user is sensitive, hold back)
-- `rapid_escalation` → 0.7× cooldown (lower threshold, fire sooner)
-- `escalating` → 0.9× (slightly more aggressive)
-- `stable` → 1.0× (no change)
+| Direction | Condition |
+|---|---|
+| `escalating` | slope > 0.05 |
+| `recovering` | slope < -0.05 |
+| `fluctuating` | ≥ 2 escalating AND ≥ 2 recovering transitions, `\|slope\|` < 0.15 |
+| `stable` | `\|slope\|` ≤ 0.05 |
+
+**Named trajectories** (checked in priority order — first match wins):
+
+| Trajectory | Cooldown scale |
+|---|---|
+| `recovery_in_progress` | 2.00× — do not interrupt |
+| `urgency_spiral` | 0.55× — purchase window is time-sensitive |
+| `attention_fragmentation` | 1.40× — already distracted, back off |
+| `decision_overload` | 0.80× — timely nudge is useful |
+| `rapid_escalation` | 0.50× — urgent, act now |
+| `gradual_escalation` | 0.70× — intervene before it deepens |
+
+If no trajectory matches, the direction-based fallback applies: `recovering` → 1.60×, `escalating` with depth > 0.6 → 0.80×, otherwise 1.0×.
 
 ---
 
@@ -274,13 +292,14 @@ The service worker uses dwell time to:
 
 ```
 Page DOM
-  → Detectors (structural patterns)
-  → Trackers  (behavioral metrics)
-  → BrowsingSignal (every 30s)
-  → Heuristics Engine (flag/ignore)
-  → AI Pipeline (classify + compress)
-  → Cognitive State Estimator (7-state)
-  → Drift Tracker (trajectory)
+  → Detectors (local DOM + text-node analysis; only counts/booleans emitted)  ─┐
+  → Trackers  (behavioral metrics: velocity, session, interaction rate)         ├→ BehavioralEvent[] (per-tab buffer in SW)
+  → BrowsingSignal (every 30s: timeOnPage, scrollDepth, idleTime, switchCount)  ─┘
+  → Heuristics Engine (behaviour-based flag/ignore — no detector input)
+  → compress() [SW] — fuses BrowsingSignal + BehavioralEvent[] into CompressedContext
+      (no raw text, no URLs, no selectors — only categorical/numeric fields)
+  → Cognitive State Estimator (7-state, margin-based transitions)
+  → Drift Tracker (exponentially-weighted slope → direction + trajectory)
   → Strategy Resolver (intervention policy)
   → Gate (tier selection)
   → [Offscreen] Manipulation Interpreter

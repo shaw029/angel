@@ -42,7 +42,7 @@ export function PrivacySection() {
               className="mt-5 text-base leading-relaxed text-white/60"
               variants={fadeUp}
             >
-              Running fully on-device with Gemma, Angel reads page text locally to detect manipulation patterns, models how your attention and engagement evolve, and responds with reflective support — all on your device. Nothing is stored or transmitted beyond anonymous behavioral counters.
+              Running fully on-device with Gemma, Angel reads page text locally to detect manipulation patterns, models how your attention and engagement evolve, and responds with reflective support — all on your device. Nothing is persistently stored or transmitted beyond anonymous behavioral counters.
             </motion.p>
 
             <motion.div className="mt-8 flex flex-col gap-3" variants={stagger}>

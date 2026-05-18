@@ -111,7 +111,7 @@ When a transition occurs:
 
 A recovery transition is defined as: `(from === 'compulsive_loop' || from === 'emotionally_reactive') && HEALTH_SCORE[to] < HEALTH_SCORE[from]`.
 
-Note the direction: **lower HEALTH_SCORE = healthier state** (0.0 is the healthiest, 0.95 is the most reactive). Recovery means moving to a *lower* HEALTH_SCORE value. Moving from `compulsive_loop` (0.85) to `exploratory_browsing` (0.20) counts as recovery; moving to `fragmented_attention` (0.50) does not because its score is still below `compulsive_loop`'s but the check is strict about the origin states (`compulsive_loop` or `emotionally_reactive` only).
+Note the direction: **lower HEALTH_SCORE = healthier state** (0.0 is the healthiest, 0.95 is the most reactive). Recovery means moving to a *lower* HEALTH_SCORE value. Both of these count as recovery from `compulsive_loop` (0.85): moving to `exploratory_browsing` (0.20) and moving to `fragmented_attention` (0.50) — in both cases `HEALTH_SCORE[to] < 0.85`. The only transition from `compulsive_loop` that does NOT count as recovery is moving to `emotionally_reactive` (0.95), since 0.95 > 0.85 (the state has escalated further, not recovered).
 
 If a recovery transition occurs within 15 minutes of a delivered nudge (`POST_NUDGE_RECOVERY_WINDOW_MS`), it is attributed as `post_nudge_recovery` for evaluation purposes. This is a correlation signal, not a causal attribution.
 

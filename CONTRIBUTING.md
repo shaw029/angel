@@ -65,18 +65,20 @@ npm run dev        # local dev server at localhost:5173
 
 **Location:** `src/content/detectors/`
 
-Each detector is a self-contained module. It exports a `scan()` function (no arguments — uses the global `document`) and is wired into the scheduler in `src/content/detectors/index.ts`. Adding a new detector requires:
+Each detector is a self-contained module. It exports a `scan()` function (no arguments — uses the global `document`) and is wired into the scheduler in `src/content/detectors/index.ts`. Adding a new detector requires all of the following steps:
 
-1. Create `src/content/detectors/<mechanic>.ts`
-2. Export `id` (string const) and `scan(): DetectionResult` — return `{ found: false, confidence: 0, count: 0 }` when nothing is detected
+1. Add the new `DetectorId` literal to the `DetectorId` union in `src/shared/types.ts`
+2. Create `src/content/detectors/<mechanic>.ts` — export `id` (matching the new `DetectorId`) and `scan(): DetectionResult`; return `{ found: false, confidence: 0, count: 0 }` when nothing is detected
 3. Add `scan` to the `SCANNERS` array in `src/content/detectors/index.ts`
 4. If the detector needs scroll events, export the hook and call it in `handleScroll()` in that same file
-5. Add the new `DetectorId` value to `src/shared/types.ts` if needed
-6. Test it against the relevant demo page or a new demo scenario
+5. If the detector should contribute to AI context, add a `case` for the new `DetectorId` in `extractSignals()` in `src/ai/pipeline/signals.ts` — map it to one or more `SignalLabel` values
+6. If the new signal should affect event classification, update the predicate logic in `classifyEventType()` in `src/ai/pipeline/classify.ts`
+7. Test it against the relevant demo page or a new demo scenario
 
-**Detectors must be:**
+**Detectors must emit structured summaries only.** `DetectionResult` carries `{ found, confidence, count, categories? }` — no raw text, no HTML, no CSS selectors, no URLs. Page text may be regex-matched in memory during `scan()`, but the result must be reduced to counts and booleans before the function returns.
+
+**Detectors must also be:**
 - Conservative — use two-sample confirmation for anything time-varying (see countdown timer's `lastSeconds` WeakMap pattern)
-- Content-blind — page text may be regex-matched locally, but no text or URLs are stored or emitted in `DetectionResult`
 - Stateful when justified — module-level state is allowed for cross-call continuity (e.g. tracking whether a timer is actually decreasing, or accumulated scroll growth events). Use `WeakMap` for per-element state to avoid memory leaks; plain counters are fine for page-level accumulation
 
 **Good candidates:** cookie consent dark patterns, fake review indicators, misleading comparison tables, pre-checked upsell options.

@@ -579,8 +579,8 @@
   <div class="demo-label">Demo Scenario 05</div>
   <div class="demo-scenario">Distracted Browsing</div>
   <div class="demo-signals">
-    · rapid_tab_switching<br>
-    · competing_contexts · long_session
+    · rapid_interaction · session_long<br>
+    · competing contexts (attention fragmentation)
   </div>
   <div class="demo-meta">
     <div class="demo-meta-row"><span class="demo-meta-key">Event</span><span class="demo-meta-event">distracted_browsing</span></div>
@@ -594,7 +594,7 @@
 
 <script>
   // ── Tab cycling simulation ────────────────────────────────────────────────────
-  // Rapid tab switches trigger rapid_tab_switching_episodes in background/index.ts
+  // Rapid tab switches contribute to rapid_interaction signal via interaction-loop tracker
   const tabTitles = [
     'Workspace', 'Gmail — 14 unread', 'Slack — #general',
     'Hacker News', 'Twitter / X', 'Q2 Planning Doc', 'Amazon — Cart', 'YouTube'

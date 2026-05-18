@@ -56,7 +56,7 @@ export function Footer() {
 
         <div className="mt-10 pt-6 border-t border-white/5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs">
-            Powered locally by <span className="text-white/60">Gemma 4 2B</span> — Google's open-weights model
+            Powered locally by <span className="text-white/60">Gemma 4 2B</span>
           </p>
           <p className="text-xs">MIT License · Open source</p>
         </div>

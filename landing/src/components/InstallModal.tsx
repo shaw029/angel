@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 // When a release exists this triggers an immediate zip download.
 // Create a release with: git tag v0.1.0 && git push origin v0.1.0
-// then attach dist-angel.zip as a release asset on GitHub.
+// then attach angel-extension.zip as a release asset on GitHub.
 const RELEASES_URL = 'https://github.com/shaw029/angel/releases/latest/download/angel-extension.zip'
 
 const steps = [

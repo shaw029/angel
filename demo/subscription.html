@@ -89,7 +89,7 @@
   .save-badge {
     background: rgba(63,185,80,0.15); border: 1px solid rgba(63,185,80,0.3);
     color: var(--green); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
-    /* commitment_escalation: anchors user to annual framing first */
+    /* emotional_escalation: anchors user to annual framing first */
   }
 
   /* ── Plans ── */
@@ -140,7 +140,7 @@
   /* ── Commitment escalation row ── */
   .escalation-strip {
     max-width: 900px; margin: 0 auto 48px; padding: 0 20px;
-    /* commitment_escalation: show what user "loses" by not upgrading */
+    /* emotional_escalation: show what user "loses" by not upgrading */
   }
   .escalation-card {
     background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
@@ -238,14 +238,14 @@
   <div class="hero-eyebrow">Your free trial is ending soon</div>
   <h1>Keep everything you've built.<br>Choose a plan today.</h1>
   <p>Your notes, projects, and integrations stay intact when you upgrade. Let your trial expire and everything gets locked.</p>
-  <!-- commitment_escalation: loss framing — "locked" if no action -->
+  <!-- emotional_escalation: loss framing — "locked" if no action -->
   <div class="hero-urgency">
     <span class="urgency-dot"></span>
     Introductory pricing ends when your trial expires
   </div>
 </div>
 
-<!-- commitment_escalation: annual billing anchored first, monthly framed as "more expensive" -->
+<!-- emotional_escalation: annual billing anchored first, monthly framed as "more expensive" -->
 <div class="billing-toggle">
   <span class="toggle-label inactive" id="monthly-label">Monthly</span>
   <div class="toggle-track" onclick="toggleBilling()" id="toggle">
@@ -277,7 +277,7 @@
     </ul>
   </div>
 
-  <!-- Pro — featured, commitment_escalation anchor -->
+  <!-- Pro — featured, emotional_escalation anchor -->
   <div class="plan-card featured">
     <div class="popular-badge">Most popular</div>
     <div class="plan-name">Pro</div>
@@ -325,12 +325,12 @@
 
 </div>
 
-<!-- commitment_escalation: "what you'll lose" strip -->
+<!-- emotional_escalation: "what you'll lose" strip -->
 <div class="escalation-strip">
   <div class="escalation-card">
     <div class="escalation-copy">
       <h3>Don't lose your work when the trial ends</h3>
-      <!-- trial_language + commitment_escalation: loss aversion framing -->
+      <!-- trial_language + emotional_escalation: loss aversion framing -->
       <p>Your 3 projects and all connected integrations will be locked in 3 days. Upgrade today and keep trial pricing — rates go up after your trial expires.</p>
     </div>
     <div>
@@ -381,7 +381,7 @@
   </div>
   <div class="faq-item">
     <div class="faq-q">Is the discount for the first year only?</div>
-    <!-- commitment_escalation: implies price goes up — creates urgency to commit now -->
+    <!-- emotional_escalation: implies price goes up — creates urgency to commit now -->
     <div class="faq-a">The 40% annual discount applies as long as you stay subscribed. If you cancel and re-subscribe later, standard pricing applies — you won't be able to reclaim the introductory rate.</div>
   </div>
   <div class="faq-item">
@@ -406,12 +406,12 @@
   <div class="demo-scenario">Subscription Funnel</div>
   <div class="demo-signals">
     · trial_language · recurring_billing<br>
-    · commitment_escalation
+    · emotional_escalation
   </div>
   <div class="demo-meta">
     <div class="demo-meta-row"><span class="demo-meta-key">Event</span><span class="demo-meta-event">subscription_funnel</span></div>
     <div class="demo-meta-row"><span class="demo-meta-key">State</span><span class="demo-meta-state">decision_fatigue</span></div>
-    <div class="demo-meta-row"><span class="demo-meta-key">Mechanic</span><span class="demo-meta-mech">commitment_escalation</span></div>
+    <div class="demo-meta-row"><span class="demo-meta-key">Mechanic</span><span class="demo-meta-mech">emotional_escalation</span></div>
     <div class="demo-meta-row"><span class="demo-meta-key">Tier</span><span class="demo-meta-tier">full card</span></div>
   </div>
   <button class="demo-btn" id="trigger-btn" onclick="triggerDemo()">▶ Activate Now</button>
