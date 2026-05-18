@@ -1,7 +1,7 @@
 # Angel
 
 > **Adaptive cognitive protection powered by on-device Gemma inference.**
-> Angel detects manipulative digital environments, models cognitive state in real time, and delivers reflective interventions that build lasting resilience — entirely on your device, with no data leaving the browser.
+> Angel detects manipulative digital environments, models cognitive state in real time, and delivers reflective interventions that build lasting resilience — entirely on your device. Browsing content, behavioural signals, and intervention history stay local. Model files are downloaded once and cached on-device.
 
 ---
 
@@ -61,7 +61,7 @@ Four principles govern every design decision:
 
 ## Key Features
 
-- **Real-time cognitive state estimation** — 7 distinct states (intentional, exploratory, passive consumption, compulsive loop, emotionally reactive, fragmented attention, decision fatigue) estimated from behavioral signals without any page content analysis
+- **Real-time cognitive state estimation** — 7 distinct states (intentional, exploratory, passive consumption, compulsive loop, emotionally reactive, fragmented attention, decision fatigue) estimated from behavioral signals; page text is scanned locally to detect patterns but is never stored or transmitted
 - **On-device Gemma 4 2B inference** — runs on WebGPU (preferred) or WASM fallback; no API keys, no server, no inference calls leaving the device
 - **Manipulation Interpretation Layer** — mechanic-specific framing templates (urgency amplification, engagement loops, emotional escalation, attention capture, variable reward, social momentum, decision pressure) that name what is happening rather than moralizing about it
 - **Adaptive intervention strategy** — per-state strategy matrix with dynamic overrides for drift trajectory, session persistence, and user responsiveness history
@@ -125,7 +125,7 @@ flowchart TB
 
 | Layer | Rationale |
 |---|---|
-| **Detectors** | DOM-pattern recognition is fast, deterministic, and privacy-safe. No page content is read — only structural signals (timer decrement, feed height growth, text matches against known patterns). |
+| **Detectors** | DOM-pattern recognition is fast, deterministic, and privacy-safe. Page text is scanned locally by regex to detect known manipulation patterns — text is never stored or transmitted. Structural signals (timer decrement, feed height growth) supplement the text matching. |
 | **Trackers** | Behavioral continuity metrics (scroll velocity, session duration, interaction rate) that detectors cannot see — the difference between visiting a checkout page and being trapped in one. |
 | **Heuristics Engine** | Aggregates detector + tracker outputs into a `BrowsingSignal` and makes the binary flagging decision. Keeps the AI pipeline from running on every scroll event. |
 | **AI Pipeline** | Classifies the event type, compresses session context into a ~50-token state vector. This is the synthesis step — raw signals become a cognitive narrative. |
@@ -141,7 +141,7 @@ flowchart TB
 
 ## Cognitive State Modeling
 
-Angel models user cognitive state across 7 discrete categories estimated from behavioral signals — no self-reporting, no content analysis.
+Angel models user cognitive state across 7 discrete categories estimated from behavioral signals — no self-reporting, no stored or transmitted content.
 
 ```mermaid
 stateDiagram-v2
@@ -293,7 +293,7 @@ interface MemorySummary {
 }
 ```
 
-This gives Gemma enough context to adapt tone and framing without any identifying information — no URLs, no content, no timestamps.
+This gives Gemma enough context to adapt tone and framing without any identifying information — no URLs, no raw page content, no timestamps.
 
 ---
 
@@ -322,7 +322,7 @@ Privacy in Angel is not a setting — it is an architectural consequence.
 | Property | Implementation |
 |---|---|
 | **No data transmission** | The only network request after install is the one-time model download from Hugging Face CDN |
-| **No URL or content storage** | Detectors read DOM structure but store nothing. Trackers record metrics (velocity, time), not content |
+| **No content stored or transmitted** | Detectors scan page text and DOM structure locally — nothing is stored or sent off-device. Trackers record only metrics (velocity, time), never content |
 | **Aggregated counters only** | IndexedDB stores pattern counts (integers) and behavioral profiles (floats). No event log, no session history, no page-level data |
 | **Isolated inference** | Gemma runs in a Chrome offscreen document with no DOM access. The inference context is a synthesized state vector, not page content |
 | **Local profile only** | User profile exists only in the user's browser — no account, no sync, no cloud backup |
@@ -452,26 +452,38 @@ angel/
 
 ---
 
-## Development Setup
+## Installation
 
-**Requirements:** Node 18+, Chrome 116+, ~4 GB free disk space
+### User install (release ZIP)
+
+1. Download `angel-extension.zip` from the [latest release](https://github.com/shaw029/angel/releases/latest)
+2. Unzip it anywhere on your machine
+3. Open `chrome://extensions` in Chrome
+4. Enable **Developer mode** (toggle, top right)
+5. Click **Load unpacked** and select the unzipped folder
+
+The model downloads in the background on first install (~3.9 GB GPU / ~2 GB WASM). Progress is visible in the popup.
+
+### Developer install (build from source)
+
+**Requirements:** Node 18+, Chrome 116+, Python 3 (demo server), POSIX shell (macOS/Linux/Git Bash — `npm run setup` uses `cp`), ~4 GB free disk space
 
 ```bash
 npm install
-npm run setup      # copies ORT WASM binary from node_modules (~23 MB)
+npm run setup      # copies ORT WASM binary from node_modules (~23 MB) — requires POSIX cp
 npm run build      # bundles extension into dist/
 ```
 
 Load in Chrome: `chrome://extensions` → **Developer mode** → **Load unpacked** → select `dist/`
 
-The model downloads in the background on first install (~3.9 GB GPU / ~2 GB WASM). Progress is visible in the popup.
-
 ```bash
 npm run dev        # watch mode — rebuilds on every save
-npm run start      # watch + demo server at localhost:3001
+npm run start      # watch + demo server at localhost:3001 — requires python3
 npm run typecheck  # TypeScript check without build
-npm run demo       # demo pages only
+npm run demo       # demo pages only — requires python3
 ```
+
+**Landing page** (`landing/`) is a separate Vite app — run `cd landing && npm install && npm run build` to build it independently of the extension.
 
 ### Demo Scenarios
 
@@ -480,7 +492,15 @@ npm run demo
 # Open http://localhost:3001
 ```
 
-| Scenario | State | Mechanic | Tier |
+Each demo page contains authentic dark-pattern DOM structure that the extension's detectors actively scan. There are two ways to see a nudge:
+
+**Natural detection (exercises the full pipeline):** Browse the page normally for ~30–60 seconds. The heuristics engine, cognitive state estimator, and Gemma inference all run as normal. The tier and tone will reflect the actual detected state.
+
+**"Activate Now" button (UI preview only):** Each demo page has an "Activate Now" button that dispatches a `ca:demo-trigger` event. This bypasses inference and the gate entirely and always shows the same hardcoded full-card nudge (`tone: gentle`, `message: "You can take a moment before deciding."`). It is useful for testing the nudge UI and dismiss flow, but does **not** exercise the cognitive model, detector pipeline, or tier selection.
+
+The table below describes what the real pipeline targets on each page — these states and tiers will appear through natural detection, not through the button:
+
+| Scenario | Targeted state | Mechanic | Expected tier |
 |---|---|---|---|
 | Artificial Urgency Checkout | `emotionally_reactive` | `decision_pressure` | full card |
 | Infinite Scroll Feed | `compulsive_loop` | `engagement_loop` | subtle pill |
@@ -518,5 +538,5 @@ MIT
 ---
 
 <div align="center">
-  <sub>Runs entirely on your device · No data leaves your browser · Built with Gemma 4 2B</sub>
+  <sub>Runs entirely on your device · No browsing data leaves your browser · Model files downloaded once · Built with Gemma 4 2B</sub>
 </div>

@@ -8,7 +8,6 @@ export const HEURISTIC = {
 
 export const COOLDOWN_DEFAULT_MINUTES = 20
 
-// Update this path after first build if dist layout differs
 export const OFFSCREEN_URL = 'src/offscreen/index.html'
 
 export const SIGNAL_INTERVAL_MS = 30_000

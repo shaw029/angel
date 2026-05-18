@@ -10,25 +10,50 @@ Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) first. Understanding the full 
 
 ---
 
+## Build Requirements
+
+| Requirement | Version | Notes |
+|---|---|---|
+| Node.js | 18+ | Required for all build and typecheck commands |
+| npm | bundled with Node | |
+| Chrome | 116+ | To load and test the unpacked extension |
+| Python 3 | any recent | `npm run start` and `npm run demo` use `python3 -m http.server` |
+| POSIX shell | macOS / Linux / Git Bash | `npm run setup` calls `cp`; it will not work in Windows CMD or PowerShell without Git Bash or WSL |
+
+Disk space: ~4 GB for the downloaded model files (WASM variant ~2 GB; GPU variant ~3.9 GB).
+
 ## Setup
+
+### Extension
 
 ```bash
 git clone <repo>
 cd angel
 npm install
-npm run setup      # copies ORT WASM binary from node_modules
-npm run build      # initial build into dist/
+npm run setup      # copies ORT WASM binary from node_modules (requires POSIX cp)
+npm run build      # bundles extension into dist/
 ```
 
 Load into Chrome: `chrome://extensions` → Developer mode → Load unpacked → `dist/`
 
 ```bash
 npm run dev        # watch mode — rebuilds on every save
-npm run start      # watch + demo server at localhost:3001
+npm run start      # watch mode + demo server at localhost:3001 (requires python3)
 npm run typecheck  # TypeScript strict check (no build)
 ```
 
 After any source edit, click the reload icon on the Angel card at `chrome://extensions`.
+
+### Landing Page
+
+The GitHub Pages site lives in `landing/` — it is a separate Vite + React app with its own dependencies and is **not** part of the extension build.
+
+```bash
+cd landing
+npm install
+npm run build      # outputs to landing/dist/ — deploy this directory
+npm run dev        # local dev server at localhost:5173
+```
 
 **VS Code:** open `angel.code-workspace` and use the **Launch Chrome (Extension)** debug configuration (`F5`). It builds, opens a clean Chrome profile with the extension loaded, and attaches the debugger. The **Full Test: Extension + Demo** configuration also starts the demo server and opens `http://localhost:3001`.
 
@@ -40,19 +65,19 @@ After any source edit, click the reload icon on the Angel card at `chrome://exte
 
 **Location:** `src/content/detectors/`
 
-Each detector is a self-contained module that exports a `detect(document: Document): DetectionResult[]` function. Adding a new detector requires:
+Each detector is a self-contained module. It exports a `scan()` function (no arguments — uses the global `document`) and is wired into the scheduler in `src/content/detectors/index.ts`. Adding a new detector requires:
 
 1. Create `src/content/detectors/<mechanic>.ts`
-2. Export `detect()` returning `DetectionResult[]` with appropriate `SignalType` and confidence
-3. Register it in `src/content/detectors/index.ts`
-4. Add the new `SignalType` to `src/shared/types.ts` if needed
-5. Update `src/ai/pipeline/signals.ts` to map the new signal to a `SignalLabel`
+2. Export `id` (string const) and `scan(): DetectionResult` — return `{ found: false, confidence: 0, count: 0 }` when nothing is detected
+3. Add `scan` to the `SCANNERS` array in `src/content/detectors/index.ts`
+4. If the detector needs scroll events, export the hook and call it in `handleScroll()` in that same file
+5. Add the new `DetectorId` value to `src/shared/types.ts` if needed
 6. Test it against the relevant demo page or a new demo scenario
 
 **Detectors must be:**
-- Stateless (no DOM references retained between runs)
-- Conservative (two-sample confirmation for anything time-varying)
-- Content-blind (no page text or URLs stored — only boolean/count outputs)
+- Conservative — use two-sample confirmation for anything time-varying (see countdown timer's `lastSeconds` WeakMap pattern)
+- Content-blind — page text may be regex-matched locally, but no text or URLs are stored or emitted in `DetectionResult`
+- Stateful when justified — module-level state is allowed for cross-call continuity (e.g. tracking whether a timer is actually decreasing, or accumulated scroll growth events). Use `WeakMap` for per-element state to avoid memory leaks; plain counters are fine for page-level accumulation
 
 **Good candidates:** cookie consent dark patterns, fake review indicators, misleading comparison tables, pre-checked upsell options.
 
@@ -182,14 +207,24 @@ If a contribution requires storing something outside these constraints, the arch
 ### Detector Contract
 
 ```typescript
-// Every detector must follow this contract:
-export function detect(doc: Document): DetectionResult[] {
-  // - Pure function of doc (no closures over external state)
-  // - Returns [] when nothing detected (never null/undefined)
-  // - Confidence is 0–1, never > 1
-  // - No side effects, no storage writes
+// Required exports — every detector must have both:
+export const id = 'my-detector' as const  // matches DetectorId in shared/types.ts
+
+export function scan(): DetectionResult {
+  // - Reads global document directly (no argument passed in)
+  // - Returns a single DetectionResult — { found: false, confidence: 0, count: 0 } when nothing detected
+  // - Confidence is 0–1
+  // - May keep module-level state for cross-call continuity (WeakMap for per-element,
+  //   plain let/const for page-level accumulators like growthEvents or confirmedDecreasing)
+  // - Never stores text, URLs, or any content in state — only numbers and booleans
 }
+
+// Optional: export additional lifecycle hooks if the detector needs event-driven updates.
+// Wire them in setup() in src/content/detectors/index.ts.
+export function onScroll(): void { /* called on every scroll event by setup() */ }
 ```
+
+Detectors are **not** called with `document` as an argument and do **not** return arrays. The `setup(emit)` function in `index.ts` owns all scheduling (debounced mutation observer, periodic countdown timer, scroll listener) — individual detectors just implement `scan()`.
 
 ---
 

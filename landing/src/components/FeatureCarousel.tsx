@@ -12,7 +12,7 @@ const slides: Array<{
   {
     label:  'Privacy',
     title:  'Private by design.',
-    body:   'Everything runs locally with Gemma.\nYour browsing data never leaves your device.',
+    body:   'Browsing content, behavioural signals, and intervention history stay local.\nModel files are downloaded once and cached on your device.',
     visual: <PopupMockup />,
   },
   {

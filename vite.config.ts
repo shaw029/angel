@@ -22,7 +22,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       // offscreen document is not a manifest entry — bundle it as an extra input.
-      // After build, check dist/ to confirm the output path and update OFFSCREEN_URL.
+      // Vite preserves source directory structure for HTML entries, so this always
+      // outputs to dist/src/offscreen/index.html, matching OFFSCREEN_URL in constants.ts.
       input: {
         offscreen: resolve(__dirname, 'src/offscreen/index.html'),
       },

@@ -35,19 +35,19 @@ export function PrivacySection() {
               className="text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl"
               variants={fadeUp}
             >
-              Your data never leaves your device.
+              Your browsing data never leaves your device.
             </motion.h2>
 
             <motion.p
               className="mt-5 text-base leading-relaxed text-white/60"
               variants={fadeUp}
             >
-              Running fully on-device with Gemma, Angel detects when scrolling turns into reactive or emotionally draining patterns, then responds with personalized support designed to help you reset and build healthier digital habits over time — while keeping your data fully private.
+              Running fully on-device with Gemma, Angel reads page text locally to detect manipulation patterns, models how your attention and engagement evolve, and responds with reflective support — all on your device. Nothing is stored or transmitted beyond anonymous behavioral counters.
             </motion.p>
 
             <motion.div className="mt-8 flex flex-col gap-3" variants={stagger}>
               {[
-                { label: 'No data transmission', detail: 'Inference runs entirely in your browser' },
+                { label: 'No data stored or sent', detail: 'Text scanning is in-memory only; inference stays on-device' },
                 { label: 'No server, no account', detail: 'No API keys. No cloud. No sync.' },
                 { label: 'Fully auditable', detail: 'Open source — every line is readable' },
               ].map(({ label, detail }) => (

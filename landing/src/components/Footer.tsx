@@ -13,7 +13,7 @@ export function Footer() {
               <span className="text-sm font-medium text-white/70">Angel</span>
             </div>
             <p className="text-xs leading-relaxed max-w-xs">
-              An adaptive cognitive protection system powered by on-device Gemma inference. No data leaves your device.
+              An adaptive cognitive protection system powered by on-device Gemma inference. Browsing data and behavioural signals never leave your device. Model files are downloaded once and cached locally.
             </p>
           </div>
 
@@ -49,7 +49,7 @@ export function Footer() {
           <div className="flex flex-col gap-2 max-w-xs">
             <p className="text-[10px] font-semibold tracking-widest uppercase text-white/25 mb-1">Privacy</p>
             <p className="text-xs leading-relaxed">
-              Angel stores only anonymous behavioral counters in your browser's IndexedDB. No URLs, no content, no personal data. No network calls beyond the one-time model download.
+              Angel reads page text locally to detect manipulation patterns — it is never stored or transmitted. Only anonymous behavioral counters are kept in your browser's IndexedDB. No network calls beyond the one-time model download.
             </p>
           </div>
         </div>
