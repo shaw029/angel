@@ -102,6 +102,25 @@ export function Hero({ onInstall }: HeroProps) {
             Install Locally
           </button>
         </motion.div>
+
+        {/* Demo video */}
+        <motion.div
+          className="mt-12 w-full max-w-3xl mx-auto rounded-2xl overflow-hidden border border-border shadow-2xl"
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          custom={0.7}
+        >
+          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <iframe
+              className="absolute inset-0 w-full h-full"
+              src="https://www.youtube.com/embed/eG2AQLBvVYY?si=wahFTc-Uq7IG8CYY"
+              title="Angel demo"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        </motion.div>
       </div>
 
       {/* Scroll hint */}
