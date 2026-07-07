@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { Intervention, InterventionStyle, SuggestedAction } from '@shared/types'
+import type { Intervention, InterventionStyle, NudgeOutcome, SuggestedAction } from '@shared/types'
 
 // ─── Style maps (full tier) ───────────────────────────────────────────────────
 
@@ -39,22 +39,23 @@ const ACTION_LABELS: Partial<Record<SuggestedAction, string>> = {
 
 interface NudgeProps {
   intervention: Intervention
-  onDismiss:    (outcome: 'accepted' | 'dismissed') => void
+  onDismiss:    (outcome: NudgeOutcome) => void
 }
 
 export function Nudge({ intervention, onDismiss }: NudgeProps) {
   const [visible, setVisible] = useState(true)
   const { message, tone, action, tier, observation } = intervention
 
-  function dismiss(outcome: 'accepted' | 'dismissed' = 'dismissed') {
+  function dismiss(outcome: NudgeOutcome = 'dismissed') {
     setVisible(false)
     setTimeout(() => onDismiss(outcome), 260)
   }
 
-  // Auto-dismiss: subtle after 7 s, full after 20 s so it never permanently blocks future nudges
+  // Auto-dismiss so a nudge never permanently blocks future ones. Reported as
+  // 'ignored' — an unattended nudge must never be mistaken for an engaged one.
   useEffect(() => {
     const ms = tier === 'subtle' ? 10_000 : 20_000
-    const t = setTimeout(dismiss, ms)
+    const t = setTimeout(() => dismiss('ignored'), ms)
     return () => clearTimeout(t)
   }, [tier])
 
@@ -75,7 +76,7 @@ interface FullCardProps {
   tone:         InterventionStyle
   action:       SuggestedAction
   observation?: string
-  onDismiss:    (outcome: 'accepted' | 'dismissed') => void
+  onDismiss:    (outcome: NudgeOutcome) => void
 }
 
 function FullCard({ message, tone, action, observation, onDismiss }: FullCardProps) {
@@ -146,6 +147,18 @@ function FullCard({ message, tone, action, observation, onDismiss }: FullCardPro
             Got it
           </button>
         )}
+
+        {/* "Not now" — the correction channel. One tap teaches Angel it read
+            this moment wrong: backs off for the session and updates priors. */}
+        <button
+          onClick={() => onDismiss('rejected')}
+          className="
+            mt-1.5 w-full text-left text-[11px] text-neutral-300
+            hover:text-neutral-500 transition-colors duration-150
+          "
+        >
+          Not now — I chose to be here
+        </button>
       </div>
     </motion.div>
   )

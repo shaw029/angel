@@ -2,6 +2,19 @@ import type { StorageState, DismissalRecord, InterventionTier, EventType, Cognit
 import type { InterventionStrategy } from './intervention-strategy'
 import { GATE } from '@shared/constants'
 
+// ─── The Guardian ─────────────────────────────────────────────────────────────
+// The Narrator (AI) decides WHETHER and at what tier to nudge. The Guardian
+// only enforces ceilings — it can say "not yet" or "smaller", never "yes":
+//
+//   1. Hard floor: never two nudges within MIN_GAP_MS, no multiplier can breach it
+//   2. Hourly budget: at most HOURLY_BUDGET nudges in any rolling hour
+//   3. Bounded adaptive cooldown: the event/state/strategy/suppression scales
+//      still personalize spacing, but their product is clamped to
+//      [MULTIPLIER_MIN, MULTIPLIER_MAX] — the old unbounded six-factor stack
+//      could collapse cooldowns to ~30 s
+//   4. Tier ceiling: a proposed full card is downgraded to subtle inside the
+//      full-card cooldown or below the full-tier confidence bar
+
 // ─── Event-type cooldown scaling ──────────────────────────────────────────────
 
 // Time-sensitive events (purchase pressure) get shorter cooldowns so the signal
@@ -16,7 +29,6 @@ const EVENT_COOLDOWN_SCALE: Partial<Record<EventType, number>> = {
 // ─── Cognitive-state cooldown scaling ─────────────────────────────────────────
 // Applied on top of event-type scaling. Compulsive/reactive states warrant
 // faster response; intentional/fragmented states warrant backing off.
-// Strategy cooldowns (from intervention-strategy.ts) stack on top of these.
 
 const COGNITIVE_COOLDOWN_SCALE: Partial<Record<CognitiveState, number>> = {
   compulsive_loop:      0.6,   // can't stop — intervene sooner
@@ -26,30 +38,47 @@ const COGNITIVE_COOLDOWN_SCALE: Partial<Record<CognitiveState, number>> = {
   fragmented_attention: 1.5,   // already distracted, don't add more noise
 }
 
+const FULL_TIER_MIN_CONFIDENCE = 0.70
+
 function cooldownScale(eventType: EventType | undefined, cogState?: CognitiveState): number {
   const eventScale = (eventType ? EVENT_COOLDOWN_SCALE[eventType] : undefined) ?? 1.0
   const cogScale   = (cogState  ? COGNITIVE_COOLDOWN_SCALE[cogState] : undefined) ?? 1.0
   return eventScale * cogScale
 }
 
-// ─── Tier computation ─────────────────────────────────────────────────────────
+/** Combined adaptive multiplier, clamped so stacking can never run away. */
+function boundedMultiplier(
+  state:      StorageState,
+  eventType?: EventType,
+  cogState?:  CognitiveState,
+  strategy?:  InterventionStrategy,
+): number {
+  const raw = (state.suppressionMultiplier ?? 1.0)
+    * cooldownScale(eventType, cogState)
+    * (strategy?.cooldownScale ?? 1.0)
+  return Math.min(Math.max(raw, GATE.MULTIPLIER_MIN), GATE.MULTIPLIER_MAX)
+}
+
+function lastAnyNudge(state: StorageState): number {
+  return Math.max(
+    state.lastFullIntervention   ?? 0,
+    state.lastSubtleIntervention ?? 0,
+  )
+}
+
+function hourlyBudgetExhausted(state: StorageState, now: number): boolean {
+  const recent = (state.recentNudges ?? []).filter(t => now - t < 60 * 60 * 1000)
+  return recent.length >= GATE.HOURLY_BUDGET
+}
+
+// ─── Verdict ──────────────────────────────────────────────────────────────────
 
 /**
- * Returns what tier of intervention (if any) is permitted right now.
- *
- * Decision logic (evaluated in order):
- *  1. confidence < strategy.minConfidence     → none
- *  2. strategy.preferredTier === 'none'       → none (state-level suppression)
- *  3. within subtle cooldown                  → none
- *  4. strategy.preferredTier === 'subtle'     → subtle (caps full-card promotions)
- *  5. strategy prefers full OR confidence ≥ 0.8, and full cooldown elapsed → full
- *  6. otherwise                               → subtle
- *
- * The strategy cooldownScale stacks with event-type and cognitive-state scales.
- * High-confidence detections inside the full-card window are downgraded to
- * subtle rather than suppressed — preserves signal without spamming.
+ * Clamps the Narrator's proposed nudge against the Guardian's ceilings.
+ * Returns the tier that may actually be delivered right now.
  */
-export function computeTier(
+export function guardianVerdict(
+  proposedTier: 'subtle' | 'full',
   confidence:   number,
   state:        StorageState,
   now:          number = Date.now(),
@@ -57,38 +86,36 @@ export function computeTier(
   cogState?:    CognitiveState,
   strategy?:    InterventionStrategy,
 ): InterventionTier {
-  const minConf = strategy?.minConfidence ?? 0.50
-  if (confidence < minConf) return 'none'
-
-  // State-level suppression (recovery, entry delay, session cap)
+  // Strategy-level suppression (recovery in progress, entry delay, session cap)
   if (strategy?.preferredTier === 'none') return 'none'
 
-  const multiplier = (state.suppressionMultiplier ?? 1.0)
-    * cooldownScale(eventType, cogState)
-    * (strategy?.cooldownScale ?? 1.0)
+  if (confidence < (strategy?.minConfidence ?? 0.50)) return 'none'
 
-  const subtleCooldown = GATE.SUBTLE_COOLDOWN_MS * multiplier
-  const fullCooldown   = GATE.FULL_COOLDOWN_MS   * multiplier
+  // Hard floor and hourly budget — absolute, unscaled
+  const last = lastAnyNudge(state)
+  if (now - last < GATE.MIN_GAP_MS) return 'none'
+  if (hourlyBudgetExhausted(state, now)) return 'none'
 
-  const lastAny = Math.max(
-    state.lastFullIntervention   ?? 0,
-    state.lastSubtleIntervention ?? 0,
-  )
-  if (now - lastAny < subtleCooldown) return 'none'
+  // Bounded adaptive spacing
+  const multiplier = boundedMultiplier(state, eventType, cogState, strategy)
+  if (now - last < GATE.SUBTLE_COOLDOWN_MS * multiplier) return 'none'
 
-  // Strategy caps tier at subtle (low-footprint states: passive, compulsive, fragmented)
-  if (strategy?.preferredTier === 'subtle') return 'subtle'
+  // Tier ceiling: strategy may cap at subtle (low-footprint states); a full
+  // card additionally needs confidence and its own longer cooldown
+  const fullAllowed =
+    proposedTier === 'full' &&
+    strategy?.preferredTier !== 'subtle' &&
+    confidence >= FULL_TIER_MIN_CONFIDENCE &&
+    now - (state.lastFullIntervention ?? 0) >= GATE.FULL_COOLDOWN_MS * multiplier
 
-  // Full-tier attempt: strategy prefers full OR high-confidence default
-  const wantsFull = strategy?.preferredTier === 'full' || confidence >= 0.8
-  if (wantsFull && now - (state.lastFullIntervention ?? 0) >= fullCooldown) return 'full'
-
-  return 'subtle'
+  return fullAllowed ? 'full' : 'subtle'
 }
 
 /**
- * Fast pre-check: can any tier fire right now?
- * Used in background before running expensive inference.
+ * Fast pre-check: could any tier fire right now?
+ * Used in background before running expensive inference. Note the Narrator may
+ * still be consulted for aligned/observe judgments — this only pre-empts the
+ * cases where even a positive judgment could not be delivered.
  */
 export function isAnyTierAllowed(
   state:      StorageState,
@@ -97,19 +124,14 @@ export function isAnyTierAllowed(
   cogState?:  CognitiveState,
   strategy?:  InterventionStrategy,
 ): boolean {
-  // State-level suppression check — no need to compute cooldowns
   if (strategy?.preferredTier === 'none') return false
 
-  const multiplier = (state.suppressionMultiplier ?? 1.0)
-    * cooldownScale(eventType, cogState)
-    * (strategy?.cooldownScale ?? 1.0)
+  const last = lastAnyNudge(state)
+  if (now - last < GATE.MIN_GAP_MS) return false
+  if (hourlyBudgetExhausted(state, now)) return false
 
-  const subtleCooldown = GATE.SUBTLE_COOLDOWN_MS * multiplier
-  const lastAny = Math.max(
-    state.lastFullIntervention   ?? 0,
-    state.lastSubtleIntervention ?? 0,
-  )
-  return now - lastAny >= subtleCooldown
+  const multiplier = boundedMultiplier(state, eventType, cogState, strategy)
+  return now - last >= GATE.SUBTLE_COOLDOWN_MS * multiplier
 }
 
 // ─── State mutations ──────────────────────────────────────────────────────────
@@ -123,6 +145,7 @@ export function afterIntervention(
   return {
     lastIntervention:  now,
     interventionCount: (state.interventionCount ?? 0) + 1,
+    recentNudges:      [...(state.recentNudges ?? []), now].slice(-12),
     ...(tier === 'full'
       ? { lastFullIntervention:   now }
       : { lastSubtleIntervention: now }
@@ -145,12 +168,26 @@ export function afterDismissal(
 
 // ─── Adaptive suppression ─────────────────────────────────────────────────────
 
+// Outcome weights for the negativity ratio. The old computation counted only
+// dwell time, so an auto-dismissed (ignored) nudge looked like an engaged one
+// and the system concluded its nudges were welcome.
+function negativeWeight(d: DismissalRecord): number {
+  switch (d.outcome) {
+    case 'accepted': return 0
+    case 'rejected': return 1.5  // explicit "wrong call" — strongest signal
+    case 'ignored':  return 0.5  // shown, never touched — mild negative
+    case 'dismissed':
+    default:
+      return d.dwellMs < GATE.QUICK_DISMISS_MS ? 1 : 0
+  }
+}
+
 /**
- * Derives the cooldown multiplier from recent dismissal patterns.
+ * Derives the cooldown multiplier from recent dismissal outcomes.
  *
- * If most recent dismissals were quick (< QUICK_DISMISS_MS), the user is
- * signalling that nudges are unwelcome right now. We scale cooldowns up
- * to back off gracefully rather than continuing to interrupt.
+ * If the recent record skews negative (quick dismissals, ignores, rejections),
+ * the user is signalling that nudges are unwelcome right now — scale cooldowns
+ * up to back off gracefully rather than continuing to interrupt.
  *
  * Requires at least 3 data points before adapting, so fresh installs
  * start with baseline behavior.
@@ -164,8 +201,8 @@ export function computeSuppressionMultiplier(
   )
   if (recent.length < 3) return 1.0  // not enough signal yet
 
-  const quickCount = recent.filter(d => d.dwellMs < GATE.QUICK_DISMISS_MS).length
-  const ratio      = quickCount / recent.length
+  const weighted = recent.reduce((acc, d) => acc + negativeWeight(d), 0)
+  const ratio    = Math.min(weighted / recent.length, 1)
 
   for (const { quickRatio, multiplier } of GATE.MULTIPLIER_LEVELS) {
     if (ratio >= quickRatio) return multiplier

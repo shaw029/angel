@@ -4,11 +4,25 @@ export interface BrowsingSignal {
   url: string
   domain: string
   timestamp: Timestamp
-  timeOnPage: number    // seconds on current page
+  timeOnPage: number    // seconds of *visible* foreground time on current page
   scrollDepth: number   // 0–1, max reached
-  idleTime: number      // seconds since last interaction
-  switchCount: number   // tab focus events in last window
+  idleTime: number      // seconds since last interaction (0 while media is playing)
+  switchCount: number   // tab focus events in the rolling 10-minute window
+  pageTitle: string     // document.title, truncated — local prompt context only, never stored
+  mediaPlaying: boolean // a video/audio element is actively playing
+  entry: EntryType      // how this page was reached (provenance = intent evidence)
 }
+
+// How the user arrived — the strongest cheap signal of intent.
+// 'direct'/'search' = pull (user chose), 'social'/'external' link = push (environment chose).
+export type EntryType =
+  | 'direct'    // typed URL, bookmark, or no referrer
+  | 'search'    // arrived from a search engine
+  | 'internal'  // same-site navigation
+  | 'social'    // arrived from a social/feed platform
+  | 'external'  // other cross-site link
+  | 'reload'    // reload or back/forward
+  | 'unknown'
 
 export interface HeuristicResult {
   flagged: boolean
@@ -21,6 +35,37 @@ export type HeuristicReason =
   | 'extended-idle'
   | 'rapid-tab-switching'
   | 'excessive-scroll'
+  | 'extended-media-session'
+
+// ─── Intent alignment (the Narrator's judgment) ───────────────────────────────
+// The core question Angel answers: is the user still the author of this session?
+// Alignment is a property of the *session trajectory*, never of the content.
+
+export type IntentAlignment =
+  | 'aligned'   // session serves an intent the user plausibly chose — never nudge
+  | 'drifting'  // trajectory diverging from the entry intent — observe, maybe subtle
+  | 'captured'  // environment mechanics are steering the session — intervene
+
+export interface AlignmentJudgment {
+  alignment:  IntentAlignment
+  confidence: number         // 0–1
+  narrative:  string         // rolling session story, ≤ ~30 words — in-memory only
+  intent:     string | null  // inferred user intent, short phrase — in-memory only
+  at:         Timestamp
+}
+
+// Coarse per-category prior fed back into the Narrator prompt.
+// Keyed by DomainCategory, never by domain or URL — preserves the memory guarantee.
+export type AlignmentPriorLabel = 'usually_aligned' | 'mixed' | 'often_captured'
+
+// Semantic page context for the on-device prompt. Held in memory per tab,
+// injected into the local inference prompt, never persisted or transmitted.
+export interface PageSemantics {
+  title:        string
+  titleTrail:   string[]   // up to 4 previous titles, oldest first — topic-drift evidence
+  entry:        EntryType
+  mediaPlaying: boolean
+}
 
 export type DecisionState      = 'intervene' | 'observe' | 'skip'
 export type InterventionStyle  = 'gentle' | 'curious' | 'reflective'
@@ -44,7 +89,8 @@ export type InterventionTier   = 'full' | 'subtle' | 'none'
 
 export interface DismissalRecord {
   timestamp: Timestamp
-  dwellMs:   number  // ms the nudge was visible before the user dismissed it
+  dwellMs:   number        // ms the nudge was visible before it went away
+  outcome?:  NudgeOutcome  // absent in legacy records — treated as 'dismissed'
 }
 
 export type ManipulationMechanic =
@@ -66,15 +112,34 @@ export interface InferenceInput {
   cognitiveState?: CognitiveStateEstimate
   drift?:          DriftEstimate
   interpretation?: { explanation: string; mechanic: ManipulationMechanic | null }
+
+  // ── Narrator context — semantic, on-device only ──
+  page?:              PageSemantics
+  previousNarrative?: string              // last narrative for this tab, if any
+  alignmentPrior?:    AlignmentPriorLabel // per-category longitudinal prior
 }
 
 export interface InferenceOutput {
+  // Narrator fields — the session judgment (always produced)
+  alignment:            IntentAlignment
+  narrative:            string          // updated session story, ≤ ~30 words
+  intent:               string          // inferred user intent ('' when unknown)
+
+  // Decision fields — the nudge proposal (message may be '' when not intervening)
   decision_state:       DecisionState
   confidence:           number          // 0–1, normalized
+  tier_hint:            'subtle' | 'full'
   intervention_style:   InterventionStyle
   intervention_message: string
   suggested_action:     SuggestedAction
 }
+
+// How the user resolved a nudge:
+// 'accepted'  — action button clicked (positive)
+// 'dismissed' — close button clicked (neutral-to-negative, dwell disambiguates)
+// 'ignored'   — auto-dismissed with no interaction (mild negative — never count as engagement)
+// 'rejected'  — explicit "not now" (strong negative: wrong call, back off and learn)
+export type NudgeOutcome = 'accepted' | 'dismissed' | 'ignored' | 'rejected'
 
 export interface Intervention {
   id:          string
@@ -82,10 +147,11 @@ export interface Intervention {
   tone:        InterventionStyle
   action:      SuggestedAction
   confidence:  number                          // 0–1 from InferenceOutput
-  tier:        Exclude<InterventionTier, 'none'>  // resolved by background gate
+  tier:        Exclude<InterventionTier, 'none'>  // proposed by Narrator, clamped by Guardian
   observation?: string                         // mechanic + cognitive note, shown in FullCard
   mechanic?:   ManipulationMechanic | null
   cogState?:   CognitiveState                  // state when nudge was shown — echoed back in DISMISSED
+  category?:   DomainCategory                  // echoed back so rejections correct the alignment prior
 }
 
 export interface StorageState {
@@ -99,6 +165,7 @@ export interface StorageState {
   lastSubtleIntervention: Timestamp | null   // for subtle-pill cooldown
   recentDismissals:       DismissalRecord[]  // ring buffer (last 20) for adaptive suppression
   suppressionMultiplier:  number             // 1.0 baseline — raised by quick dismissals
+  recentNudges:           Timestamp[]        // ring buffer (last 12) — enforces the hourly budget
 
   // User preference: how actively Angel offers reflective support (0–1, default 0.45)
   presenceLevel: number
@@ -336,4 +403,9 @@ export interface CompressedContext {
   recentPhrases?:  string[]           // last N nudge phrases for variety enforcement
   cognitiveState?: CognitiveStateEstimate
   drift?:          DriftEstimate
+
+  // ── Narrator context (injected by background; in-memory only, never persisted) ──
+  page?:              PageSemantics
+  previousNarrative?: string
+  alignmentPrior?:    AlignmentPriorLabel
 }

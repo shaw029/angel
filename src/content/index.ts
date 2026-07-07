@@ -1,18 +1,28 @@
 import { snapshot } from './observer'
-import { MSG, SIGNAL_INTERVAL_MS } from '@shared/constants'
+import { MSG, SIGNAL_INTERVAL_MS, SWITCH_WINDOW_MS } from '@shared/constants'
 import type { Message } from '@shared/messages'
-import type { Intervention } from '@shared/types'
+import type { Intervention, NudgeOutcome } from '@shared/types'
 import { setup as setupDetectors } from './detectors/index'
 import { setup as setupTrackers } from './trackers/index'
 import { push } from './events/bus'
 import { mountNudge } from './ui'
 
-let switchCount = 0
+// Rolling window of tab-focus timestamps. The old monotonic counter meant any
+// long-lived tab crossed the "restless" threshold after its 8th refocus — ever —
+// and stayed mislabelled for the rest of its life.
+let focusEvents: number[] = []
+
+function switchCount(): number {
+  const cutoff = Date.now() - SWITCH_WINDOW_MS
+  focusEvents = focusEvents.filter(t => t >= cutoff)
+  return focusEvents.length
+}
+
 let hostEl: HTMLElement | null = null
 let shownAt:  number | null = null  // wall-clock ms when current nudge appeared
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) switchCount++
+  if (!document.hidden) focusEvents.push(Date.now())
 })
 
 function safeSend(message: Message): void {
@@ -26,7 +36,7 @@ function safeSend(message: Message): void {
 // Periodic browsing signal (basic metrics)
 setInterval(() => {
   if (document.hidden) return
-  safeSend({ type: MSG.BROWSING_SIGNAL, payload: snapshot(switchCount) })
+  safeSend({ type: MSG.BROWSING_SIGNAL, payload: snapshot(switchCount()) })
 }, SIGNAL_INTERVAL_MS)
 
 chrome.runtime.onMessage.addListener((message: Message) => {
@@ -78,13 +88,23 @@ function showNudge(intervention: Intervention) {
     pointerEvents: 'none',
   })
   document.body.appendChild(hostEl)
-  mountNudge(hostEl, intervention, (outcome) => dismiss(intervention.id, intervention.tone, intervention.cogState ?? 'intentional_browsing', outcome))
+  mountNudge(hostEl, intervention, (outcome) => dismiss(intervention, outcome))
 }
 
-function dismiss(id: string, tone: import('@shared/types').InterventionStyle, cogState: import('@shared/types').CognitiveState, outcome: 'accepted' | 'dismissed') {
+function dismiss(intervention: Intervention, outcome: NudgeOutcome) {
   const dwellMs = shownAt !== null ? Date.now() - shownAt : 0
 
-  safeSend({ type: MSG.DISMISSED, payload: { id, dwellMs, outcome, tone, cogState } })
+  safeSend({
+    type: MSG.DISMISSED,
+    payload: {
+      id:       intervention.id,
+      dwellMs,
+      outcome,
+      tone:     intervention.tone,
+      cogState: intervention.cogState ?? 'intentional_browsing',
+      category: intervention.category,
+    },
+  })
 
   hostEl?.remove()
   hostEl  = null

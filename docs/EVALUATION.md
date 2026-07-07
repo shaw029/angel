@@ -137,6 +137,18 @@ function computeTrendDirection(weeks, getValue): TrendDirection {
 
 The 20% threshold prevents noise from being misread as meaningful change. A metric can move by 15% from week to week due to natural variation in browsing behavior; only sustained directional movement above this threshold is reported.
 
+---
+
+## Judgment Quality Signals
+
+With the intent-alignment architecture, the system also measures *its own judgment*, not just the user's behavior:
+
+**Rejection rate.** Every full-card nudge carries "Not now — I chose to be here." A rejection is a ground-truth label: the Narrator judged the session `captured` and the user said otherwise. Rejections immediately cap the session for that cognitive state, weight the suppression multiplier at 1.5× (the strongest negative outcome), and write a corrective `aligned` tally into the domain category's alignment prior. A falling rejection rate over weeks means the Narrator's judgment is calibrating to this user.
+
+**Ignore rate.** Auto-dismissed nudges (shown, never touched) are recorded as `ignored` — a distinct outcome with 0.5 negative weight. Previously these were indistinguishable from engaged dismissals, which systematically inflated the system's estimate of its own welcome. A high ignore rate now correctly drives cooldowns up.
+
+**Alignment priors as a calibration record.** The per-category verdict tallies (`aligned` / `drifting` / `captured`, with decay) double as a longitudinal record of where the Narrator's judgments concentrate — and, via rejection corrections, where they tend to be wrong.
+
 **Trend directions in the popup:**
 - `↑` — improving (green)
 - `→` — stable (muted)
@@ -153,7 +165,7 @@ Screen time is a proxy that conflates useful and manipulative engagement. A 2-ho
 
 ### "Productive" vs. "Unproductive" Time
 
-This distinction requires Angel to make judgments about what the user's time should be used for — a paternalistic position that violates the autonomy-preservation principle. Angel does not know (and does not try to know) whether a user is correctly spending time on Twitter or incorrectly spending time on a work document.
+This distinction requires Angel to make judgments about what the user's time should be used for — a paternalistic position that violates the autonomy-preservation principle. Angel does not know (and does not try to know) whether a user is correctly spending time on Twitter or incorrectly spending time on a work document. The intent-alignment judgment is deliberately different in kind: it asks whether the session serves *the user's own* apparent intent, never whether that intent is worthwhile.
 
 ### Acceptance Rate as a Performance Goal
 

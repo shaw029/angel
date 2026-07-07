@@ -2,6 +2,14 @@
 
 Angel is a layered pipeline running entirely within the Chrome extension sandbox. This document describes each layer, its responsibilities, and the design decisions behind it.
 
+Authority in the pipeline is split three ways — **the Witness collects, the Narrator judges, the Guardian bounds**:
+
+- **Witness** (Layers 1–5): detectors, trackers, heuristics, cognitive state estimation, and drift tracking produce *testimony*. Nothing in these layers can trigger a nudge; a heuristic flag means "worth the Narrator's attention", never "intervene".
+- **Narrator** (Layer 8): on-device Gemma reconstructs the session story from semantic and behavioral evidence, judges intent alignment (`aligned` / `drifting` / `captured`), and decides whether, at what tier, and with what words to nudge. An `aligned` verdict is a hard veto enforced in code.
+- **Guardian** (Layer 7): a small set of hard delivery limits — absolute spacing floor, hourly budget, bounded adaptive cooldowns, tier clamp. It can refuse or shrink the Narrator's proposal, never originate one.
+
+The organizing question is intent alignment, not content classification: manipulation is a mismatch between what the user came to do and what the environment got them doing. No topic, site, or format is judged bad — only trajectories are.
+
 ---
 
 ## Execution Contexts
@@ -56,7 +64,7 @@ Trackers maintain lightweight running state (EMA values, counters) to compute be
 
 `src/content/index.ts` sends two distinct message types to the service worker:
 
-- **`BrowsingSignal`** (every 30 seconds) — purely behavioral, page-level metrics: `timeOnPage`, `scrollDepth`, `idleTime`, `switchCount`, `domain`. No detection results, no DOM content.
+- **`BrowsingSignal`** (every 30 seconds) — page-level metrics plus lightweight semantic context: `timeOnPage` (visible-foreground seconds only), `scrollDepth`, `idleTime` (0 while media plays — watching is engagement, not idleness), `switchCount` (rolling 10-minute window), `domain`, `pageTitle`, `mediaPlaying`, and `entry` (search / direct / social / external provenance). No detection results, no DOM content. The title and entry type feed the Narrator's session story in service-worker memory; they are never persisted.
 - **`BehavioralEvent[]`** — individual detection and tracking events accumulated per tab. Each event is typed as either `kind: 'detection'` (carrying a `DetectionResult`) or `kind: 'tracking'` (carrying a `TrackingResult`).
 
 The service worker keeps a per-tab buffer of `BehavioralEvent[]`. When a `BrowsingSignal` arrives and the heuristic flags it, the service worker fuses both streams by calling `compress()` — which combines the heuristic reasons, the `BrowsingSignal` metrics, and the buffered `BehavioralEvent[]` into a single `CompressedContext` for downstream inference.
@@ -67,12 +75,13 @@ The service worker keeps a per-tab buffer of `BehavioralEvent[]`. When a `Browsi
 
 **File:** `src/heuristics/index.ts`
 
-The heuristics engine evaluates the `BrowsingSignal` and makes the binary decision: flag or ignore. It operates entirely on behavioral metrics — it does not inspect detector results.
+The heuristics engine evaluates the `BrowsingSignal` and makes the binary decision: worth the Narrator's attention, or not. A flag is an **attention trigger, never a verdict** — it starts the judgment pipeline; it cannot cause a nudge by itself. It operates entirely on behavioral metrics — it does not inspect detector results.
 
 Flagging fires when at least one of these behavioral conditions holds:
-- `idleTime ≥ IDLE_THRESHOLD_S` (60 s of inactivity on the page) → `extended-idle`
-- `switchCount ≥ TAB_SWITCH_THRESHOLD` (8 tab-focus events in the signal window) → `rapid-tab-switching`
+- `idleTime ≥ IDLE_THRESHOLD_S` (60 s of inactivity on the page) → `extended-idle` — never fires while media is playing, since the observer reports zero idle during playback
+- `switchCount ≥ TAB_SWITCH_THRESHOLD` (8 tab-focus events within the rolling 10-minute window) → `rapid-tab-switching`
 - `scrollDepth ≥ 0.60` within `timeOnPage ≤ 300 s` → `excessive-scroll`
+- `mediaPlaying` with `timeOnPage ≥ 1800 s` → `extended-media-session` — surfaces long autoplay chains that the idle/scroll heuristics are structurally blind to, so the Narrator can judge whether it's a chosen film or a rabbit hole
 
 A minimum `timeOnPage` guard (`MIN_PAGE_TIME_S = 30 s`) prevents flagging sessions that haven't had enough time to be meaningful. Confidence is `min(reasons.length / 2, 1)`.
 
@@ -95,7 +104,9 @@ src/ai/pipeline/
   index.ts     — orchestrates the above into CompressedContext
 ```
 
-The `CompressedContext` is what gets passed through the rest of the pipeline. It contains no raw signals — only derived semantic fields. Raw HTML, raw page text, CSS selectors, and full URLs must not enter the compressed context; only categorical/numeric fields (`EventType`, `DomainCategory`, `ScrollDepth`, `TimeBucket`, `TabActivity`) are permitted.
+The `CompressedContext` is what gets passed through the rest of the pipeline. Its behavioral core contains only derived fields — raw HTML, raw page text, CSS selectors, and full URLs must not enter it; only categorical/numeric fields (`EventType`, `DomainCategory`, `ScrollDepth`, `TimeBucket`, `TabActivity`) are permitted.
+
+The background then attaches the **Narrator context** before inference: `page` (title, title trail, entry type, media state), `previousNarrative` (the model's last session story for this tab), and `alignmentPrior` (the per-category longitudinal prior). These are the semantic exception, allowed under a strict rule: they live only in per-tab service-worker memory and the local inference prompt — never persisted, never transmitted. Local inference is what makes this safe: nothing the model sees can leave the device.
 
 ---
 
@@ -223,50 +234,75 @@ This is applied as a bias on top of the dynamic overrides, not before them — t
 
 ---
 
-## Layer 7: Intervention Gate
+## Layer 7: The Guardian
 
 **File:** `src/background/gate.ts`
 
-The gate is the final arbiter before an inference request is made. It applies stacked cooldown multipliers and makes the tier selection decision:
+The Guardian enforces delivery ceilings — it clamps the Narrator's proposal, never originates one. Its verdict runs twice: a fast pre-check before inference (`isAnyTierAllowed`, so the model isn't consulted when nothing could be delivered) and the binding check at delivery (`guardianVerdict`).
+
+Hard limits, unscaled by anything:
+
+1. **Absolute floor** — never two nudges within `MIN_GAP_MS` (2.5 min)
+2. **Hourly budget** — at most `HOURLY_BUDGET` (5) nudges in any rolling hour, tracked in a persisted ring buffer
+
+Adaptive spacing on top:
 
 ```
-effective_cooldown = base_cooldown
-  × event_type_scale     (checkout = 0.7, engagement = 1.2, subscription = 0.8, …)
-  × cognitive_state_scale (compulsive = 0.8, reactive = 0.7, fatigue = 1.5, …)
-  × strategy.cooldownScale
-  × drift_scale
-  × state.suppressionMultiplier   (EMA of quick-dismiss ratio → persistent suppressor)
+multiplier = clamp(
+  state.suppressionMultiplier      (outcome-weighted dismissal history)
+  × event_type_scale               (checkout = 0.5, passive = 2.0, ambient = 3.0, …)
+  × cognitive_state_scale          (compulsive = 0.6, intentional = 2.5, …)
+  × strategy.cooldownScale         (incl. drift + presence biases),
+  MULTIPLIER_MIN = 0.5, MULTIPLIER_MAX = 6.0
+)
+effective_cooldown = SUBTLE_COOLDOWN_MS × multiplier
 ```
 
-Tier selection:
-1. If `confidence < strategy.minConfidence` → `none`
-2. If `strategy.preferredTier === 'none'` → `none` (early exit, no cooldown math)
-3. If `now - lastAny < subtleCooldown` → `none`
-4. If `strategy.preferredTier === 'subtle'` → `subtle`
-5. If `confidence >= 0.8` OR `strategy.preferredTier === 'full'` → check full cooldown; if elapsed → `full`, else → `subtle`
+The clamp is the crucial change from the earlier design: the previous pipeline multiplied six unbounded factors, and stacked worst cases collapsed the 5-minute cooldown to ~30 seconds — the "rapid-fire nudges" failure mode.
 
-The `suppressionMultiplier` is an EMA that increases when the user consistently quick-dismisses (< 3 seconds dwell). It functions as an automatic cooldown extension when the user is not engaging. It decays over time as sessions end (via `recordSessionEnd()`).
+Tier clamping (the Narrator proposes `subtle` or `full`):
+1. `strategy.preferredTier === 'none'` (recovery / entry delay / session cap) → `none`
+2. `confidence < strategy.minConfidence` → `none`
+3. Floor, budget, or effective cooldown not satisfied → `none`
+4. Proposed `full` is honored only if the state's tier ceiling allows it, `confidence ≥ 0.70`, and the full-card cooldown (20 min × multiplier) has elapsed — otherwise it degrades to `subtle`
+
+The `suppressionMultiplier` is derived from an **outcome-weighted** negativity ratio over the last 20 dismissals: quick dismissal = 1.0, `ignored` (auto-timeout, never touched) = 0.5, `rejected` ("Not now") = 1.5, engaged dismissal or acceptance = 0. Weighting `ignored` matters: the earlier design counted an auto-dismissed nudge as an engaged one, so the system systematically overestimated its own welcome. It decays over time as sessions end (via `recordSessionEnd()`).
 
 ---
 
-## Layer 8: Inference (Offscreen Document)
+## Layer 8: The Narrator (Offscreen Inference)
 
-**Files:** `src/offscreen/`, `src/ai/`
+**Files:** `src/offscreen/`, `src/ai/`, `src/background/narrator.ts`, `src/background/priors.ts`
 
-When the gate approves a tier, the service worker:
-1. Fetches the Memory Summary from IndexedDB
-2. Calls `resolveIntensity()` to determine tone
-3. Calls `getRecentPhrases()` for the similarity check exclusion list
-4. Sends `MSG.AI_CONTEXT` to the offscreen document with the `CompressedContext`
+### Consultation cadence
 
-The offscreen document:
-1. Ensures the Gemma model is loaded (pre-warmed on install)
-2. Calls `generateInterpretation()` — Manipulation Interpreter generates the `observation` and identifies the `mechanic`
-3. Calls `infer()` — encodes the state vector, constructs the prompt, runs inference
-4. Applies the similarity check: if the output is too similar to recent phrases, retries once with an increased temperature
-5. Sends `MSG.INTERVENTION` back to the service worker with the final `Intervention`
+The Narrator is consulted sparingly. `src/background/narrator.ts` keeps a per-tab **session story** (entry type, title trail, last narrative, last judgment) and gates consultation:
 
-The service worker then calls `resolveAction(cognitiveState, mechanic)` (`src/background/action-resolver.ts`) to deterministically assign the `action` label, overriding whatever the model suggested. This keeps action selection consistent and tone-controlled without relying on Gemma's classification accuracy across 10+ options. The action is resolved before routing to the content script via `chrome.tabs.sendMessage`.
+- one in-flight request per tab (auto-expires after 3 min if the response is lost)
+- at least 90 s between consultations per tab
+- a confident `aligned` verdict (≥ 0.65) suppresses re-judging for 8 minutes, unless the witness event type changes
+
+Every request carries a `requestId`; the background keeps a `Map<requestId, PendingRequest>` so concurrent judgments from different tabs can never cross wires. (The earlier single-slot pending state could deliver tab A's nudge to tab B whenever signals overlapped a slow inference.)
+
+### The judgment
+
+When the Guardian pre-check passes and the cadence allows, the service worker:
+1. Fetches the Memory Summary from IndexedDB and the alignment prior for the page's domain category
+2. Calls `resolveIntensity()` to determine tone, `getRecentPhrases()` for the similarity exclusion list
+3. Attaches the page semantics and previous narrative, and sends `MSG.AI_CONTEXT` (`{requestId, tabId, ctx}`) to the offscreen document
+
+The offscreen document calls `judgeSession()` (`src/ai/index.ts`), which:
+1. Runs the Manipulation Interpreter for the `observation` line and `mechanic`
+2. Runs `infer()` with the three-line evidence prompt (semantic / witness / continuity)
+3. Validates the judgment JSON — strict on `alignment`, `decision_state`, `confidence`; lenient defaults on secondary fields so trivia never burns a retry
+4. Enforces the hard veto: a nudge is proposed only when `decision_state === 'intervene'` AND `alignment !== 'aligned'` AND the message is non-empty
+5. Replies with `MSG.JUDGMENT` (`{requestId, tabId, judgment, intervention|null}`) — always, even on failure, so the in-flight lock is released
+
+The background records the judgment into the tab's session story and the per-category alignment priors *regardless of whether a nudge fires* — an `aligned` verdict is as valuable to learn from as a `captured` one. If an intervention was proposed, the Guardian clamps its tier, `resolveAction(cognitiveState, mechanic)` deterministically assigns the action label, and the nudge routes to the content script via `chrome.tabs.sendMessage(tabId, …)`.
+
+### Alignment priors
+
+`src/background/priors.ts` tallies judgment verdicts per `DomainCategory` (never per domain or URL) in `chrome.storage.local`, with periodic halving so recent behavior dominates. Once a category has ≥ 5 observations it is summarized into a single prompt token: `usually_aligned` / `mixed` / `often_captured`. A rejected nudge ("Not now — I chose to be here") writes a corrective `aligned` tally — the strongest label the system ever receives.
 
 ---
 
@@ -277,14 +313,18 @@ The service worker then calls `resolveAction(cognitiveState, mechanic)` (`src/ba
 The content script receives the `Intervention` and renders it using the tier-matched component:
 
 - **subtle pill** — small, unobtrusive overlay at the bottom of the viewport, auto-dismisses after 10 seconds
-- **full card** — modal-style card with the manipulation observation (in muted text above), the intervention message, and an action button
+- **full card** — modal-style card with the manipulation observation (in muted text above), the intervention message, an action button, and the "Not now — I chose to be here" correction link
 
-Dwell time is measured from render to dismiss. The outcome (`accepted` if action button clicked, `dismissed` otherwise), `dwellMs`, and the `tone` of the shown intervention are sent back to the service worker via `MSG.DISMISSED`. Including `tone` in the payload (rather than relying on module-level state) ensures style effectiveness tracking survives service worker restarts.
+Dwell time is measured from render to dismiss. Four outcomes are distinguished and sent back via `MSG.DISMISSED`:
 
-The service worker uses dwell time to:
-- Classify reflective engagement (≥ 8s accepted = genuine reflection)
-- Update the tolerance EMA (quick dismissals → suppression multiplier increase)
-- Update the intervention outcome for tone effectiveness tracking
+| Outcome | Trigger | Effect |
+|---|---|---|
+| `accepted` | action button clicked | positive; ≥ 8 s dwell counts as reflective engagement |
+| `dismissed` | close button | neutral-to-negative; < 3 s dwell counts as quick dismissal |
+| `ignored` | auto-timeout, never touched | mild negative (0.5 weight) — never mistaken for engagement |
+| `rejected` | "Not now" clicked | strong negative: instantly caps the session for that cognitive state and writes a corrective `aligned` tally to the category's prior |
+
+The payload also echoes `tone`, `cogState`, and `category` (rather than relying on module-level state) so effectiveness tracking and prior correction survive service worker restarts.
 
 ---
 
@@ -294,24 +334,23 @@ The service worker uses dwell time to:
 Page DOM
   → Detectors (local DOM + text-node analysis; only counts/booleans emitted)  ─┐
   → Trackers  (behavioral metrics: velocity, session, interaction rate)         ├→ BehavioralEvent[] (per-tab buffer in SW)
-  → BrowsingSignal (every 30s: timeOnPage, scrollDepth, idleTime, switchCount)  ─┘
-  → Heuristics Engine (behaviour-based flag/ignore — no detector input)
+  → BrowsingSignal (every 30s: visible time, scroll, media-aware idle,          ─┘
+      rolling switchCount, title, entry provenance)
+  → Heuristics Engine (attention trigger — flags mean "consult the Narrator")
   → compress() [SW] — fuses BrowsingSignal + BehavioralEvent[] into CompressedContext
-      (no raw text, no URLs, no selectors — only categorical/numeric fields)
-  → Cognitive State Estimator (7-state, margin-based transitions)
-  → Drift Tracker (exponentially-weighted slope → direction + trajectory)
-  → Strategy Resolver (intervention policy)
-  → Gate (tier selection)
+  → Cognitive State Estimator (7-state, margin-based transitions)   — witness evidence
+  → Drift Tracker (exponentially-weighted slope → trajectory)       — witness evidence
+  → Strategy Resolver (per-state ceilings + presence bias)
+  → Guardian pre-check (floor, budget, cooldown) + Narrator cadence (per-tab)
   → [Offscreen] Manipulation Interpreter
-  → [Offscreen] Gemma 4 2B
-  → Intervention (tier + message + observation + mechanic)
-  → Action Resolver — resolveAction(cognitiveState, mechanic)
-  → Content Script Nudge UI
-  → Outcome (dwellMs + accepted/dismissed)
-  → Memory (pattern counters + profile updates)
+  → [Offscreen] Gemma 4 2B — session story → alignment judgment → nudge proposal
+  → JUDGMENT {requestId, judgment, intervention?} → session story + alignment priors
+  → Guardian verdict (tier clamp) → Action Resolver → Content Script Nudge UI
+  → Outcome (dwellMs + accepted/dismissed/ignored/rejected)
+  → Memory (pattern counters + profile updates + prior correction)
 ```
 
-No step in this pipeline writes URLs, page content, or personally identifying information. The only persistent artifacts are integer counters, floating-point EMA values, and the synthesized memory summary that discards all raw data.
+No step in this pipeline writes URLs, page content, or personally identifying information. Page titles and narratives flow only through per-tab memory and the local prompt. The only persistent artifacts are integer counters, floating-point EMA values, category-level alignment tallies, and the synthesized memory summary that discards all raw data.
 
 ---
 
@@ -337,7 +376,7 @@ The 30-second signal dispatch interval was chosen to balance responsiveness agai
 - **`onInstalled`** → pre-warm offscreen document (start model download)
 - **`onStartup`** → pre-warm offscreen document (ensure model loaded after browser restart)
 - **`onConnect` (model-keepalive port)** → holds service worker alive during model download
-- **`tabs.onRemoved`** → clear per-tab event buffer, call `recordSessionEnd()` (tolerance decay)
-- **Service worker restart** → `sessionQuickDismissalsByState` resets (fresh session caps); `lastNudgeAt` resets (post-nudge recovery window resets)
+- **`tabs.onRemoved`** → clear per-tab event buffer and session story (title trail + narrative vanish), call `recordSessionEnd()` (tolerance decay)
+- **Service worker restart** → `sessionQuickDismissalsByState` resets (fresh session caps); `lastNudgeAt` resets (post-nudge recovery window resets); session stories and pending inference requests reset (the Narrator re-learns the tab from its next signal)
 
 The service worker is kept alive during model loading via the open `model-keepalive` port. Chrome 116+ supports this pattern for long-running background tasks.

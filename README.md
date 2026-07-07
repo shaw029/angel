@@ -1,7 +1,7 @@
 # Angel
 
 > **Adaptive cognitive protection powered by on-device Gemma inference.**
-> Angel detects manipulative digital environments, models cognitive state in real time, and delivers reflective interventions that build lasting resilience — entirely on your device. Browsing content, behavioural signals, and intervention history stay local. Model files are downloaded once and cached on-device.
+> Angel reconstructs the story of each browsing session, judges whether it still serves the intent you arrived with, and offers reflective interventions only when the environment — not you — is steering. Everything runs on your device: page context, behavioural signals, session narratives, and intervention history never leave the browser. Model files are downloaded once and cached on-device.
 
 ---
 
@@ -11,7 +11,9 @@ Modern digital environments are engineered to exploit cognitive vulnerabilities:
 
 Angel takes a different position. Rather than reducing exposure, Angel builds resilience. Rather than restricting access, Angel develops awareness. The goal is a user who needs the tool less over time, not more.
 
-This is realized through a fully local inference pipeline: a content script that monitors behavioral patterns, a cognitive state estimator running in the service worker, and Gemma 4 2B generating personalized reflective interventions in an isolated offscreen document — no data transmitted, no profile built on a server, no dependency on external APIs.
+The question Angel answers is never "is this content bad?" — no topic, site, or format is inherently bad. A lecture, a PDF, a shopping page, or an evening of chosen entertainment can all be exactly what you meant to do. The question is **"is the user still the author of this session?"** Manipulation is a mismatch between what you came to do and what the environment got you doing — a property of the *trajectory*, not the content.
+
+This is realized through a fully local three-layer pipeline — **Witness → Narrator → Guardian**: detectors and trackers collect testimony about the environment and your behavior; Gemma 4 2B, running in an isolated offscreen document, reconstructs the session story and judges intent alignment; and a small set of hard guardrails bounds how often anything may interrupt you. No data transmitted, no profile built on a server, no dependency on external APIs.
 
 ---
 
@@ -55,44 +57,56 @@ Four principles govern every design decision:
 
 3. **Non-judgmental framing.** Interventions describe what is happening in the environment — the mechanics of the manipulation — not what the user should feel or do. "This feed is designed to feel like it never ends" rather than "You've been scrolling for too long."
 
-4. **Privacy as architecture.** The system is designed so that privacy is not a feature that can be removed — it is a consequence of the architecture. Inference runs locally; no behavioral data can be transmitted because the pipeline never produces anything transmittable.
+4. **Privacy as architecture.** The system is designed so that privacy is not a feature that can be removed — it is a consequence of the architecture. Inference runs locally; no behavioral data can be transmitted because the pipeline never produces anything transmittable. Because inference is local, the model can safely see rich context (page titles, session trajectory) that a cloud pipeline could never be trusted with.
+
+5. **Innocent until proven captured.** The burden of proof always sits on intervention. An aligned session — chosen, coherent, deliberately paced — is structurally un-nudgeable, whatever its topic. Interrupting a user who chose to be where they are is treated as the worst failure available to the system.
 
 ---
 
 ## Key Features
 
-- **Real-time cognitive state estimation** — 7 distinct states (intentional, exploratory, passive consumption, compulsive loop, emotionally reactive, fragmented attention, decision fatigue) estimated from behavioral signals; page text is scanned locally to detect patterns but is never stored or transmitted
+- **Intent-alignment judgment (the Narrator)** — on-device Gemma reconstructs each session's story from entry provenance (searched? typed? pushed by a feed?), page-title trajectory, and behavioral testimony, then judges it `aligned`, `drifting`, or `captured`. An aligned verdict is a hard veto: no rule can nudge a user the model believes chose to be there
+- **Real-time cognitive state estimation** — 7 distinct states (intentional, exploratory, passive consumption, compulsive loop, emotionally reactive, fragmented attention, decision fatigue) estimated from behavioral signals and fed to the Narrator as evidence; page text is scanned locally to detect patterns but is never stored or transmitted
 - **On-device Gemma 4 2B inference** — runs on WebGPU (preferred) or WASM fallback; no API keys, no server, no inference calls leaving the device
 - **Manipulation Interpretation Layer** — mechanic-specific framing templates (urgency amplification, engagement loops, emotional escalation, attention capture, variable reward, social momentum, decision pressure) that name what is happening rather than moralizing about it
-- **Adaptive intervention strategy** — per-state strategy matrix with dynamic overrides for drift trajectory, session persistence, and user responsiveness history
+- **The Guardian** — a small set of hard, auditable delivery limits: an absolute 2.5-minute floor between nudges, a 5-per-hour budget, and bounded adaptive cooldowns. The AI proposes; the Guardian can only say "not yet" or "smaller"
 - **Angel Presence** — a 0–1 slider that biases the adaptive system: quiet end extends cooldowns, raises confidence thresholds, and lowers session caps; active end does the inverse. The default (0.45) is a conservative adaptive midpoint; the underlying cognitive modeling is unchanged regardless of setting
-- **Longitudinal resilience modeling** — weekly pattern snapshots, EMA-based profile evolution, tolerance/recovery tracking that adapts to individual behavioral rhythms
+- **A correction channel that learns** — every full card carries "Not now — I chose to be here." One tap overrides the judgment, opts that state out for the session, and feeds the strongest possible label back into Angel's per-category alignment priors
+- **Longitudinal resilience modeling** — weekly pattern snapshots, EMA-based profile evolution, tolerance/recovery tracking, and category-level alignment priors that adapt to individual behavioral rhythms
 - **Evaluation framework** — measures awareness quality (post-nudge recovery rate, reflective engagement depth, recovery acceleration) rather than screen time
-- **Tiered delivery** — subtle pill overlays for low-confidence/compulsive states; full card interventions for high-confidence decision-pressure moments
+- **Tiered delivery** — subtle pill overlays for loops and drift; full card interventions reserved for high-stakes decision pressure
 - **Zero telemetry** — all storage is IndexedDB + chrome.storage.local; the only network request is the one-time model download
 
 ---
 
 ## System Architecture
 
-Angel is a layered pipeline. Each layer has a single, well-scoped responsibility.
+Angel is three layers with strictly separated authority — **the Witness collects, the Narrator judges, the Guardian bounds**:
+
+| Layer | Role | Authority |
+|---|---|---|
+| **Witness** | Detectors, trackers, heuristics, cognitive state estimator, drift tracker | Collects testimony. Never decides anything — a heuristic flag means "worth the Narrator's attention", never "intervene" |
+| **Narrator** | Gemma 4 2B in the offscreen document | Reconstructs the session story, judges intent alignment, and decides *whether*, *at what tier*, and *with what words* to nudge |
+| **Guardian** | Hard delivery limits in the service worker | Enforces ceilings only — spacing floor, hourly budget, tier clamp. Can say "not yet" or "smaller", never "yes" |
 
 ```mermaid
 flowchart TB
-    subgraph page ["Content Script — Page Context"]
+    subgraph page ["Content Script — Witness (Page Context)"]
         direction LR
         DET["Detectors\ncountdown · urgency · billing\nautoplay · infinite-scroll · gamification"]
         TRK["Trackers\nscroll-continuity · session\ninteraction-loop"]
+        SEM["Semantic Capture\npage title · entry provenance\nmedia state"]
     end
 
-    subgraph sw ["Service Worker — Reasoning Layer"]
+    subgraph sw ["Service Worker — Witness Synthesis + Guardian"]
         direction TB
-        HEU["Heuristics Engine\npattern flagging + signal aggregation"]
+        HEU["Heuristics Engine\nattention trigger — flags mean 'consult the Narrator'"]
         PIPE["AI Pipeline\nevent classification · context compression"]
         COG["Cognitive State Estimator\n7-state model · EMA smoothing"]
         DRF["Drift Tracker\ntrajectory · escalation · recovery"]
-        STR["Adaptive Strategy Resolver\ncooldownScale · tier preference · session caps"]
-        GATE["Intervention Gate\nstacked cooldowns · suppression · tier selection"]
+        STORY["Session Story\nper-tab title trail · narrative cache\naligned-verdict backoff"]
+        STR["Adaptive Strategy Resolver\ncooldownScale · tier ceiling · session caps"]
+        GATE["The Guardian\n2.5-min floor · 5/hr budget\nbounded cooldowns · tier clamp"]
     end
 
     subgraph mem ["Memory — IndexedDB"]
@@ -100,25 +114,26 @@ flowchart TB
         PAT["Pattern Store\nweekly snapshots · trend deltas\nlongitudinal counters"]
     end
 
-    subgraph off ["Offscreen Document — Isolated Inference"]
+    subgraph off ["Offscreen Document — The Narrator"]
         INTERP["Manipulation Interpreter\nmechanic-specific framing\nhash-diversified templates"]
-        GEMMA["Gemma 4 2B\nWebGPU · WASM fallback\nstate-aware system prompt"]
+        GEMMA["Gemma 4 2B\nsession story → alignment judgment\n→ nudge decision + tier + words"]
     end
 
     subgraph nudge ["Content Script — Nudge UI"]
-        UI["Tier-Matched Renderer\nsubtle pill · full card\nframer-motion transitions"]
+        UI["Tier-Matched Renderer\nsubtle pill · full card\n'Not now' correction channel"]
     end
 
-    DET & TRK -->|BrowsingSignal every 30s| HEU
+    DET & TRK & SEM -->|BrowsingSignal every 30s| HEU
     HEU -->|flagged signals| PIPE
     PIPE -->|CompressedContext| COG
     COG -->|state + durationMs| DRF
     DRF -->|DriftEstimate| STR
-    STR & GATE -->|strategy + tier| off
-    PROF & PAT -->|MemorySummary| off
-    PROF & PAT -->|stateAcceptanceRate| sw
+    STORY -->|title trail + previous narrative| off
+    PROF & PAT -->|MemorySummary + alignment priors| off
     INTERP -->|interpretation + mechanic| GEMMA
-    GEMMA -->|Intervention| UI
+    GEMMA -->|AlignmentJudgment + proposal| GATE
+    GATE -->|clamped Intervention| UI
+    UI -->|outcome incl. rejection| PROF
 ```
 
 ### Why Each Layer Exists
@@ -127,21 +142,23 @@ flowchart TB
 |---|---|
 | **Detectors** | DOM-pattern recognition is fast, deterministic, and privacy-safe. Page text is scanned locally by regex to detect known manipulation patterns — text is never stored or transmitted. Structural signals (timer decrement, feed height growth) supplement the text matching. |
 | **Trackers** | Behavioral continuity metrics (scroll velocity, session duration, interaction rate) that detectors cannot see — the difference between visiting a checkout page and being trapped in one. |
-| **Heuristics Engine** | Aggregates detector + tracker outputs into a `BrowsingSignal` and makes the binary flagging decision. Keeps the AI pipeline from running on every scroll event. |
-| **AI Pipeline** | Classifies the event type, compresses session context into a ~50-token state vector. This is the synthesis step — raw signals become a cognitive narrative. |
-| **Cognitive State Estimator** | Maps the compressed context onto the 7-state model using signal weights + EMA smoothing. Runs synchronously — no I/O, deterministic. |
-| **Drift Tracker** | Looks at the state history window to detect trajectories: `stable`, `escalating`, `rapid_escalation`, `recovering`, `volatile`. Determines whether an intervention should soften, skip, or escalate. |
-| **Adaptive Strategy Resolver** | Per-state strategy matrix with 6 dynamic overrides plus Angel Presence bias. Decides minimum confidence, preferred tier, cooldown scaling, entry delay, and session cap. |
-| **Intervention Gate** | Stacked cooldown multipliers: base × event-type scale × cognitive-state scale × strategy scale × suppression multiplier. Single source of truth for whether a tier is allowed. |
+| **Semantic Capture** | Page title, entry provenance (search/typed/feed-push), and media state — the evidence that distinguishes a lecture from a doomscroll. Held in memory per tab for the local prompt; never persisted, never transmitted. |
+| **Heuristics Engine** | Aggregates detector + tracker outputs into a `BrowsingSignal` and decides whether the moment is *worth the Narrator's attention*. A flag is an attention trigger, never a verdict — keeps inference from running on every scroll event. |
+| **AI Pipeline** | Classifies the event type, compresses session context into a compact evidence block. This is the synthesis step — raw signals become testimony the Narrator can read. |
+| **Cognitive State Estimator** | Maps the compressed context onto the 7-state model using signal weights + EMA smoothing. Runs synchronously — no I/O, deterministic. Its estimate is evidence for the Narrator, not a decision. |
+| **Drift Tracker** | Looks at the state history window to detect trajectories: `stable`, `escalating`, `rapid_escalation`, `recovering`, `volatile`. A `recovering` trajectory suppresses interventions outright. |
+| **Session Story** | Per-tab rolling narrative: title trail, entry type, the Narrator's last judgment. A confident `aligned` verdict buys an 8-minute quiet period; one consultation per tab at a time. |
+| **Adaptive Strategy Resolver** | Per-state strategy matrix with dynamic overrides plus Angel Presence bias. Supplies minimum confidence, tier ceiling, cooldown scaling, entry delay, and session cap to the Guardian. |
+| **The Guardian** | Hard delivery limits: 2.5-minute absolute floor, 5-nudge hourly budget, adaptive cooldowns clamped to [0.5×, 6×], full-card confidence bar. The Narrator proposes; the Guardian only clamps. |
 | **Manipulation Interpreter** | Maps detected mechanics to framing templates. Uses a day-indexed hash (not hour/random) to cycle template slots daily — variety without per-session repetition. |
-| **Gemma** | Generates the intervention text from the state vector + interpretation context. The model is prompted to reason from conclusions, not raw signals, keeping token budgets tight. |
-| **Nudge UI** | Tier-matched rendering (pill vs. full card). Measures dwell time to distinguish genuine reflection (≥8s) from immediate dismissal. Reports outcome back to the service worker. |
+| **Gemma (the Narrator)** | Reconstructs the session story, judges alignment (`aligned` / `drifting` / `captured`), and — only for misaligned sessions — proposes a nudge with tier and wording grounded in that story. |
+| **Nudge UI** | Tier-matched rendering (pill vs. full card). Distinguishes four outcomes: accepted, dismissed, ignored (auto-timeout — never counted as engagement), and rejected ("Not now" — the correction channel). |
 
 ---
 
 ## Cognitive State Modeling
 
-Angel models user cognitive state across 7 discrete categories estimated from behavioral signals — no self-reporting, no stored or transmitted content.
+Angel models user cognitive state across 7 discrete categories estimated from behavioral signals — no self-reporting, no stored or transmitted content. The estimate is *witness testimony*: a fast, deterministic prior that the Narrator weighs alongside the session's semantic trajectory. It informs judgment; it never triggers a nudge by itself.
 
 ```mermaid
 stateDiagram-v2
@@ -202,19 +219,29 @@ Flagging requires both a detector signal AND a behavioral amplifier — a page w
 
 ## Adaptive Intervention Pipeline
 
-### State Vector Encoding
+### Session Evidence Encoding
 
-Rather than sending raw signals to Gemma, Angel synthesizes them into a compact state vector:
+Rather than sending raw signals to Gemma, Angel synthesizes the session into three compact evidence lines — semantic context, witness testimony, and continuity:
 
 ```
-state:compulsive_loop event:engagement_hook traj:rapid_escalation depth:0.8
-| 22m doom
-| hist:doom_scroll_episodes weeks:4 acc:38% fatigue:31%
-| tone:reflective
-| skip:"There's always more here" "This feed is designed"
+page:"10 CRAZY facts you won't believe" trail:"Eigenvalues explained" > "Math tricks" entry:search media
+witness: state:compulsive_loop event:engagement_hook traj:rapid_escalation depth:0.8 74m doom
+story:"Began with math lectures from search; autoplay drifting into clickbait." | prior:mixed | hist:doom_scroll_episodes weeks:4 acc:38% | tone:reflective | skip:"There's always more here"
 ```
 
-This reduces the user-turn token budget to ~50 tokens while preserving all decision-relevant context. The model reasons from conclusions, not raw evidence.
+The first line is what makes intent legible: the title trail shows *where the session has drifted*, and the entry type shows *who started it* — the user (search, typed) or the environment (feed push). Titles and narratives exist only in this prompt and the per-tab in-memory story; they are never persisted and never leave the device.
+
+From this evidence the model produces a full judgment, not just text:
+
+```json
+{ "alignment": "captured", "confidence": 0.75,
+  "narrative": "Began with math lectures from search; autoplay has drifted the last half hour into clickbait.",
+  "intent": "studying linear algebra",
+  "decision_state": "intervene", "tier_hint": "subtle",
+  "intervention_message": "This started with eigenvalues — the feed has chosen the last few videos." }
+```
+
+An `aligned` verdict is a hard veto enforced in code — whatever the decision field says, an aligned user is never nudged. The narrative is cached per tab and fed back as the `story:` line next time, so judgments build on each other across the session.
 
 ### Manipulation Interpretation Layer
 
@@ -233,9 +260,9 @@ type ManipulationMechanic =
 
 Each mechanic has 5 framing templates. Template selection uses a day-indexed hash — variety across days without per-session state.
 
-### State-Aware System Prompt
+### The Narrator's Contract
 
-The system prompt is conditioned on the current cognitive state with per-state example pairs. The prompt encodes a key constraint: `recovering trajectory → skip or minimal`. The model is not instructed to push harder when a user is struggling — it is instructed to step back.
+The system prompt frames the model as a narrator with a three-step method — story, alignment, decision — and explicit rules of evidence: *content is never the verdict; entry matters; media on a stable topic is engagement, not idleness; the burden of proof is on 'captured'.* Worked examples cover the three cases that matter most: an aligned study session (skip), an autoplay drift away from the entry intent (subtle nudge grounded in the story), and checkout pressure (full card). The model is not instructed to push harder when a user is struggling — it is instructed to step back.
 
 ### Adaptive Strategy
 
@@ -249,7 +276,7 @@ interface InterventionStrategy {
 }
 ```
 
-Five dynamic overrides: recovering trajectory sets `preferredTier: 'none'` (never interrupt a correction already in progress); state entry delay enforces a stabilization window before the first nudge; session dismissal cap reached disables further firing for that state; persistence > 30 min in a stable compulsive/reactive state backs off (user has settled); rapid escalation shortens cooldowns to bring the intervention forward. Separately, state acceptance rate < 20% (from profile) extends cooldowns by 1.5×.
+Five dynamic overrides: recovering trajectory sets `preferredTier: 'none'` (never interrupt a correction already in progress); state entry delay enforces a stabilization window before the first nudge; session dismissal cap reached disables further firing for that state — and an explicit "Not now" rejection trips it instantly; persistence > 30 min in a stable compulsive/reactive state backs off (user has settled); rapid escalation shortens cooldowns to bring the intervention forward. Separately, state acceptance rate < 20% (from profile) extends cooldowns by 1.5×. All resulting scale factors are inputs to the Guardian, which clamps their product to [0.5×, 6×] and enforces the absolute floor and hourly budget on top.
 
 The **Angel Presence** slider (0.0–1.0) feeds into `resolveStrategy()` as a final bias layer: it scales cooldowns, shifts confidence thresholds, and adjusts entry delays and session caps — without touching the cognitive model or gate logic. Zone boundaries: quiet (≤ 0.33), adaptive (0.33–0.66, default 0.45), active (≥ 0.67).
 
@@ -275,6 +302,8 @@ type PatternKey =
 ```
 
 Weekly snapshots of cumulative counts enable delta-based trend analysis without event-level storage.
+
+Alongside the counters, Angel keeps **alignment priors**: per-category tallies of the Narrator's verdicts (`aligned` / `drifting` / `captured`), keyed by coarse domain category (`streaming`, `social`, `ecommerce`, …) — never by domain or URL. A "Not now" rejection writes a corrective `aligned` tally, so the system learns where its judgment tends to be wrong. Priors decay over time and are summarized into a single token (`usually_aligned` / `mixed` / `often_captured`) in the Narrator's prompt.
 
 ### Memory Summary
 
@@ -323,8 +352,9 @@ Privacy in Angel is not a setting — it is an architectural consequence.
 |---|---|
 | **No data transmission** | The only network request after install is the one-time model download from Hugging Face CDN |
 | **No content stored or transmitted** | Detectors scan page text and DOM structure locally — nothing is stored or sent off-device. Trackers record only metrics (velocity, time), never content |
-| **Aggregated counters only** | IndexedDB stores pattern counts (integers) and behavioral profiles (floats). No event log, no session history, no page-level data |
-| **Isolated inference** | Gemma runs in a Chrome offscreen document with no DOM access. The inference context is a synthesized state vector, not page content |
+| **Semantic context is ephemeral** | Page titles and session narratives exist only in per-tab memory and the local inference prompt. They are never written to storage, never transmitted, and vanish when the tab closes or the service worker restarts. Local inference is what makes this safe: the model can see rich context precisely because nothing it sees can leave the device |
+| **Aggregated counters only** | IndexedDB stores pattern counts (integers) and behavioral profiles (floats); alignment priors are tallied per coarse domain *category*, never per domain or URL. No event log, no session history, no page-level data |
+| **Isolated inference** | Gemma runs in a Chrome offscreen document with no DOM access. The inference context is synthesized evidence, never raw page HTML |
 | **Local profile only** | User profile exists only in the user's browser — no account, no sync, no cloud backup |
 | **Open source** | The entire pipeline is auditable. No obfuscated code, no binary-only components beyond Gemma weights |
 
@@ -339,27 +369,31 @@ Privacy in Angel is not a setting — it is an architectural consequence.
 - **WebGPU**: q4f16 quantization (~3.9 GB) — GPU-accelerated, ~2–4s latency per nudge
 - **WASM fallback**: q4 quantization (~2 GB) — CPU inference, ~8–15s latency
 
-### What Gemma Does vs. What Is Heuristic
+### What Gemma Decides vs. What Is Heuristic
 
-| Component | Gemma | Heuristic |
+| Component | Gemma (Narrator) | Heuristic |
 |---|---|---|
-| Cognitive state estimation | — | ✓ (signal weights + EMA) |
-| Event type classification | — | ✓ (pipeline/classify.ts) |
 | Detector pattern matching | — | ✓ (DOM regex + structural) |
-| Drift trajectory | — | ✓ (history window analysis) |
-| Strategy + gate decisions | — | ✓ (state matrix + cooldowns) |
-| Intervention text generation | ✓ | — |
-| Framing tone adaptation | ✓ (guided by state vector) | ✓ (intensity resolver pre-selects) |
-| Mechanic observation framing | ✓ (from pre-generated observation) | ✓ (interpretation.ts generates input) |
+| Event type classification | — | ✓ (pipeline/classify.ts) |
+| Cognitive state estimation | — | ✓ (signal weights + EMA — fed to Gemma as evidence) |
+| Drift trajectory | — | ✓ (history window analysis — fed to Gemma as evidence) |
+| **Session story + intent inference** | ✓ | — |
+| **Alignment judgment (aligned / drifting / captured)** | ✓ | — |
+| **Whether to nudge** | ✓ (aligned = hard veto) | Guardian may only veto or delay |
+| **Tier proposal (subtle / full)** | ✓ | Guardian clamps (floor, budget, confidence bar) |
+| Intervention text generation | ✓ (grounded in the session story) | template fallback for the observation line |
+| Framing tone adaptation | ✓ | ✓ (intensity resolver pre-selects) |
 | Action label selection | — | ✓ (action-resolver.ts — resolveAction()) |
+| Delivery limits | — | ✓ (the Guardian — floor, budget, clamped cooldowns) |
 
-Gemma is used where it adds irreplaceable value: generating natural language that is contextually appropriate, non-judgmental, and varied. Every gating and strategy decision in the pipeline runs without inference.
+Gemma is used where it adds irreplaceable value: understanding what a session *is* — the one question no rule stack can answer — and speaking about it in language that is contextually appropriate, non-judgmental, and varied. The heuristics collect evidence and enforce ceilings; they no longer decide.
 
 ### Inference Design
 
-- `MAX_NEW_TOKENS = 120` — nudge text rarely exceeds 3 sentences
+- `MAX_NEW_TOKENS = 200` — judgment JSON (narrative + decision + message) runs ~110–140 tokens
 - Similarity check (unigram Jaccard ≥ 0.50 + bigram Jaccard ≥ 0.40) prevents recent phrase repetition
-- State vector pre-encoding reduces prompt token count ~65% vs. raw signal passing
+- Evidence pre-encoding keeps the user turn compact vs. raw signal passing; secondary schema fields degrade to defaults rather than burning retries
+- Narrator cadence: one consultation per tab at a time (requestId-routed, no cross-tab races), ≥90 s between consultations, and a confident `aligned` verdict suppresses re-judging for 8 minutes
 - Offscreen document pre-warmed on extension install — not lazily loaded on first signal
 - `model-keepalive` Chrome runtime port prevents service worker termination during download
 
@@ -386,19 +420,22 @@ angel/
 │   ├── ai/                   # Inference engine, prompts, interpretation
 │   │   ├── engine.ts         # Gemma model load, device selection, caching
 │   │   ├── infer.ts          # Inference execution, similarity check
+│   │   ├── index.ts          # judgeSession() — alignment judgment + nudge proposal
 │   │   ├── interpretation.ts # Manipulation Interpreter
-│   │   ├── prompts.ts        # encodeStateVector(), user-turn construction
-│   │   ├── system-prompt.ts  # State-aware system prompt with example pairs
+│   │   ├── prompts.ts        # encodeEvidence() — semantic/witness/continuity lines
+│   │   ├── system-prompt.ts  # The Narrator's contract with worked examples
 │   │   ├── guidance.ts       # resolveIntensity(), isTooSimilar()
 │   │   ├── cache.ts          # Phrase ring buffer
 │   │   ├── schema.ts         # Zod schemas for inference I/O
 │   │   └── pipeline/         # Signal → EventType → CompressedContext
 │   │
-│   ├── background/           # Service worker — reasoning and routing
-│   │   ├── index.ts          # Main dispatch, intervention orchestration
+│   ├── background/           # Service worker — witness synthesis + Guardian
+│   │   ├── index.ts          # Main dispatch, requestId-routed orchestration
+│   │   ├── narrator.ts       # Per-tab session story, judgment cache, consult cadence
+│   │   ├── priors.ts         # Per-category alignment priors (learned, decaying)
 │   │   ├── cognitive-state.ts # 7-state estimator, EMA, transition detection
 │   │   ├── drift.ts          # Trajectory analysis, HEALTH_SCORE table
-│   │   ├── gate.ts           # Cooldown enforcement, tier selection
+│   │   ├── gate.ts           # The Guardian — floor, budget, bounded cooldowns, tier clamp
 │   │   ├── intervention-strategy.ts  # STATE_STRATEGY table, resolveStrategy()
 │   │   ├── action-resolver.ts # resolveAction() — deterministic action label from state × mechanic
 │   │   ├── presence.ts       # derivePresence() — presence level → PresenceProfile bias
@@ -445,8 +482,8 @@ angel/
 
 | Document | Description |
 |---|---|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layer-by-layer technical deep-dive: all 9 execution layers, data flow, performance characteristics, and extension lifecycle |
-| [docs/COGNITIVE_MODEL.md](docs/COGNITIVE_MODEL.md) | The 7-state cognitive model, drift tracking, HEALTH_SCORE table, user profile structure, and weekly snapshot design |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layer-by-layer technical deep-dive: the Witness → Narrator → Guardian pipeline, data flow, performance characteristics, and extension lifecycle |
+| [docs/COGNITIVE_MODEL.md](docs/COGNITIVE_MODEL.md) | Intent alignment, the 7-state cognitive model as witness evidence, drift tracking, HEALTH_SCORE table, user profile structure, and weekly snapshot design |
 | [docs/EVALUATION.md](docs/EVALUATION.md) | Measurement philosophy, all five core metrics (post-nudge recovery, reflective engagement, escalation depth, awareness building), and what Angel explicitly does not measure |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Setup instructions, high-value contribution areas (detectors, templates, cognitive model, strategy, evaluation), code conventions, and privacy invariants |
 

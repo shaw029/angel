@@ -11,6 +11,7 @@ const DEFAULTS: StorageState = {
   lastSubtleIntervention: null,
   recentDismissals:       [],
   suppressionMultiplier:  1.0,
+  recentNudges:           [],
 
   presenceLevel: PRESENCE_DEFAULT,
 }

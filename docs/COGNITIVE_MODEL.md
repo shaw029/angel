@@ -1,16 +1,40 @@
-# Cognitive State Model
+# Cognitive Model
 
-Angel estimates user cognitive state from behavioral signals and uses it to determine if, when, and how to intervene. This document describes the 7-state model, the drift tracking system, and the longitudinal profile.
+Angel's cognitive model has two levels. The **7-state estimator** described in this document is fast, deterministic *witness evidence* — a behavioral prior computed every signal cycle. Above it sits the **intent alignment judgment**: the Narrator (on-device Gemma) weighs the state estimate together with the session's semantic trajectory and decides whether the session still serves the user's own intent. The state model informs judgment; it never triggers a nudge by itself.
+
+---
+
+## Intent Alignment — the Judgment Above the States
+
+The question that decides whether Angel may intervene is not "which cognitive state is the user in?" but **"is the user still the author of this session?"** The same behavioral fingerprint — long session, media playing, low interaction — describes both a chosen lecture and an autoplay rabbit hole. No behavioral state model can tell them apart; the difference lives in the *trajectory*: how the session began, and where it has drifted since.
+
+The Narrator judges every consulted session as one of three alignments:
+
+| Alignment | Meaning | Consequence |
+|---|---|---|
+| `aligned` | The session plausibly serves an intent the user chose — searched/typed entry, stable topic, deliberate pace. A lecture, a PDF, a paper, a chosen film, focused shopping. | **Hard veto.** Never nudged, regardless of cognitive state or detected mechanics. A confident verdict also suppresses re-judging for 8 minutes. |
+| `drifting` | The trajectory is diverging from the entry intent — topic drift across page titles, the original task looks finished but the session continues. | Observed; nudged only with confidence, usually at the subtle tier. |
+| `captured` | Environment mechanics are steering — feed-push entry plus urgency mechanics, autoplay chains pulling the topic away, doom-scroll velocity, countdown pressure at a decision point. | The intervention window. Nudges are grounded in the session story ("this started with eigenvalues…"). |
+
+Three rules of evidence govern the judgment:
+
+1. **Content is never the verdict.** No topic, site, or format is inherently bad — trajectories are judged, never taste. This is what makes the model robust to the unenumerable cases (PDFs, lectures, research, chosen leisure) that defeat any content allowlist.
+2. **Entry matters.** Search/direct arrival means the user chose this; social or external push means the environment did.
+3. **The burden of proof is on `captured`.** Interrupting an aligned user is the worst failure available to the system.
+
+The judgment, its confidence, an inferred intent, and a rolling one-sentence session narrative are produced together; the narrative is cached per tab and fed back on the next consultation, so judgments build on each other across a session. Verdicts are also tallied into per-category alignment priors (see ARCHITECTURE.md) that feed back into future judgments.
 
 ---
 
 ## Design Principles
 
-**Local pattern detection only.** Cognitive state is estimated from behavioral signals — scroll velocity, session duration, interaction patterns, and locally-matched text patterns (urgency language, billing terms, countdown timers). No page text is stored or transmitted; only boolean/confidence detection results flow into the state estimator.
+**Local pattern detection only.** Cognitive state is estimated from behavioral signals — scroll velocity, session duration, interaction patterns, and locally-matched text patterns (urgency language, billing terms, countdown timers). No page text is stored or transmitted; only boolean/confidence detection results flow into the state estimator. (Page titles are separately held in per-tab memory for the Narrator's prompt — never stored.)
 
-**No self-reporting.** Users do not select their state or rate their focus. The system infers state continuously from observable behavior.
+**No self-reporting, but a correction channel.** Users do not select their state or rate their focus. The system infers continuously from observable behavior — and every full-card nudge carries "Not now — I chose to be here", whose one tap outranks every inferred signal.
 
-**Intentional conservatism.** The model errs toward under-classifying problematic states rather than over-firing. A false negative (missing a loop) is preferable to a false positive (interrupting intentional browsing). Transitions require a candidate state to outscore the current state by a margin of 0.15, preventing flicker when signals are ambiguous.
+**Intentional conservatism.** The model errs toward under-classifying problematic states rather than over-firing. A false negative (missing a loop) is preferable to a false positive (interrupting intentional browsing). Transitions require a candidate state to outscore the current state by a margin of 0.15, preventing flicker when signals are ambiguous. The alignment judgment adds a second, stronger layer of the same principle: aligned-until-proven-captured.
+
+**Media-aware, window-aware inputs.** Watching a video counts as engagement, not idleness; `timeOnPage` counts only visible foreground seconds; tab switches are counted over a rolling 10-minute window. Without these corrections, lectures read as "extended idle" and long-lived tabs saturate every threshold permanently.
 
 ---
 

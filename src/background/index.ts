@@ -2,7 +2,7 @@ import { evaluate } from '@heuristics/index'
 import { getState, patchState } from '@storage/index'
 import { ensureOffscreenDocument } from './offscreen'
 import { compress } from '@ai/pipeline'
-import { computeTier, isAnyTierAllowed, afterIntervention, afterDismissal } from './gate'
+import { guardianVerdict, isAnyTierAllowed, afterIntervention, afterDismissal } from './gate'
 import { incrementPattern, getMemorySummary, recordInterventionOutcome, recordSessionEnd, recordStateTransition, recordStateInterventionOutcome, recordReflectiveEngagement, getCognitiveProfile, getStateAcceptanceRate } from '@memory/index'
 import { resolveIntensity } from '@ai/guidance'
 import { getRecentPhrases, recordPhrase } from './phrase-cache'
@@ -11,10 +11,12 @@ import { analyzeDrift, driftCooldownScale, HEALTH_SCORE } from './drift'
 import { resolveStrategy } from './intervention-strategy'
 import { resolveAction } from './action-resolver'
 import { derivePresence } from './presence'
+import * as narrator from './narrator'
+import { recordAlignment, getAlignmentPrior } from './priors'
 import type { RollingCognitiveContext } from './cognitive-state'
 import type { InterventionStrategy } from './intervention-strategy'
 import type { PatternKey } from '@memory/index'
-import type { Message } from '@shared/messages'
+import type { Message, JudgmentPayload, DismissedPayload } from '@shared/messages'
 import { MSG, GATE, PRESENCE_DEFAULT } from '@shared/constants'
 import type {
   BrowsingSignal,
@@ -22,9 +24,9 @@ import type {
   CognitiveState,
   DetectionResult,
   ModelLoadStatus,
-  Intervention,
   CompressedContext,
   EventType,
+  DomainCategory,
 } from '@shared/types'
 
 // Pre-warm the offscreen document (and start Gemma download) as soon as the
@@ -33,10 +35,27 @@ import type {
 chrome.runtime.onInstalled.addListener(() => void ensureOffscreenDocument())
 chrome.runtime.onStartup.addListener(()   => void ensureOffscreenDocument())
 
-// Track which tab triggered an AI inference so the intervention routes back correctly
-let pendingTabId:     number              | null = null
-let pendingEventType: EventType           | null = null
-let pendingStrategy:  InterventionStrategy | null = null
+// ─── In-flight inference routing ──────────────────────────────────────────────
+// Each Narrator consultation is keyed by requestId so concurrent requests from
+// different tabs can never overwrite each other (the old single-slot pending
+// state routed tab A's nudge to tab B whenever signals overlapped inference).
+
+interface PendingRequest {
+  tabId:     number
+  eventType: EventType
+  strategy:  InterventionStrategy
+  cogState:  CognitiveState
+  category:  DomainCategory
+  at:        number
+}
+
+const pending = new Map<string, PendingRequest>()
+
+function prunePending(now: number): void {
+  for (const [id, p] of pending) {
+    if (now - p.at > 3 * 60_000) pending.delete(id)  // orphaned — offscreen never answered
+  }
+}
 
 // Session-scoped quick-dismissal counter per cognitive state.
 // Used by resolveStrategy to enforce per-state session caps.
@@ -74,6 +93,7 @@ function recentDetections(tabId: number): DetectionResult[] {
 chrome.tabs.onRemoved.addListener((tabId) => {
   tabEvents.delete(tabId)
   tabCognitiveContext.delete(tabId)
+  narrator.clearTab(tabId)
   void recordSessionEnd()  // tolerance recovers gradually as sessions end
 })
 
@@ -105,45 +125,13 @@ async function dispatch(
       if (senderTabId !== undefined) storeEvents(senderTabId, message.payload)
       break
 
-    case MSG.INTERVENTION:
-      await onIntervention(message.payload)
+    case MSG.JUDGMENT:
+      await onJudgment(message.payload)
       break
 
-    case MSG.DISMISSED: {
-      const { dwellMs, outcome, tone, cogState } = message.payload
-      const state = await getState()
-      await patchState(afterDismissal({ timestamp: Date.now(), dwellMs }, state))
-
-      const accepted     = outcome === 'accepted'
-      const quickDismiss = dwellMs < GATE.QUICK_DISMISS_MS
-
-      // Memory: pattern counters — fire-and-forget, non-critical
-      if (accepted) {
-        void incrementPattern('interventions_accepted')
-      } else if (quickDismiss) {
-        void incrementPattern('interventions_quick_dismissed')
-      }
-
-      // Evaluation: reflective engagement = accepted and dwell ≥ 8 s
-      if (accepted && dwellMs >= REFLECTIVE_DWELL_MS) {
-        void incrementPattern('reflective_engagements')
-        void recordReflectiveEngagement(dwellMs)
-      }
-
-      // Profile: record tone effectiveness — use payload tone (survives SW restarts)
-      void recordInterventionOutcome(tone, accepted, quickDismiss)
-
-      // Profile: record per-state responsiveness — cogState echoed from Intervention,
-      // survives service-worker restarts without relying on module-level state
-      void recordStateInterventionOutcome(cogState, accepted, quickDismiss)
-
-      // Session cap: track quick-dismissals per state in-memory
-      if (quickDismiss) {
-        const prev = sessionQuickDismissalsByState.get(cogState) ?? 0
-        sessionQuickDismissalsByState.set(cogState, prev + 1)
-      }
+    case MSG.DISMISSED:
+      await onDismissed(message.payload)
       break
-    }
 
     case MSG.MODEL_PROGRESS: {
       const incoming = message.payload as import('@shared/types').ModelLoadStatus
@@ -168,12 +156,14 @@ async function dispatch(
         // can fire immediately on a clean slate.
         sessionQuickDismissalsByState.clear()
         tabCognitiveContext.clear()  // drop stale drift history so recovery_in_progress doesn't persist
+        pending.clear()
         await patchState({
           enabled:                true,
           lastFullIntervention:   null,
           lastSubtleIntervention: null,
           suppressionMultiplier:  1.0,
           recentDismissals:       [],
+          recentNudges:           [],
         })
       } else {
         await patchState({ enabled: false })
@@ -196,6 +186,10 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
 
   const state = await getState()
   if (!state.enabled) return
+
+  // Fold the signal into the tab's session story regardless of flagging —
+  // the Narrator needs the title trail even for quiet stretches.
+  narrator.noteSignal(tabId, signal)
 
   const result = evaluate(signal)
   if (!result.flagged) return
@@ -248,6 +242,7 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
   const driftScale = driftCooldownScale(drift)
 
   // Apply drift-based cooldown adjustment alongside existing suppression
+  // (the Guardian clamps the combined multiplier, so stacking stays bounded)
   const adjustedState = driftScale !== 1.0
     ? { ...state, suppressionMultiplier: (state.suppressionMultiplier ?? 1.0) * driftScale }
     : state
@@ -267,7 +262,14 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
   // The gate controls nudge frequency, not behavioural observation.
   void recordPatterns(rawCtx)
 
-  if (!isAnyTierAllowed(adjustedState, Date.now(), rawCtx.event_type, cognitiveState.state, strategy)) return
+  const now = Date.now()
+
+  // Guardian pre-check: skip inference when nothing could be delivered anyway
+  if (!isAnyTierAllowed(adjustedState, now, rawCtx.event_type, cognitiveState.state, strategy)) return
+
+  // Narrator cadence: one consultation per tab at a time, recent verdicts cached,
+  // a confident 'aligned' buys a long quiet period
+  if (!narrator.shouldConsult(tabId, rawCtx.event_type, now)) return
 
   // Enrich context with memory, intensity, and phrase cache before inference
   const memory        = await getMemorySummary().catch(() => undefined)
@@ -282,49 +284,70 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
     strategy = { ...strategy, cooldownScale: strategy.cooldownScale * 1.5 }
   }
 
-  const ctx: CompressedContext = { ...rawCtx, memory, intensity, recentPhrases, cognitiveState, drift }
+  const ctx: CompressedContext = {
+    ...rawCtx,
+    memory,
+    intensity,
+    recentPhrases,
+    cognitiveState,
+    drift,
+    page:              narrator.getPageSemantics(tabId, signal),
+    previousNarrative: narrator.previousNarrative(tabId),
+    alignmentPrior:    await getAlignmentPrior(rawCtx.page_context.category),
+  }
 
-  pendingTabId     = tabId
-  pendingEventType = rawCtx.event_type
-  pendingStrategy  = strategy
+  const requestId = crypto.randomUUID()
+  prunePending(now)
+  pending.set(requestId, {
+    tabId,
+    eventType: rawCtx.event_type,
+    strategy,
+    cogState:  cognitiveState.state,
+    category:  rawCtx.page_context.category,
+    at:        now,
+  })
+  narrator.markRequested(tabId, now)
+
   await ensureOffscreenDocument()
-  chrome.runtime.sendMessage({ type: MSG.AI_CONTEXT, payload: ctx })
+  chrome.runtime.sendMessage({ type: MSG.AI_CONTEXT, payload: { requestId, tabId, ctx } })
 }
 
-async function onIntervention(intervention: Intervention) {
-  if (pendingTabId === null) return
+async function onJudgment({ requestId, judgment, intervention }: JudgmentPayload) {
+  const req = pending.get(requestId)
+  pending.delete(requestId)
+  if (!req) return  // orphaned response (SW restarted, or request pruned)
 
-  const state           = await getState()
-  const pendingCogState = tabCognitiveContext.get(pendingTabId)?.state
+  // Always fold the judgment into the tab story and longitudinal priors —
+  // an 'aligned' verdict is as valuable to learn from as a 'captured' one.
+  narrator.recordJudgment(req.tabId, judgment, req.eventType)
+  if (judgment) void recordAlignment(req.category, judgment.alignment)
 
-  const tier = computeTier(
+  if (!judgment || !intervention) return
+
+  const state = await getState()
+  const tier  = guardianVerdict(
+    intervention.tier,     // the Narrator's proposal
     intervention.confidence,
     state,
     Date.now(),
-    pendingEventType ?? undefined,
-    pendingCogState,
-    pendingStrategy ?? undefined,
+    req.eventType,
+    req.cogState,
+    req.strategy,
   )
-
-  // Capture and clear pending state before any async work so future signals aren't blocked
-  const targetTabId = pendingTabId
-  pendingTabId      = null
-  pendingEventType  = null
-  pendingStrategy   = null
-
   if (tier === 'none') return
 
-  const tiered: Intervention = {
+  const tiered = {
     ...intervention,
     tier,
-    action:   resolveAction(pendingCogState ?? 'intentional_browsing', intervention.mechanic ?? null),
-    cogState: pendingCogState ?? 'intentional_browsing',
+    action:   resolveAction(req.cogState, intervention.mechanic ?? null),
+    cogState: req.cogState,
+    category: req.category,
   }
 
   // Attempt delivery first — only update cooldowns/count if the tab still exists.
   // Without this, a closed tab burns cooldown budget with no nudge shown.
   try {
-    await chrome.tabs.sendMessage(targetTabId, { type: MSG.INTERVENTION, payload: tiered })
+    await chrome.tabs.sendMessage(req.tabId, { type: MSG.INTERVENTION, payload: tiered })
   } catch {
     return  // Tab closed or content script disconnected — skip state update
   }
@@ -335,6 +358,50 @@ async function onIntervention(intervention: Intervention) {
   void recordPhrase(intervention.message)
 
   lastNudgeAt = Date.now()
+}
+
+async function onDismissed({ dwellMs, outcome, tone, cogState, category }: DismissedPayload) {
+  const state = await getState()
+  await patchState(afterDismissal({ timestamp: Date.now(), dwellMs, outcome }, state))
+
+  const accepted     = outcome === 'accepted'
+  const rejected     = outcome === 'rejected'
+  const quickDismiss = outcome === 'dismissed' && dwellMs < GATE.QUICK_DISMISS_MS
+
+  // Memory: pattern counters — fire-and-forget, non-critical.
+  // 'ignored' is deliberately neutral here: an unattended nudge is neither
+  // engagement nor an explicit refusal.
+  if (accepted) {
+    void incrementPattern('interventions_accepted')
+  } else if (quickDismiss || rejected) {
+    void incrementPattern('interventions_quick_dismissed')
+  }
+
+  // Evaluation: reflective engagement = accepted and dwell ≥ 8 s
+  if (accepted && dwellMs >= REFLECTIVE_DWELL_MS) {
+    void incrementPattern('reflective_engagements')
+    void recordReflectiveEngagement(dwellMs)
+  }
+
+  // Profile: record tone + per-state responsiveness. Rejection counts as the
+  // strongest negative; 'ignored' passes through as neutral non-acceptance.
+  void recordInterventionOutcome(tone, accepted, quickDismiss || rejected)
+  void recordStateInterventionOutcome(cogState, accepted, quickDismiss || rejected)
+
+  // Session cap: quick dismissals accumulate; an explicit rejection opts the
+  // user out of this state's nudges for the rest of the session immediately.
+  if (quickDismiss) {
+    const prev = sessionQuickDismissalsByState.get(cogState) ?? 0
+    sessionQuickDismissalsByState.set(cogState, prev + 1)
+  } else if (rejected) {
+    sessionQuickDismissalsByState.set(cogState, 99)
+  }
+
+  // Feedback loop: a rejection means the Narrator called 'captured' and the
+  // user disagreed — the strongest alignment label we ever receive.
+  if (rejected && category) {
+    void recordAlignment(category, 'aligned')
+  }
 }
 
 // ─── Pattern recording ────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import type { Message } from '@shared/messages'
 import { MSG } from '@shared/constants'
-import { generateIntervention } from '@ai/index'
+import { judgeSession } from '@ai/index'
 import { engine } from '@ai/engine'
 import type { ModelLoadStatus } from '@shared/types'
 
@@ -73,13 +73,24 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
     return false
   }
 
-  void generateIntervention(message.payload)
-    .then((intervention) => {
-      if (intervention) {
-        chrome.runtime.sendMessage({ type: MSG.INTERVENTION, payload: intervention })
-      }
+  const { requestId, tabId, ctx } = message.payload
+
+  // Always answer — even a failed inference must release the background's
+  // in-flight lock for this tab, or the tab goes silent until SW restart.
+  void judgeSession(ctx)
+    .then(({ judgment, intervention }) => {
+      chrome.runtime.sendMessage({
+        type:    MSG.JUDGMENT,
+        payload: { requestId, tabId, judgment, intervention },
+      })
     })
-    .catch((err) => console.error('[CA offscreen] inference error:', err))
+    .catch((err) => {
+      console.error('[CA offscreen] inference error:', err)
+      chrome.runtime.sendMessage({
+        type:    MSG.JUDGMENT,
+        payload: { requestId, tabId, judgment: null, intervention: null },
+      })
+    })
     .finally(() => sendResponse(null))
 
   return true // keep channel open for async response

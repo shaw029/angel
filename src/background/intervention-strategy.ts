@@ -7,10 +7,10 @@ export interface InterventionStrategy {
   // Minimum confidence to fire — overrides the 0.5 baseline in gate
   minConfidence: number
 
-  // Preferred intervention tier for this state.
-  // 'none'   → suppress entirely (primary suppressor — checked before cooldowns)
-  // 'subtle' → cap any full-card promotions (low-footprint states)
-  // 'full'   → allow full card even below the 0.8 global confidence threshold
+  // Tier ceiling for this state. The Narrator proposes the tier; this only caps it.
+  // 'none'   → suppress entirely (recovery, entry delay, session cap)
+  // 'subtle' → cap at subtle (low-footprint states — a full card adds friction)
+  // 'full'   → no cap; the Guardian still applies confidence + cooldown checks
   preferredTier: InterventionTier
 
   // Additional cooldown scaling factor — stacks with event + cognitive + drift scales.
