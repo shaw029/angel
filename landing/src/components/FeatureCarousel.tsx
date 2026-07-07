@@ -16,9 +16,9 @@ const slides: Array<{
     visual: <PopupMockup />,
   },
   {
-    label:  'Adaptivity',
-    title:  'Built for different vulnerabilities.',
-    body:   'Different people struggle with different kinds of online pressure.\nAngel adapts to the patterns that tend to pull you deeper.',
+    label:  'Intent',
+    title:  'It knows chosen from captured.',
+    body:   'The same long session can be a lecture or a rabbit hole — content alone can\'t tell them apart.\nAngel reads how your session began and where it has drifted, and stays silent while it\'s still yours.',
     visual: <NudgeMockup />,
   },
   {
@@ -273,14 +273,17 @@ function NudgeMockup() {
           </button>
         </div>
         <p className="px-4 pt-2.5 text-[11px] leading-[1.5] text-neutral-400">
-          You've been on this page for 18 minutes.
+          This kind of feed rarely gives you a natural place to stop.
         </p>
         <p className="px-4 pt-1.5 text-[13px] leading-[1.6] text-neutral-600">
-          You can take a moment before deciding.
+          This started with a search — the feed has chosen the last few videos.
         </p>
         <div className="px-4 pt-3 pb-3.5">
           <button className="w-full text-left text-[12px] font-medium text-sage px-3 py-1.5 rounded-lg bg-sage/10" tabIndex={-1}>
             Pause for a moment
+          </button>
+          <button className="mt-1.5 w-full text-left text-[11px] text-neutral-300" tabIndex={-1}>
+            Not now — I chose to be here
           </button>
         </div>
       </div>

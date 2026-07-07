@@ -3,18 +3,18 @@ import { motion } from 'framer-motion'
 const steps = [
   {
     number: '01',
-    title: 'Detect the signals',
-    body: 'Angel looks for signs linked to manipulative or emotionally draining experiences — including endless scrolling, urgency pressure, emotionally intense feeds, compulsive switching, and reactive late-night browsing.',
+    title: 'Witness the environment',
+    body: 'Angel collects evidence — endless-scroll mechanics, urgency pressure, autoplay chains, compulsive switching, how you arrived and where the session has drifted. Evidence is never a verdict: nothing here can trigger a nudge by itself.',
   },
   {
     number: '02',
-    title: 'Track cognitive drift',
-    body: 'Using Gemma running locally on-device, Angel continuously models how attention, emotions, and engagement evolve over time — identifying when intentional browsing starts turning into reactive or difficult-to-step-away-from behavior.',
+    title: 'Understand the session',
+    body: 'Gemma, running locally on-device, reconstructs the story of your session and asks one question: is this still serving the intent you arrived with? A lecture, a paper, a film you chose — aligned sessions are never interrupted, whatever the site or subject.',
   },
   {
     number: '03',
-    title: 'Break the spiral. Build resilience.',
-    body: 'Lightweight nudges and reflective prompts appear when patterns begin emerging, helping you pause and reset in the moment. Over time, Angel adapts to your behavioral patterns and helps strengthen awareness, intentionality, and long-term digital resilience.',
+    title: 'Nudge, learn, back off',
+    body: 'When the environment is steering instead of you, a lightweight nudge names what is happening — grounded in your session\'s own story. Hard limits keep nudges rare, and one tap on "Not now — I chose to be here" teaches Angel where its judgment was wrong.',
   },
 ]
 
@@ -84,7 +84,7 @@ export function HowItWorks() {
           viewport={{ once: true }}
           variants={fadeUp}
         >
-          Angel observes without judgment. The patterns it detects are descriptions of your environment — not assessments of your choices. Grounded in research on digital wellbeing, persuasive technology, and autonomy-supportive design.
+          Angel observes without judgment. It judges trajectories, never taste — no topic, site, or format is treated as bad, and what it names is always your environment, not your choices. Grounded in research on digital wellbeing, persuasive technology, and autonomy-supportive design.
         </motion.p>
       </div>
     </section>

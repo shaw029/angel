@@ -19,7 +19,7 @@ const existing = [
 const angel = [
   { verb: 'Supports',  detail: 'awareness without judgment' },
   { verb: 'Preserves', detail: 'your autonomy at every step' },
-  { verb: 'Adapts',    detail: 'gently to your patterns' },
+  { verb: 'Judges',    detail: 'trajectories, never your taste' },
   { verb: 'Builds',    detail: 'resilience over time' },
 ]
 

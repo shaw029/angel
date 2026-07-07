@@ -75,7 +75,7 @@ export function Hero({ onInstall }: HeroProps) {
           animate="visible"
           custom={0.4}
         >
-          Most people have very little visibility into how these systems shape their behavior over time. Angel helps you stay aware and intentional while navigating increasingly persuasive digital environments.
+          Angel watches the one thing that matters — whether your session still serves the intent you arrived with. It judges the trajectory, never the content: a lecture, a PDF, a chosen film are yours. When the environment starts steering instead, Angel quietly says so.
         </motion.p>
 
         {/* CTAs */}

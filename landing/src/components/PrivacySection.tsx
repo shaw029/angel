@@ -42,12 +42,12 @@ export function PrivacySection() {
               className="mt-5 text-base leading-relaxed text-white/60"
               variants={fadeUp}
             >
-              Running fully on-device with Gemma, Angel reads page text locally to detect manipulation patterns, models how your attention and engagement evolve, and responds with reflective support — all on your device. Nothing is persistently stored or transmitted beyond anonymous behavioral counters.
+              Running fully on-device with Gemma, Angel reads page text locally to detect manipulation patterns, follows how your session's story evolves, and responds with reflective support — all on your device. Local inference is what makes the understanding possible: the model can see context like page titles precisely because nothing it sees can ever leave. Nothing is persistently stored or transmitted beyond anonymous behavioral counters.
             </motion.p>
 
             <motion.div className="mt-8 flex flex-col gap-3" variants={stagger}>
               {[
-                { label: 'No data stored or sent', detail: 'Text scanning is in-memory only; inference stays on-device' },
+                { label: 'No data stored or sent', detail: 'Titles and session stories live in memory only; inference stays on-device' },
                 { label: 'No server, no account', detail: 'No API keys. No cloud. No sync.' },
                 { label: 'Fully auditable', detail: 'Open source — every line is readable' },
               ].map(({ label, detail }) => (
@@ -81,8 +81,8 @@ export function PrivacySection() {
 
 function LocalFlowDiagram() {
   const nodes = [
-    { icon: <EyeIcon />,    label: 'Behavioral signals',  sub: 'What you do stays private' },
-    { icon: <GemmaIcon />,  label: 'Gemma 4 2B',          sub: 'Thinking happens on-device' },
+    { icon: <EyeIcon />,    label: 'Session evidence',    sub: 'What you do stays private' },
+    { icon: <GemmaIcon />,  label: 'Gemma 4 2B',          sub: 'Judges your session on-device' },
     { icon: <NudgeIcon />,  label: 'Reflective nudge',    sub: 'Support without surveillance' },
   ]
 
