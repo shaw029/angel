@@ -79,12 +79,13 @@ function showNudge(intervention: Intervention) {
   hostEl    = document.createElement('div')
   shownAt   = Date.now()
   hostEl.id = 'ca-nudge-host'
+  // Only positioning lives here — all visual styling ships inside the shadow
+  // root (see ui.tsx), where host-page CSS cannot reach it.
   Object.assign(hostEl.style, {
     position:      'fixed',
-    bottom:        '24px',
-    right:         '24px',
+    bottom:        '28px',
+    right:         '28px',
     zIndex:        '2147483647',
-    fontFamily:    '-apple-system, BlinkMacSystemFont, Inter, sans-serif',
     pointerEvents: 'none',
   })
   document.body.appendChild(hostEl)
