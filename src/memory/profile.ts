@@ -10,7 +10,7 @@ interface StyleStats {
   accepted: number
 }
 
-interface CogStateStats {
+export interface CogStateStats {
   shown:    number
   accepted: number
 }

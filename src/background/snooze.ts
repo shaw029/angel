@@ -1,4 +1,5 @@
 import { getState, patchState } from '@storage/index'
+import { incrementPattern } from '@memory/index'
 import { afterIntervention } from './gate'
 import { MSG, SNOOZE } from '@shared/constants'
 import type { Intervention } from '@shared/types'
@@ -123,7 +124,10 @@ export async function onSnoozeAlarm(alarm: chrome.alarms.Alarm): Promise<boolean
     return true
   }
 
+  // A re-delivery is a real delivery: it counts toward the hourly budget, the
+  // nudge total, and the denominator the evaluation rates divide by.
   await patchState(afterIntervention(record.intervention.tier, state))
+  void incrementPattern('interventions_shown')
   return true
 }
 

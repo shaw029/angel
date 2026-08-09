@@ -341,6 +341,8 @@ Angel measures the quality of behavioral change, not quantity of screen time avo
 
 Each metric produces a weekly trend direction: `improving` / `stable` / `needs_attention` / `insufficient_data` (≥20% change threshold). Trend indicators appear in the popup — not scores, not streaks, not gamification.
 
+**Reading the nudge count.** "56 nudges offered" on its own says nothing — a user cannot tell what the number is about or whether it is a lot. Tapping it answers the question people actually have, which is *what was going on when Angel spoke up*: **couldn't stop scrolling**, **drifting through a feed**, **pressure at checkout**, **jumping between tabs**, largest first. The situations come from the same per-state tallies the gate already keeps for timing, described in the user's terms rather than the model's — nobody thinks of themselves as being in `compulsive_loop`. Underneath sits the number the count itself omits: how many times the Narrator proposed a nudge and the Guardian declined it. For a system built to mostly stay quiet, the silences are the more honest measure of what it does, and they run an order of magnitude higher than the nudges.
+
 **What Angel does not measure:** total screen time, "productive" sessions, app category usage. A high acceptance rate with no behavior change is failure. A low acceptance rate with strong recovery transitions is success. See [docs/EVALUATION.md](docs/EVALUATION.md) for the full measurement philosophy.
 
 ---

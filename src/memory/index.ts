@@ -31,6 +31,7 @@ export type PatternKey =
   | 'interventions_shown'             // total interventions delivered
   | 'interventions_accepted'          // action button clicked
   | 'interventions_quick_dismissed'   // dismissed in < 3 s
+  | 'nudges_withheld'                 // Narrator proposed a nudge, Guardian declined it
   // ── Evaluation metrics (accumulated, snapshotted weekly) ──────────────────
   | 'compulsive_loop_entries'         // transitions into compulsive_loop
   | 'reactive_entries'                // transitions into emotionally_reactive

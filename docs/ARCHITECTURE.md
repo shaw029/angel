@@ -329,6 +329,8 @@ Dwell time is measured from render to dismiss. Five outcomes are distinguished a
 
 The payload also echoes `tone`, `cogState`, `category`, and `snoozeCount` (rather than relying on module-level state) so effectiveness tracking and prior correction survive service worker restarts.
 
+The popup explains the nudge total by partitioning it across the cognitive state each nudge was shown in, reusing `profile.stateStats[state].shown` — the same per-state tallies the gate already keeps for timing personalization, so no additional tracking exists purely for display. States are relabelled in the user's terms at the presentation layer only (`compulsive_loop` → "Couldn't stop scrolling"), sorted largest first, with any nudges predating the tallies shown as "Earlier sessions" so the rows still sum to the headline. One counter is added for this view: `nudges_withheld`, incremented when the Narrator proposed a nudge and the Guardian declined it, surfaced as "Angel stayed quiet N other times" — for a system designed to mostly say no, the more representative number.
+
 ### Deferral — "Remind me later"
 
 **File:** `src/background/snooze.ts`

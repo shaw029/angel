@@ -342,7 +342,13 @@ async function onJudgment({ requestId, judgment, intervention }: JudgmentPayload
     req.cogState,
     req.strategy,
   )
-  if (tier === 'none') return
+  if (tier === 'none') {
+    // The Narrator had something to say and the Guardian declined it. Counting
+    // these is what lets the popup show restraint rather than only activity —
+    // for a system built to mostly stay quiet, the silences are the story.
+    void incrementPattern('nudges_withheld')
+    return
+  }
 
   const tiered = {
     ...intervention,

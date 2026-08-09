@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import type { StorageState, ModelLoadStatus, EvaluationMetrics, TrendDirection } from '@shared/types'
+import type { StorageState, ModelLoadStatus, EvaluationMetrics, TrendDirection, CognitiveState } from '@shared/types'
 import { MSG, COOLDOWN_DEFAULT_MINUTES, PRESENCE_DEFAULT } from '@shared/constants'
 import { getEvaluationMetrics } from '@memory/evaluation'
+import { getPatterns, getCognitiveProfile } from '@memory/index'
+import type { PatternKey } from '@memory/index'
+import type { CogStateStats } from '@memory/profile'
 
 const STATE_DEFAULTS: Omit<StorageState, 'modelStatus'> = {
   enabled:                true,
@@ -155,6 +158,98 @@ function buildInsightRows(m: EvaluationMetrics): InsightRow[] {
   return rows.slice(0, 3)
 }
 
+// ─── Nudge breakdown ─────────────────────────────────────────────────────────
+// A bare "56 nudges offered" is unreadable — the user can't tell what the number
+// is about or whether it is a lot. Tapping it answers the first question a person
+// actually has: what was going on when Angel spoke up? Then it names the thing
+// the count leaves out entirely — how often Angel considered speaking and didn't.
+//
+// Situations are described in the user's terms, not the model's. Nobody thinks of
+// themselves as being in `compulsive_loop`.
+
+type PatternCounts = Partial<Record<PatternKey, number>>
+type StateStats    = Partial<Record<CognitiveState, CogStateStats>>
+
+const SITUATION_LABEL: Record<CognitiveState, string> = {
+  compulsive_loop:      "Couldn't stop scrolling",
+  passive_consumption:  'Drifting through a feed',
+  emotionally_reactive: 'Pressure at checkout',
+  decision_fatigue:     'Deciding for too long',
+  fragmented_attention: 'Jumping between tabs',
+  exploratory_browsing: 'Wandering between topics',
+  intentional_browsing: 'Focused browsing',
+}
+
+function NudgeBreakdown({
+  total, patterns, stateStats,
+}: {
+  total:      number
+  patterns:   PatternCounts | null
+  stateStats: StateStats | null
+}) {
+  const [open, setOpen] = useState(false)
+
+  const label = `${total} nudge${total !== 1 ? 's' : ''} offered`
+
+  // Biggest situation first — the shape of someone's browsing is the point,
+  // and a fixed state order would bury it.
+  const stats: StateStats = stateStats ?? {}
+  const rows = (Object.keys(stats) as CognitiveState[])
+    .map(state => ({
+      label: SITUATION_LABEL[state],
+      count: stats[state]?.shown ?? 0,
+    }))
+    .filter(r => r.count > 0 && r.label)
+    .sort((a, b) => b.count - a.count)
+
+  if (rows.length === 0) {
+    return <p className="mt-3 text-xs text-ink-secondary">{label}</p>
+  }
+
+  // Nudges shown before per-situation tallying existed aren't attributable to
+  // one. Naming that gap keeps the rows honest — they add up to the headline.
+  const tracked  = rows.reduce((n, r) => n + r.count, 0)
+  const earlier  = Math.max(0, total - tracked)
+  const withheld = patterns?.nudges_withheld ?? 0
+
+  return (
+    <div className="mt-3">
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage rounded"
+      >
+        <span className="text-xs text-ink-secondary">{label}</span>
+        <span className={`text-[9px] text-ink-muted transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-1.5">
+          {rows.map(row => (
+            <div key={row.label} className="flex items-center justify-between">
+              <span className="text-[11px] text-ink-muted">{row.label}</span>
+              <span className="text-[11px] font-medium text-ink-secondary">{row.count}</span>
+            </div>
+          ))}
+
+          {earlier > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-ink-muted">Earlier sessions</span>
+              <span className="text-[11px] font-medium text-ink-secondary">{earlier}</span>
+            </div>
+          )}
+
+          {withheld > 0 && (
+            <p className="pt-1.5 text-[10px] leading-relaxed text-ink-muted">
+              Angel stayed quiet {withheld} other {withheld !== 1 ? 'times' : 'time'}.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function InsightPanel({ metrics }: { metrics: EvaluationMetrics }) {
   const hasData = metrics.totalInterventions >= 5
 
@@ -242,6 +337,8 @@ export function App() {
   const [state,       setState      ] = useState<Omit<StorageState, 'modelStatus'> | null>(null)
   const [modelStatus, setModelStatus] = useState<ModelLoadStatus>({ phase: 'idle' })
   const [metrics,     setMetrics    ] = useState<EvaluationMetrics | null>(null)
+  const [patterns,    setPatterns   ] = useState<PatternCounts | null>(null)
+  const [stateStats,  setStateStats ] = useState<StateStats | null>(null)
 
   // Read state directly from storage — no service worker round-trip needed
   useEffect(() => {
@@ -253,6 +350,8 @@ export function App() {
     })
     // Evaluation metrics — read from IDB directly (same extension origin)
     getEvaluationMetrics().then(setMetrics).catch(() => null)
+    getPatterns().then(setPatterns).catch(() => null)
+    getCognitiveProfile().then(p => setStateStats(p.stateStats ?? {})).catch(() => null)
   }, [])
 
   // Live model progress — two sources so we never miss an update:
@@ -333,9 +432,11 @@ export function App() {
       </p>
 
       {state.interventionCount > 0 && (
-        <p className="mt-3 text-xs text-ink-secondary">
-          {state.interventionCount} nudge{state.interventionCount !== 1 ? 's' : ''} offered
-        </p>
+        <NudgeBreakdown
+          total={state.interventionCount}
+          patterns={patterns}
+          stateStats={stateStats}
+        />
       )}
 
       {metrics && <InsightPanel metrics={metrics} />}
