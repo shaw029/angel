@@ -85,3 +85,23 @@ export const GATE = {
     { quickRatio: 0.4, multiplier: 1.5 },  // some negative      → 1.5× cooldown
   ] as const,
 } as const
+
+// ─── Deferral ("remind me later") ─────────────────────────────────────────────
+// A snooze is user-requested, so re-delivery bypasses the Guardian's veto (see
+// snooze.ts). These bounds are what keeps that bypass from becoming a loophole.
+
+export const SNOOZE = {
+  // How long "Remind me later" defers the nudge
+  DELAY_MS:     5 * 60 * 1000,
+
+  // Deferrals allowed per nudge. Past this the button stops rendering, so an
+  // intervention always resolves into a real signal instead of deferring forever.
+  MAX:          2,
+
+  // The alarm fired but a nudge was already on screen — retry once after this
+  // long rather than dropping the reminder the user explicitly asked for.
+  RETRY_MS:     60 * 1000,
+
+  // Give up re-arming after this many collisions with an occupied nudge slot.
+  MAX_RETRIES:  3,
+} as const

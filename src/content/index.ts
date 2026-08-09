@@ -39,9 +39,12 @@ setInterval(() => {
   safeSend({ type: MSG.BROWSING_SIGNAL, payload: snapshot(switchCount()) })
 }, SIGNAL_INTERVAL_MS)
 
-chrome.runtime.onMessage.addListener((message: Message) => {
+chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
   if (message.type === MSG.INTERVENTION) {
-    void showNudge(message.payload)
+    // Answer synchronously with whether the nudge actually mounted. A deferred
+    // reminder can arrive while another nudge still occupies the slot, and the
+    // background re-arms rather than dropping it — but only if it can tell.
+    sendResponse(showNudge(message.payload))
   }
 })
 
@@ -73,8 +76,9 @@ window.addEventListener('beforeunload', () => {
   teardownTrackers()
 }, { once: true })
 
-function showNudge(intervention: Intervention) {
-  if (hostEl) return  // one nudge at a time
+/** Returns false when a nudge is already on screen — one at a time. */
+function showNudge(intervention: Intervention): boolean {
+  if (hostEl) return false
 
   hostEl    = document.createElement('div')
   shownAt   = Date.now()
@@ -83,13 +87,14 @@ function showNudge(intervention: Intervention) {
   // root (see ui.tsx), where host-page CSS cannot reach it.
   Object.assign(hostEl.style, {
     position:      'fixed',
-    bottom:        '28px',
+    top:           '28px',
     right:         '28px',
     zIndex:        '2147483647',
     pointerEvents: 'none',
   })
   document.body.appendChild(hostEl)
   mountNudge(hostEl, intervention, (outcome) => dismiss(intervention, outcome))
+  return true
 }
 
 function dismiss(intervention: Intervention, outcome: NudgeOutcome) {
@@ -104,6 +109,14 @@ function dismiss(intervention: Intervention, outcome: NudgeOutcome) {
       tone:     intervention.tone,
       cogState: intervention.cogState ?? 'intentional_browsing',
       category: intervention.category,
+
+      // How many deferrals this nudge has already been through, so the
+      // background can weigh the outcome against them.
+      snoozeCount: intervention.snoozeCount,
+
+      // The background re-delivers this verbatim, so it need not hold every
+      // in-flight nudge on the chance one gets deferred.
+      ...(outcome === 'snoozed' ? { intervention } : {}),
     },
   })
 

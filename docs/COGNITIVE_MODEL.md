@@ -30,7 +30,7 @@ The judgment, its confidence, an inferred intent, and a rolling one-sentence ses
 
 **Local pattern detection only.** Cognitive state is estimated from behavioral signals — scroll velocity, session duration, interaction patterns, and locally-matched text patterns (urgency language, billing terms, countdown timers). No page text is stored or transmitted; only boolean/confidence detection results flow into the state estimator. (Page titles are separately held in per-tab memory for the Narrator's prompt — never stored.)
 
-**No self-reporting, but a correction channel.** Users do not select their state or rate their focus. The system infers continuously from observable behavior — and every full-card nudge carries "Not now — I chose to be here", whose one tap outranks every inferred signal.
+**No self-reporting, but a correction channel.** Users do not select their state or rate their focus. The system infers continuously from observable behavior — and every full-card nudge carries "Not now — I chose to be here", whose one tap outranks every inferred signal. Alongside it, "Remind me later" separates a wrong *judgment* from a wrong *moment*: it accepts the read and defers the nudge five minutes, and it is scored not by the click but by what the user does when the nudge comes back.
 
 **Intentional conservatism.** The model errs toward under-classifying problematic states rather than over-firing. A false negative (missing a loop) is preferable to a false positive (interrupting intentional browsing). Transitions require a candidate state to outscore the current state by a margin of 0.15, preventing flicker when signals are ambiguous. The alignment judgment adds a second, stronger layer of the same principle: aligned-until-proven-captured.
 

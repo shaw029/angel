@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { SNOOZE } from '@shared/constants'
 import type { Intervention, InterventionStyle, NudgeOutcome, SuggestedAction } from '@shared/types'
 
 // ─── Self-contained styles ────────────────────────────────────────────────────
@@ -125,6 +126,17 @@ const STYLES = `
   }
   .ca-notnow:hover { color: #62625C; }
 
+  /* Deferral sits beside the refusal, same weight — neither is the "right"
+     answer, and neither should compete with the action button above them. */
+  .ca-choices {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-top: 9px;
+  }
+  .ca-choices .ca-notnow { margin-top: 0; }
+
   /* ── Subtle pill ── */
   .ca-pill {
     display: flex;
@@ -179,7 +191,7 @@ interface NudgeProps {
 export function Nudge({ intervention, onDismiss }: NudgeProps) {
   const [visible, setVisible] = useState(true)
   const [hovered, setHovered] = useState(false)
-  const { message, tone, action, tier, observation } = intervention
+  const { message, tone, action, tier, observation, snoozeCount } = intervention
 
   function dismiss(outcome: NudgeOutcome = 'dismissed') {
     setVisible(false)
@@ -205,7 +217,7 @@ export function Nudge({ intervention, onDismiss }: NudgeProps) {
       <style>{STYLES}</style>
       <AnimatePresence>
         {visible && (tier === 'full'
-          ? <FullCard key="full" message={message} tone={tone} action={action} observation={observation} onDismiss={dismiss} />
+          ? <FullCard key="full" message={message} tone={tone} action={action} observation={observation} snoozeCount={snoozeCount} onDismiss={dismiss} />
           : <SubtlePill key="subtle" message={message} tone={tone} onDismiss={() => dismiss('dismissed')} />
         )}
       </AnimatePresence>
@@ -220,20 +232,26 @@ interface FullCardProps {
   tone:         InterventionStyle
   action:       SuggestedAction
   observation?: string
+  snoozeCount?: number
   onDismiss:    (outcome: NudgeOutcome) => void
 }
 
-function FullCard({ message, tone, action, observation, onDismiss }: FullCardProps) {
+function FullCard({ message, tone, action, observation, snoozeCount, onDismiss }: FullCardProps) {
   const actionLabel = ACTION_LABELS[action]
+
+  // Deferral is offered a bounded number of times. Past the cap the button stops
+  // rendering, so a nudge always resolves into a real signal instead of being
+  // pushed forward indefinitely.
+  const canSnooze = (snoozeCount ?? 0) < SNOOZE.MAX
 
   return (
     <motion.div
       role="status"
       aria-live="polite"
       aria-atomic="true"
-      initial={{ opacity: 0, y: 14, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0,  scale: 1    }}
-      exit={{    opacity: 0, y: 8,  scale: 0.98 }}
+      initial={{ opacity: 0, y: -14, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0,   scale: 1    }}
+      exit={{    opacity: 0, y: -8,  scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 340, damping: 30 }}
       className={`ca-card${tone === 'reflective' ? ' ca-card--reflective' : ''}`}
     >
@@ -266,11 +284,21 @@ function FullCard({ message, tone, action, observation, onDismiss }: FullCardPro
           </button>
         )}
 
-        {/* "Not now" — the correction channel. One tap teaches Angel it read
-            this moment wrong: backs off for the session and updates priors. */}
-        <button onClick={() => onDismiss('rejected')} className="ca-notnow">
-          Not now — I chose to be here
-        </button>
+        {/* Two ways to decline, and they mean different things.
+            "Not now" is the correction channel: one tap teaches Angel it read
+            this moment wrong — backs off for the session and updates priors.
+            "Remind me later" accepts the read and declines only the timing —
+            the same nudge returns in five minutes. */}
+        <div className="ca-choices">
+          <button onClick={() => onDismiss('rejected')} className="ca-notnow">
+            Not now — I chose to be here
+          </button>
+          {canSnooze && (
+            <button onClick={() => onDismiss('snoozed')} className="ca-notnow">
+              Remind me later
+            </button>
+          )}
+        </div>
       </div>
     </motion.div>
   )
@@ -291,9 +319,9 @@ function SubtlePill({ message, tone, onDismiss }: SubtlePillProps) {
       role="status"
       aria-live="polite"
       aria-atomic="true"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0  }}
-      exit={{    opacity: 0, y: 5  }}
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0   }}
+      exit={{    opacity: 0, y: -5  }}
       transition={{ duration: 0.18, ease: 'easeOut' }}
       className="ca-pill"
     >

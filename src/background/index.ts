@@ -9,6 +9,7 @@ import { getRecentPhrases, recordPhrase } from './phrase-cache'
 import { estimateCognitiveState } from './cognitive-state'
 import { analyzeDrift, driftCooldownScale, HEALTH_SCORE } from './drift'
 import { resolveStrategy } from './intervention-strategy'
+import { scheduleSnooze, onSnoozeAlarm, clearSnoozesForTab } from './snooze'
 import { resolveAction } from './action-resolver'
 import { derivePresence } from './presence'
 import * as narrator from './narrator'
@@ -94,7 +95,14 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   tabEvents.delete(tabId)
   tabCognitiveContext.delete(tabId)
   narrator.clearTab(tabId)
+  void clearSnoozesForTab(tabId)  // the moment a reminder belonged to is gone
   void recordSessionEnd()  // tolerance recovers gradually as sessions end
+})
+
+// Deferred nudges ("remind me later") come back through here. chrome.alarms
+// rather than a timer because the service worker is terminated while idle.
+chrome.alarms.onAlarm.addListener((alarm) => {
+  void onSnoozeAlarm(alarm)
 })
 
 // Accept the long-lived port from the offscreen document while the model is
@@ -130,7 +138,7 @@ async function dispatch(
       break
 
     case MSG.DISMISSED:
-      await onDismissed(message.payload)
+      await onDismissed(message.payload, senderTabId)
       break
 
     case MSG.MODEL_PROGRESS: {
@@ -344,10 +352,12 @@ async function onJudgment({ requestId, judgment, intervention }: JudgmentPayload
     category: req.category,
   }
 
-  // Attempt delivery first — only update cooldowns/count if the tab still exists.
-  // Without this, a closed tab burns cooldown budget with no nudge shown.
+  // Attempt delivery first — only update cooldowns/count if the nudge actually
+  // reached the screen. Without this, a closed tab (or one already showing a
+  // nudge) burns cooldown budget with nothing shown.
   try {
-    await chrome.tabs.sendMessage(req.tabId, { type: MSG.INTERVENTION, payload: tiered })
+    const shown = await chrome.tabs.sendMessage(req.tabId, { type: MSG.INTERVENTION, payload: tiered })
+    if (shown !== true) return  // slot occupied by an existing nudge
   } catch {
     return  // Tab closed or content script disconnected — skip state update
   }
@@ -360,20 +370,38 @@ async function onJudgment({ requestId, judgment, intervention }: JudgmentPayload
   lastNudgeAt = Date.now()
 }
 
-async function onDismissed({ dwellMs, outcome, tone, cogState, category }: DismissedPayload) {
-  const state = await getState()
-  await patchState(afterDismissal({ timestamp: Date.now(), dwellMs, outcome }, state))
+async function onDismissed(
+  { dwellMs, outcome, tone, cogState, category, snoozeCount, intervention }: DismissedPayload,
+  senderTabId?: number,
+) {
+  // "Remind me later": re-arm before anything else, so nothing downstream can
+  // lose a reminder the user explicitly asked for. The outcome is then recorded
+  // like any other — a deferral is a data point, not an absence of one.
+  if (outcome === 'snoozed' && intervention && senderTabId !== undefined) {
+    await scheduleSnooze(senderTabId, intervention)
+  }
+
+  const deferred = (snoozeCount ?? 0) > 0
+  const state    = await getState()
+  await patchState(afterDismissal({ timestamp: Date.now(), dwellMs, outcome, deferred }, state))
 
   const accepted     = outcome === 'accepted'
   const rejected     = outcome === 'rejected'
   const quickDismiss = outcome === 'dismissed' && dwellMs < GATE.QUICK_DISMISS_MS
+
+  // A nudge the user asked to have brought back, and then let time out, was not
+  // really deferred — the deferral was the dismissal, just a politer one. This
+  // is the only way that distinction reaches memory, since 'snoozed' itself is
+  // recorded neutrally on the way in.
+  const abandoned = deferred && outcome === 'ignored'
+  const negative  = quickDismiss || rejected || abandoned
 
   // Memory: pattern counters — fire-and-forget, non-critical.
   // 'ignored' is deliberately neutral here: an unattended nudge is neither
   // engagement nor an explicit refusal.
   if (accepted) {
     void incrementPattern('interventions_accepted')
-  } else if (quickDismiss || rejected) {
+  } else if (negative) {
     void incrementPattern('interventions_quick_dismissed')
   }
 
@@ -385,12 +413,12 @@ async function onDismissed({ dwellMs, outcome, tone, cogState, category }: Dismi
 
   // Profile: record tone + per-state responsiveness. Rejection counts as the
   // strongest negative; 'ignored' passes through as neutral non-acceptance.
-  void recordInterventionOutcome(tone, accepted, quickDismiss || rejected)
-  void recordStateInterventionOutcome(cogState, accepted, quickDismiss || rejected)
+  void recordInterventionOutcome(tone, accepted, negative)
+  void recordStateInterventionOutcome(cogState, accepted, negative)
 
   // Session cap: quick dismissals accumulate; an explicit rejection opts the
   // user out of this state's nudges for the rest of the session immediately.
-  if (quickDismiss) {
+  if (quickDismiss || abandoned) {
     const prev = sessionQuickDismissalsByState.get(cogState) ?? 0
     sessionQuickDismissalsByState.set(cogState, prev + 1)
   } else if (rejected) {

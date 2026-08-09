@@ -171,15 +171,32 @@ export function afterDismissal(
 // Outcome weights for the negativity ratio. The old computation counted only
 // dwell time, so an auto-dismissed (ignored) nudge looked like an engaged one
 // and the system concluded its nudges were welcome.
-function negativeWeight(d: DismissalRecord): number {
+function baseWeight(d: DismissalRecord): number {
   switch (d.outcome) {
     case 'accepted': return 0
     case 'rejected': return 1.5  // explicit "wrong call" — strongest signal
     case 'ignored':  return 0.5  // shown, never touched — mild negative
+    // Deferral is deliberate engagement that confirms the read and declines only
+    // the timing. Weighting it negative would ramp cooldowns on a user who is
+    // actively saying "yes, but later" — the opposite of what they asked for.
+    case 'snoozed':  return 0
     case 'dismissed':
     default:
       return d.dwellMs < GATE.QUICK_DISMISS_MS ? 1 : 0
   }
+}
+
+function negativeWeight(d: DismissalRecord): number {
+  const base = baseWeight(d)
+
+  // Closing the deferral loop. A snooze on its own is free (weight 0), which is
+  // right when the user genuinely meant "later" — but it also makes "remind me
+  // later" the lowest-friction way to make a nudge go away, and a user who takes
+  // that exit every time would otherwise teach the gate nothing. So the deferral
+  // is judged by what happened when the nudge came back: asked for again and then
+  // walked away from is a stronger refusal than a first-time ignore. Accepting
+  // after a deferral stays weight 0 — that is the timing feedback working.
+  return d.deferred && base > 0 ? Math.min(base * 2, 1.5) : base
 }
 
 /**

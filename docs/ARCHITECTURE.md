@@ -266,7 +266,7 @@ Tier clamping (the Narrator proposes `subtle` or `full`):
 3. Floor, budget, or effective cooldown not satisfied → `none`
 4. Proposed `full` is honored only if the state's tier ceiling allows it, `confidence ≥ 0.70`, and the full-card cooldown (20 min × multiplier) has elapsed — otherwise it degrades to `subtle`
 
-The `suppressionMultiplier` is derived from an **outcome-weighted** negativity ratio over the last 20 dismissals: quick dismissal = 1.0, `ignored` (auto-timeout, never touched) = 0.5, `rejected` ("Not now") = 1.5, engaged dismissal or acceptance = 0. Weighting `ignored` matters: the earlier design counted an auto-dismissed nudge as an engaged one, so the system systematically overestimated its own welcome. It decays over time as sessions end (via `recordSessionEnd()`).
+The `suppressionMultiplier` is derived from an **outcome-weighted** negativity ratio over the last 20 dismissals: quick dismissal = 1.0, `ignored` (auto-timeout, never touched) = 0.5, `rejected` ("Not now") = 1.5, `snoozed` ("Remind me later") = 0, engaged dismissal or acceptance = 0. Any negative outcome on a nudge that was itself a deferred re-delivery is doubled, capped at 1.5. Weighting `ignored` matters: the earlier design counted an auto-dismissed nudge as an engaged one, so the system systematically overestimated its own welcome. It decays over time as sessions end (via `recordSessionEnd()`).
 
 ---
 
@@ -312,10 +312,12 @@ The background records the judgment into the tab's session story and the per-cat
 
 The content script receives the `Intervention` and renders it using the tier-matched component:
 
-- **subtle pill** — small, unobtrusive overlay at the bottom of the viewport, auto-dismisses after 10 seconds
-- **full card** — modal-style card with the manipulation observation (in muted text above), the intervention message, an action button, and the "Not now — I chose to be here" correction link
+Both tiers render into a shadow root anchored to the **top-right** of the viewport (28 px inset, maximum z-index), so host-page CSS cannot reach them and their styles cannot leak out:
 
-Dwell time is measured from render to dismiss. Four outcomes are distinguished and sent back via `MSG.DISMISSED`:
+- **subtle pill** — small, unobtrusive single line, auto-dismisses after 10 seconds. No buttons beyond the close control: its premise is presence, not demand
+- **full card** — card with the manipulation observation (in muted text above), the intervention message, an action button, and two ways to decline — "Not now — I chose to be here" and "Remind me later"
+
+Dwell time is measured from render to dismiss. Five outcomes are distinguished and sent back via `MSG.DISMISSED`:
 
 | Outcome | Trigger | Effect |
 |---|---|---|
@@ -323,8 +325,19 @@ Dwell time is measured from render to dismiss. Four outcomes are distinguished a
 | `dismissed` | close button | neutral-to-negative; < 3 s dwell counts as quick dismissal |
 | `ignored` | auto-timeout, never touched | mild negative (0.5 weight) — never mistaken for engagement |
 | `rejected` | "Not now" clicked | strong negative: instantly caps the session for that cognitive state and writes a corrective `aligned` tally to the category's prior |
+| `snoozed` | "Remind me later" clicked | neutral on its own (0 weight, no session-cap tick); the nudge returns in 5 minutes and is judged by what happens then |
 
-The payload also echoes `tone`, `cogState`, and `category` (rather than relying on module-level state) so effectiveness tracking and prior correction survive service worker restarts.
+The payload also echoes `tone`, `cogState`, `category`, and `snoozeCount` (rather than relying on module-level state) so effectiveness tracking and prior correction survive service worker restarts.
+
+### Deferral — "Remind me later"
+
+**File:** `src/background/snooze.ts`
+
+Only the full card offers deferral, and only `SNOOZE.MAX` (2) times per nudge — past the cap the button stops rendering, so an intervention always resolves into a real signal rather than being pushed forward indefinitely. The deferred payload is stored in `chrome.storage.session` and re-armed with `chrome.alarms`; a `setTimeout` would not survive the service worker's ~30 s idle termination.
+
+This is the one path where a nudge reaches the user without the Guardian's approval, because the user asked for it — routing it back through `guardianVerdict` would swallow it, since a 5-minute deferral clears `MIN_GAP_MS` but loses to `SUBTLE_COOLDOWN_MS` as soon as the adaptive multiplier exceeds 1. Four conditions still gate re-delivery: Angel must still be enabled, the tab must still exist, its origin must be unchanged (a reflection about a checkout countdown is noise on an unrelated page), and the one-nudge-at-a-time slot must be free — if it is occupied the alarm re-arms for a minute, up to 3 times. Delivery is recorded through `afterIntervention`, so the hourly budget and subsequent cooldowns account for it: the bypass skips the veto, not the bookkeeping.
+
+**Closing the loop.** A free deferral would make "Remind me later" the lowest-friction way to make a nudge disappear, and a user who always took that exit would teach the gate nothing. So the deferral is judged by what happened when the nudge came back. Re-delivered nudges carry `deferred: true` into their `DismissalRecord`, and `negativeWeight` doubles any negative outcome on one (capped at 1.5) — a nudge asked for again and then let time out counts as a stronger refusal than a first-time ignore, and also ticks the session cap. Accepting after a deferral stays weight 0: that is the timing feedback working as intended.
 
 ---
 
@@ -346,7 +359,8 @@ Page DOM
   → [Offscreen] Gemma 4 2B — session story → alignment judgment → nudge proposal
   → JUDGMENT {requestId, judgment, intervention?} → session story + alignment priors
   → Guardian verdict (tier clamp) → Action Resolver → Content Script Nudge UI
-  → Outcome (dwellMs + accepted/dismissed/ignored/rejected)
+  → Outcome (dwellMs + accepted/dismissed/ignored/rejected/snoozed)
+      └─ snoozed → chrome.alarms (5 min) → re-delivery into the same tab+origin
   → Memory (pattern counters + profile updates + prior correction)
 ```
 
@@ -377,6 +391,6 @@ The 30-second signal dispatch interval was chosen to balance responsiveness agai
 - **`onStartup`** → pre-warm offscreen document (ensure model loaded after browser restart)
 - **`onConnect` (model-keepalive port)** → holds service worker alive during model download
 - **`tabs.onRemoved`** → clear per-tab event buffer and session story (title trail + narrative vanish), call `recordSessionEnd()` (tolerance decay)
-- **Service worker restart** → `sessionQuickDismissalsByState` resets (fresh session caps); `lastNudgeAt` resets (post-nudge recovery window resets); session stories and pending inference requests reset (the Narrator re-learns the tab from its next signal)
+- **Service worker restart** → `sessionQuickDismissalsByState` resets (fresh session caps); `lastNudgeAt` resets (post-nudge recovery window resets); session stories and pending inference requests reset (the Narrator re-learns the tab from its next signal). Deferred nudges survive: the alarm and its `chrome.storage.session` payload both outlive the worker, which is why deferral uses `chrome.alarms` rather than a timer
 
 The service worker is kept alive during model loading via the open `model-keepalive` port. Chrome 116+ supports this pattern for long-running background tasks.

@@ -39,6 +39,16 @@ export interface DismissedPayload {
   tone:      InterventionStyle
   cogState:  CognitiveState
   category?: DomainCategory
+
+  // Deferrals this nudge has already been through. > 0 means the user asked to
+  // see it again, which is what lets the background judge whether the deferral
+  // was genuine timing feedback or a softer way of dismissing it.
+  snoozeCount?: number
+
+  // Present only when outcome is 'snoozed' — the payload to re-deliver.
+  // The content script already holds it, so echoing it back avoids the
+  // background having to retain every in-flight nudge just in case.
+  intervention?: Intervention
 }
 
 export type Message =

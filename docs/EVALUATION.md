@@ -147,6 +147,8 @@ With the intent-alignment architecture, the system also measures *its own judgme
 
 **Ignore rate.** Auto-dismissed nudges (shown, never touched) are recorded as `ignored` — a distinct outcome with 0.5 negative weight. Previously these were indistinguishable from engaged dismissals, which systematically inflated the system's estimate of its own welcome. A high ignore rate now correctly drives cooldowns up.
 
+**Deferral outcome — timing vs. judgment.** "Remind me later" separates two things the other outcomes conflate. A rejection says the judgment was wrong; a deferral says the judgment was fine and the moment was not. That distinction is only worth anything if the loop closes, so the deferral is scored by what happens when the nudge returns five minutes later. Deferred-then-accepted is the timing model correcting itself and stays weight 0. Deferred-then-ignored means the deferral was a softer dismissal, and the negative weight doubles (capped at 1.5) — the same nudge, asked for and then abandoned, is a stronger refusal than one that was never touched. Watch the ratio between the two: a rising deferred-then-ignored share means "Remind me later" has become the path of least resistance rather than genuine feedback, and the button's value should be reconsidered.
+
 **Alignment priors as a calibration record.** The per-category verdict tallies (`aligned` / `drifting` / `captured`, with decay) double as a longitudinal record of where the Narrator's judgments concentrate — and, via rejection corrections, where they tend to be wrong.
 
 **Trend directions in the popup:**

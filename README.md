@@ -72,6 +72,7 @@ Four principles govern every design decision:
 - **The Guardian** — a small set of hard, auditable delivery limits: an absolute 2.5-minute floor between nudges, a 5-per-hour budget, and bounded adaptive cooldowns. The AI proposes; the Guardian can only say "not yet" or "smaller"
 - **Angel Presence** — a 0–1 slider that biases the adaptive system: quiet end extends cooldowns, raises confidence thresholds, and lowers session caps; active end does the inverse. The default (0.45) is a conservative adaptive midpoint; the underlying cognitive modeling is unchanged regardless of setting
 - **A correction channel that learns** — every full card carries "Not now — I chose to be here." One tap overrides the judgment, opts that state out for the session, and feeds the strongest possible label back into Angel's per-category alignment priors
+- **Deferral that stays honest** — "Remind me later" brings the same nudge back in 5 minutes (twice at most) and costs nothing on its own. But a nudge asked for again and then ignored counts double against the cooldown model: declining the timing is free, using the deferral as a polite exit is not
 - **Longitudinal resilience modeling** — weekly pattern snapshots, EMA-based profile evolution, tolerance/recovery tracking, and category-level alignment priors that adapt to individual behavioral rhythms
 - **Evaluation framework** — measures awareness quality (post-nudge recovery rate, reflective engagement depth, recovery acceleration) rather than screen time
 - **Tiered delivery** — subtle pill overlays for loops and drift; full card interventions reserved for high-stakes decision pressure
@@ -120,7 +121,7 @@ flowchart TB
     end
 
     subgraph nudge ["Content Script — Nudge UI"]
-        UI["Tier-Matched Renderer\nsubtle pill · full card\n'Not now' correction channel"]
+        UI["Tier-Matched Renderer\nsubtle pill · full card\n'Not now' correction · 5-min deferral"]
     end
 
     DET & TRK & SEM -->|BrowsingSignal every 30s| HEU
@@ -152,7 +153,7 @@ flowchart TB
 | **The Guardian** | Hard delivery limits: 2.5-minute absolute floor, 5-nudge hourly budget, adaptive cooldowns clamped to [0.5×, 6×], full-card confidence bar. The Narrator proposes; the Guardian only clamps. |
 | **Manipulation Interpreter** | Maps detected mechanics to framing templates. Uses a day-indexed hash (not hour/random) to cycle template slots daily — variety without per-session repetition. |
 | **Gemma (the Narrator)** | Reconstructs the session story, judges alignment (`aligned` / `drifting` / `captured`), and — only for misaligned sessions — proposes a nudge with tier and wording grounded in that story. |
-| **Nudge UI** | Tier-matched rendering (pill vs. full card). Distinguishes four outcomes: accepted, dismissed, ignored (auto-timeout — never counted as engagement), and rejected ("Not now" — the correction channel). |
+| **Nudge UI** | Tier-matched rendering (pill vs. full card), anchored top-right. Distinguishes five outcomes: accepted, dismissed, ignored (auto-timeout — never counted as engagement), rejected ("Not now" — the correction channel), and snoozed ("Remind me later" — returns in 5 minutes, judged by what happens then). |
 
 ---
 
@@ -439,6 +440,7 @@ angel/
 │   │   ├── intervention-strategy.ts  # STATE_STRATEGY table, resolveStrategy()
 │   │   ├── action-resolver.ts # resolveAction() — deterministic action label from state × mechanic
 │   │   ├── presence.ts       # derivePresence() — presence level → PresenceProfile bias
+│   │   ├── snooze.ts         # "Remind me later" — alarm-backed deferral, same tab+origin only
 │   │   └── phrase-cache.ts   # Recent phrase ring buffer
 │   │
 │   ├── content/              # Page observation

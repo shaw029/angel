@@ -91,6 +91,7 @@ export interface DismissalRecord {
   timestamp: Timestamp
   dwellMs:   number        // ms the nudge was visible before it went away
   outcome?:  NudgeOutcome  // absent in legacy records — treated as 'dismissed'
+  deferred?: boolean       // this nudge was a re-delivery the user asked for via "remind me later"
 }
 
 export type ManipulationMechanic =
@@ -139,7 +140,8 @@ export interface InferenceOutput {
 // 'dismissed' — close button clicked (neutral-to-negative, dwell disambiguates)
 // 'ignored'   — auto-dismissed with no interaction (mild negative — never count as engagement)
 // 'rejected'  — explicit "not now" (strong negative: wrong call, back off and learn)
-export type NudgeOutcome = 'accepted' | 'dismissed' | 'ignored' | 'rejected'
+// 'snoozed'   — "remind me later" (neutral: right read, wrong moment — re-delivered, never penalized)
+export type NudgeOutcome = 'accepted' | 'dismissed' | 'ignored' | 'rejected' | 'snoozed'
 
 export interface Intervention {
   id:          string
@@ -152,6 +154,7 @@ export interface Intervention {
   mechanic?:   ManipulationMechanic | null
   cogState?:   CognitiveState                  // state when nudge was shown — echoed back in DISMISSED
   category?:   DomainCategory                  // echoed back so rejections correct the alignment prior
+  snoozeCount?: number                         // times deferred via "remind me later"; caps re-delivery
 }
 
 export interface StorageState {
