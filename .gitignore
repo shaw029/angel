@@ -25,8 +25,11 @@ public/ort-wasm-simd-threaded.asyncify.wasm
 landing/node_modules/
 landing/dist/
 
-# Video assets — not source code
-screenshots/
+# Screenshot images are build output — the harness that generates them is not.
+screenshots/*
+!screenshots/capture.mjs
+!screenshots/harness/
+screenshots/harness/dist/
 
 # Release artifact — built locally, uploaded to GitHub Releases
 angel-extension.zip
