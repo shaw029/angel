@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Angel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Angel — a private on-device AI companion for intentional browsing.",
   "permissions": ["storage", "tabs", "activeTab", "offscreen", "alarms"],
   "content_security_policy": {
