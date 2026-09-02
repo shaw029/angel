@@ -56,7 +56,7 @@ function Statement() {
   const points = [
     ['Runs on your machine', 'Gemma loads once through WebGPU and answers locally.'],
     ['No account, no server', 'There is nothing to sign into and nowhere for data to go.'],
-    ['Page text stays put', 'Angel reads a page to understand the moment, then forgets it when the tab closes.'],
+    ['Body text is never read', 'Angel sees the page title and how you are moving, and forgets it when the tab closes.'],
   ]
   return (
     <div style={{ width: 1080, display: 'flex', flexDirection: 'column', gap: 26 }}>

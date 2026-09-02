@@ -68,9 +68,9 @@ exercised by shipped code.
 > checkout", "a countdown timer that has been running for ten minutes". That
 > pattern cannot be recognised from a fixed list of sites, and a blocklist
 > would defeat the purpose: the extension is meant to notice the moment, not
-> the domain. The content script reads page text and interaction signals in
-> the page itself, passes them to the local model, and discards them when the
-> tab closes. Nothing is sent to any server — Angel has no backend.
+> the domain. The content script reads the page title and interaction signals
+> in the page itself, passes them to the local model, and discards them when
+> the tab closes. Page body text is never read. Nothing is sent to any server — Angel has no backend.
 
 ## Remote code
 
@@ -99,17 +99,36 @@ Angel transmits nothing off the device, so no collection category applies.
 - User activity — **no**
 - Website content — **no**
 
-Page text and interaction signals are read *in the browser* and never leave it,
+Page titles and interaction signals are read *in the browser* and never leave it,
 which is not "collection" under the store's definition (transmitting data off
 the user's device). Tick all three certifications: data is not sold to third
 parties, is not used or transferred for any purpose unrelated to the item's
 single purpose, and is not used or transferred to determine creditworthiness or
 for lending.
 
-> [!IMPORTANT]
-> The listing still needs a privacy policy URL. The landing page has a privacy
-> section but no dedicated policy page — publish one at
-> `https://shaw029.github.io/angel/privacy` and link it in the dashboard.
+## Privacy policy URL
+
+```
+https://shaw029.github.io/angel/privacy.html
+```
+
+This is **mandatory**, not optional. The store's policy is that "if your Product
+handles any user data, then you must post an accurate and up to date privacy
+policy", and the [user data FAQ][faq] defines handling as "collecting,
+transmitting, using, or sharing" — then states plainly that "extensions are
+required to disclose how they handle user data, even when data is processed or
+stored locally on a user's device and is not transmitted to external servers or
+third parties". Both "website content and resources" and "web browsing activity"
+are listed as user data. Angel reads page titles and browsing signals, so
+local-only processing earns no exemption.
+
+The page is generated from the source, not from boilerplate: the signal list
+matches `BrowsingSignal`, the model input matches `CompressedContext`, and the
+twelve-week retention claim matches `WEEKLY_RETENTION` in `src/memory/index.ts`.
+If any of those change, update `landing/src/components/PrivacyPolicy.tsx` in the
+same commit — an inaccurate policy is a worse violation than a missing one.
+
+[faq]: https://developer.chrome.com/docs/webstore/program-policies/user-data-faq
 
 ## Store listing copy
 
@@ -129,8 +148,8 @@ for lending.
 > names what it noticed, and an easy way to step away.
 >
 > How it works
-> • Angel reads the page you are on and the rhythm of how you are moving
->   through it, locally.
+> • Angel reads the title of the page you are on and the rhythm of how you are
+>   moving through it, locally. It never reads the page's body text.
 > • A local model turns that into a plain-language observation.
 > • A gating layer decides whether the moment is worth speaking about at all.
 >   Most of the time it stays silent, and the popup tells you how often.
@@ -180,5 +199,5 @@ screenshots are a trademark problem, and the subject is the prompt, not the page
    permissions disappear from this form once the new package is uploaded — make
    sure no stale `tabs` or `activeTab` justification is left behind.
 4. Store listing tab → replace the five screenshots.
-5. Add the privacy policy URL once the page is live.
+5. Privacy practices tab → set the privacy policy URL above.
 6. Submit for review.
