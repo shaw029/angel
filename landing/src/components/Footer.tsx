@@ -49,8 +49,14 @@ export function Footer() {
           <div className="flex flex-col gap-2 max-w-xs">
             <p className="text-[10px] font-semibold tracking-widest uppercase text-white/25 mb-1">Privacy</p>
             <p className="text-xs leading-relaxed">
-              Angel reads page text and titles locally to understand your session — nothing is stored or transmitted, and session stories vanish when the tab closes. Only anonymous behavioral counters are kept in your browser's IndexedDB. No network calls beyond the one-time model download.
+              Angel reads page titles and behavioural signals locally to understand your session — nothing is stored or transmitted, and session stories vanish when the tab closes. Only anonymous behavioral counters are kept in your browser's IndexedDB. No network calls beyond the one-time model download.
             </p>
+            <a
+              href="privacy.html"
+              className="text-xs text-white/60 underline underline-offset-2 hover:text-white/80 transition-colors"
+            >
+              Read the full privacy policy
+            </a>
           </div>
         </div>
 
