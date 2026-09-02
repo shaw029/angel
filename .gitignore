@@ -33,3 +33,6 @@ screenshots/harness/dist/
 
 # Release artifact — built locally, uploaded to GitHub Releases
 angel-extension.zip
+
+# Store submission working notes — kept local
+docs/CHROME_WEB_STORE.md
