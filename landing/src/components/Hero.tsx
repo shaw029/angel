@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion'
 
+const STORE_URL = 'https://chromewebstore.google.com/detail/geemggebjlbjnkhgbgloldmnfefoghip'
+
 const fadeUp = {
   hidden:  { opacity: 0, y: 24 },
   visible: (delay = 0) => ({
@@ -87,19 +89,19 @@ export function Hero({ onInstall }: HeroProps) {
           custom={0.5}
         >
           <a
-            href="#"
-            className="inline-flex items-center gap-2 rounded-full border border-border px-7 py-3 text-sm font-medium text-ink-secondary hover:border-ink-muted hover:text-ink-primary transition-colors duration-200"
-            aria-label="Add to Chrome — coming soon"
+            href={STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full bg-ink-primary px-7 py-3 text-sm font-medium text-surface hover:bg-ink-secondary transition-colors duration-200"
           >
             Add to Chrome
-            <span className="rounded-sm bg-border px-1.5 py-0.5 text-[10px] font-medium text-ink-muted">Soon</span>
           </a>
           <button
             onClick={onInstall}
-            className="inline-flex items-center gap-2 rounded-full bg-ink-primary px-7 py-3 text-sm font-medium text-surface hover:bg-ink-secondary transition-colors duration-200"
+            className="inline-flex items-center gap-2 rounded-full border border-border px-7 py-3 text-sm font-medium text-ink-secondary hover:border-ink-muted hover:text-ink-primary transition-colors duration-200"
           >
             <DownloadIcon />
-            Install Locally
+            Install from source
           </button>
         </motion.div>
 

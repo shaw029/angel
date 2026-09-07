@@ -1,10 +1,9 @@
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-// When a release exists this triggers an immediate zip download.
-// Create a release with: git tag v0.1.0 && git push origin v0.1.0
-// then attach angel-extension.zip as a release asset on GitHub.
+// Resolves to the newest release's asset, so it never needs updating per release.
 const RELEASES_URL = 'https://github.com/shaw029/angel/releases/latest/download/angel-extension.zip'
+const STORE_URL    = 'https://chromewebstore.google.com/detail/geemggebjlbjnkhgbgloldmnfefoghip'
 
 const steps = [
   { n: '1', text: 'Download the ZIP below' },
@@ -80,10 +79,19 @@ export function InstallModal({ open, onClose }: { open: boolean; onClose: () => 
             {/* Header */}
             <div className="mb-7">
               <h2 className="text-xl font-semibold tracking-tight text-ink-primary">
-                Get set up in two minutes.
+                Install from source
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-                No account, no store. Runs entirely on your device.
+                For running your own build. Most people want{' '}
+                <a
+                  href={STORE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sage underline underline-offset-2 hover:text-ink-secondary transition-colors"
+                >
+                  the Chrome Web Store version
+                </a>{' '}
+                instead — one click, and it updates itself.
               </p>
             </div>
 
@@ -107,7 +115,7 @@ export function InstallModal({ open, onClose }: { open: boolean; onClose: () => 
               className="flex w-full items-center justify-center gap-2 rounded-full bg-ink-primary px-6 py-3 text-sm font-medium text-surface hover:bg-ink-secondary transition-colors duration-200"
             >
               <DownloadIcon />
-              Download Angel
+              Download the ZIP
             </a>
 
             <p className="mt-4 text-center text-xs text-ink-muted">

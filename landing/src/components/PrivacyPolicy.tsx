@@ -33,10 +33,10 @@ export function PrivacyPolicy() {
           Angel does not collect your data
         </h1>
         <p className="text-base leading-relaxed text-ink-secondary">
-          Angel has no servers, no accounts, and no analytics. Everything it observes is
-          processed on your own machine and stays there. This page describes exactly what it
-          reads, what it keeps, and the single network request it makes — so you can check the
-          claims against{' '}
+          The Angel extension has no servers, no accounts, and no analytics. Everything it
+          observes is processed on your own machine and stays there. This page describes exactly
+          what it reads, what it keeps, and the single network request it makes — plus, at the
+          end, what this website itself measures — so you can check the claims against{' '}
           <a href={GITHUB_URL} className="text-sage underline underline-offset-2" target="_blank" rel="noopener noreferrer">
             the source code
           </a>.
@@ -150,6 +150,21 @@ export function PrivacyPolicy() {
             'Dismissing a nudge teaches it to speak less; "remind me later" defers one without losing it.',
             'Uninstalling deletes every counter and setting along with the extension.',
           ]} />
+        </Section>
+
+        <Section title="This website and the store listing">
+          <p>
+            The extension collects nothing. This website is a separate thing, and it is not
+            silent: these pages use Google Analytics to count visits and see where people arrive
+            from, which sets cookies in your browser. The Chrome Web Store listing reports its own
+            aggregate view and install counts back to us the same way, de-identified by Google.
+          </p>
+          <p>
+            None of that is connected to the extension. Angel reports nothing, so nothing you do
+            with it can be linked to a visit here. If you would rather not be counted, any
+            tracker-blocking extension or your browser's own controls will stop it, and the site
+            works exactly the same.
+          </p>
         </Section>
 
         <Section title="Changes and contact">

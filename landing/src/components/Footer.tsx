@@ -1,4 +1,5 @@
 const GITHUB_URL = 'https://github.com/shaw029/angel'
+const STORE_URL  = 'https://chromewebstore.google.com/detail/geemggebjlbjnkhgbgloldmnfefoghip'
 
 export function Footer() {
   return (
@@ -29,11 +30,12 @@ export function Footer() {
               GitHub Repository
             </a>
             <a
-              href="#"
+              href={STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-sm hover:text-white/70 transition-colors"
-              aria-label="Chrome Extension — coming soon"
             >
-              Chrome Extension <span className="text-white/25 text-xs">(coming soon)</span>
+              Chrome Web Store
             </a>
             <a
               href={`${GITHUB_URL}/tree/main/docs`}
