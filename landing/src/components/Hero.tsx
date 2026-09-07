@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 
-const STORE_URL = 'https://chromewebstore.google.com/detail/geemggebjlbjnkhgbgloldmnfefoghip'
+const STORE_URL = 'https://chromewebstore.google.com/detail/angel/geemggebjlbjnkhgbgloldmnfefoghip'
 
 const fadeUp = {
   hidden:  { opacity: 0, y: 24 },

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 // Resolves to the newest release's asset, so it never needs updating per release.
 const RELEASES_URL = 'https://github.com/shaw029/angel/releases/latest/download/angel-extension.zip'
-const STORE_URL    = 'https://chromewebstore.google.com/detail/geemggebjlbjnkhgbgloldmnfefoghip'
+const STORE_URL    = 'https://chromewebstore.google.com/detail/angel/geemggebjlbjnkhgbgloldmnfefoghip'
 
 const steps = [
   { n: '1', text: 'Download the ZIP below' },

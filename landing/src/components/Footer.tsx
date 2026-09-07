@@ -1,5 +1,5 @@
 const GITHUB_URL = 'https://github.com/shaw029/angel'
-const STORE_URL  = 'https://chromewebstore.google.com/detail/geemggebjlbjnkhgbgloldmnfefoghip'
+const STORE_URL  = 'https://chromewebstore.google.com/detail/angel/geemggebjlbjnkhgbgloldmnfefoghip'
 
 export function Footer() {
   return (
