@@ -49,7 +49,7 @@ export function Footer() {
           <div className="flex flex-col gap-2 max-w-xs">
             <p className="text-[10px] font-semibold tracking-widest uppercase text-white/25 mb-1">Privacy</p>
             <p className="text-xs leading-relaxed">
-              Angel reads page titles and behavioural signals locally to understand your session — nothing is stored or transmitted, and session stories vanish when the tab closes. Only anonymous behavioral counters are kept in your browser's IndexedDB. No network calls beyond the one-time model download.
+              Angel reads page titles, scans visible text for manipulative patterns, and tracks behavioural signals — all locally. Only the result of a scan is kept, never the text, and session stories vanish when the tab closes. Only anonymous behavioral counters are kept in your browser's IndexedDB. No network calls beyond the one-time model download.
             </p>
             <a
               href="privacy.html"

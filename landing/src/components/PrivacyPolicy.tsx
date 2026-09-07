@@ -1,5 +1,5 @@
 const GITHUB_URL = 'https://github.com/shaw029/angel'
-const UPDATED    = '2 September 2026'
+const UPDATED    = '7 September 2026'
 
 /**
  * The Chrome Web Store requires a posted privacy policy from any extension that
@@ -59,9 +59,20 @@ export function PrivacyPolicy() {
             'How you arrived — typed, from a search engine, from a social feed, an internal link, or a reload. The referring hostname is matched locally and immediately discarded; only the category label is kept.',
           ]} />
           <p>
-            Angel does <Strong>not</Strong> read the body text of pages, form fields, passwords,
-            messages, or anything you type. It is watching the shape of a browsing session, not
-            its contents.
+            Angel also scans the visible text of the page against a fixed list of patterns for
+            manipulative design: urgency phrasing ("only 2 left", "ends tonight"), countdown
+            timers, recurring-billing and trial wording, and gamification prompts. Those patterns
+            are written into the source and cannot change at runtime.
+          </p>
+          <p>
+            Only the <Strong>result</Strong> of that scan is kept — which pattern categories
+            matched, how many times, and a confidence score. The text itself is never stored,
+            never included in what the model is shown, and never leaves the page; it is matched
+            and discarded in the same function.
+          </p>
+          <p>
+            Angel does <Strong>not</Strong> read what you type. It never accesses the value of any
+            form field, search box, or password input — only text the page itself displays.
           </p>
           <p>
             This picture lives in memory for as long as the tab does. It is never written to disk
@@ -74,7 +85,9 @@ export function PrivacyPolicy() {
             When Angel considers speaking, it passes a compressed description of the moment to a
             Gemma model running on your own device: a category label for the kind of site, bucketed
             scroll depth and duration, the current page title and up to four previous titles, how
-            you arrived, whether media is playing, and aggregate counts from your own history.
+            you arrived, whether media is playing, the labels of any manipulation patterns that
+            matched, and aggregate counts from your own history. The model is given those labels,
+            never the page text that produced them.
           </p>
           <p>
             The model runs entirely inside your browser through WebGPU. No prompt, no page title,
