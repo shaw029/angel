@@ -52,7 +52,7 @@ export const SCENES: Scene[] = [
   {
     id:       '3_remind_me_later',
     headline: 'Says what it saw — then waits',
-    sub:      'Every nudge names the mechanic it noticed. "Remind me later" defers it to the same moment, not the same minute.',
+    sub:      'Every nudge names what it noticed. "Remind me later" defers it to the moment, not the minute.',
     backdrop: 'research',
     urlLabel: 'atlasplan.example/pricing',
     intervention: {
@@ -77,7 +77,7 @@ export const SCENES: Scene[] = [
   {
     id:       '5_on_device',
     headline: 'Nothing leaves your device',
-    sub:      'Gemma runs locally through WebGPU. No accounts, no servers, no browsing history sent anywhere — ever.',
+    sub:      'Gemma runs locally through WebGPU. No account, no server, nothing sent anywhere.',
     backdrop: 'plain',
     urlLabel: '',
     statement: true,
@@ -99,9 +99,11 @@ export function Backdrop({ kind }: { kind: Scene['backdrop'] }) {
         {bar('170px', 20, '#d8d8d4')}
         <div style={{ display: 'flex', gap: 12 }}>{bar('80px', 14, '#e8e8e4')}{bar('56px', 14, '#e8e8e4')}</div>
       </div>
-      <div style={{ display: 'flex', gap: 34, marginTop: 6 }}>
-        <div style={{ width: 260, height: 300, background: '#e9e9e5', borderRadius: 14 }} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 6, maxWidth: 340 }}>
+      {/* Kept left of x=512, where the nudge card begins: the urgency banner is
+          the reason for the nudge, so it must stay readable beside it. */}
+      <div style={{ display: 'flex', gap: 22, marginTop: 6 }}>
+        <div style={{ width: 190, height: 290, background: '#e9e9e5', borderRadius: 14 }} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 6, maxWidth: 236 }}>
           {bar('100%', 22, '#dcdcd8')}
           {bar('72%', 15, '#e8e8e4')}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 4 }}>
@@ -110,7 +112,7 @@ export function Backdrop({ kind }: { kind: Scene['backdrop'] }) {
           </div>
           <div style={{
             background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 9,
-            padding: '9px 12px', fontSize: 13, color: '#DC2626', fontWeight: 600,
+            padding: '8px 10px', fontSize: 11.5, lineHeight: 1.45, color: '#DC2626', fontWeight: 600,
           }}>
             ⏱ Sale ends in 09:52 — only 2 left, 14 people viewing
           </div>
