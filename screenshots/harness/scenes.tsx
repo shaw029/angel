@@ -85,118 +85,197 @@ export const SCENES: Scene[] = [
 ]
 
 // ── Page backdrops ───────────────────────────────────────────────────────────
-// Deliberately generic, fictional sites: real brands in store screenshots are a
-// trademark problem, and the point is the nudge, not the page.
+// Real-looking pages on fictional sites. Wireframe grey bars made the images
+// read as mockups rather than as software in use; invented brands keep real
+// trademarks out of a commercial store listing.
+//
+// Everything stays left of x=512, where the nudge card begins, so the page
+// content the nudge is reacting to is never hidden behind it.
 
-const bar = (w: string, h: number, c: string, r = 6) => (
-  <div style={{ width: w, height: h, background: c, borderRadius: r }} />
-)
+const INK   = '#26261F'
+const MUTED = '#77776E'
+const FAINT = '#9C9C93'
+
+function Nav({ brand, links }: { brand: string; links: string[] }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      paddingBottom: 14, borderBottom: '1px solid #EEEEE9',
+    }}>
+      <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', color: INK }}>{brand}</span>
+      <div style={{ display: 'flex', gap: 18 }}>
+        {links.map(l => <span key={l} style={{ fontSize: 12, color: MUTED }}>{l}</span>)}
+      </div>
+    </div>
+  )
+}
 
 export function Backdrop({ kind }: { kind: Scene['backdrop'] }) {
   if (kind === 'shop') return (
-    <div style={{ padding: '34px 44px', display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {bar('170px', 20, '#d8d8d4')}
-        <div style={{ display: 'flex', gap: 12 }}>{bar('80px', 14, '#e8e8e4')}{bar('56px', 14, '#e8e8e4')}</div>
-      </div>
-      {/* Kept left of x=512, where the nudge card begins: the urgency banner is
-          the reason for the nudge, so it must stay readable beside it. */}
-      <div style={{ display: 'flex', gap: 22, marginTop: 6 }}>
-        <div style={{ width: 190, height: 290, background: '#e9e9e5', borderRadius: 14 }} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 6, maxWidth: 236 }}>
-          {bar('100%', 22, '#dcdcd8')}
-          {bar('72%', 15, '#e8e8e4')}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 4 }}>
-            <span style={{ fontSize: 30, fontWeight: 700, color: '#33332f' }}>$248</span>
-            <span style={{ fontSize: 15, color: '#9b9b95', textDecoration: 'line-through' }}>$310</span>
+    <div style={{ padding: '26px 40px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <Nav brand="NORTHWIND" links={['Women', 'Men', 'Home', 'Sale']} />
+
+      <div style={{ display: 'flex', gap: 24 }}>
+        <div style={{
+          width: 186, height: 268, borderRadius: 12, flexShrink: 0,
+          background: 'linear-gradient(160deg,#DFDCD4 0%,#CFCBC1 60%,#C3BFB4 100%)',
+        }} />
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9, maxWidth: 244 }}>
+          <span style={{ fontSize: 10, letterSpacing: '0.12em', color: FAINT, fontWeight: 600 }}>
+            OUTERWEAR
+          </span>
+          <span style={{ fontSize: 19, fontWeight: 600, color: INK, lineHeight: 1.25 }}>
+            Merino Wool Overshirt
+          </span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
+            <span style={{ fontSize: 25, fontWeight: 700, color: INK }}>$248</span>
+            <span style={{ fontSize: 14, color: FAINT, textDecoration: 'line-through' }}>$310</span>
+            <span style={{
+              fontSize: 10, fontWeight: 700, color: '#B45309',
+              background: '#FEF3C7', borderRadius: 4, padding: '2px 6px',
+            }}>20% OFF</span>
           </div>
+
           <div style={{
-            background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 9,
+            background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
             padding: '8px 10px', fontSize: 11.5, lineHeight: 1.45, color: '#DC2626', fontWeight: 600,
           }}>
             ⏱ Sale ends in 09:52 — only 2 left, 14 people viewing
           </div>
-          <div style={{ height: 46, background: '#26261f', borderRadius: 9, marginTop: 6 }} />
-          {bar('88%', 12, '#eaeae6')}
-          {bar('64%', 12, '#eaeae6')}
+
+          <div style={{
+            height: 40, borderRadius: 8, background: INK, color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, fontWeight: 600, marginTop: 2,
+          }}>
+            Add to cart
+          </div>
+
+          <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.5 }}>
+            Free returns within 30 days. Ships tomorrow.
+          </span>
         </div>
       </div>
     </div>
   )
 
   if (kind === 'feed') return (
-    <div style={{ padding: 26, display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{
-        height: 330, background: '#141414', borderRadius: 14, position: 'relative', overflow: 'hidden',
+        height: 268, borderRadius: 12, position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(155deg,#232331 0%,#14141B 55%,#0B0B0F 100%)',
       }}>
         <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(160deg,#1e1e28 0%,#101014 60%,#0a0a0c 100%)',
-        }} />
-        <div style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          width: 62, height: 62, borderRadius: '50%', background: 'rgba(255,255,255,0.10)',
+          width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.12)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <div style={{
-            width: 0, height: 0, marginLeft: 5,
-            borderTop: '11px solid transparent', borderBottom: '11px solid transparent',
-            borderLeft: '18px solid rgba(255,255,255,0.55)',
+            width: 0, height: 0, marginLeft: 4,
+            borderTop: '10px solid transparent', borderBottom: '10px solid transparent',
+            borderLeft: '16px solid rgba(255,255,255,0.6)',
           }} />
         </div>
-        <div style={{ position: 'absolute', bottom: 20, left: 22, display: 'flex', gap: 10 }}>
-          {bar('120px', 11, 'rgba(255,255,255,0.18)', 4)}
-          {bar('76px', 11, 'rgba(255,255,255,0.12)', 4)}
+        <div style={{ position: 'absolute', bottom: 16, left: 18, maxWidth: 300 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.92)' }}>
+            Ten Minutes of Absolutely Nothing
+          </div>
+          <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>
+            Driftwave · 1.2M views · Autoplaying next
+          </div>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 14 }}>
-        <div style={{ flex: 1, height: 92, background: '#121212', borderRadius: 12 }} />
-        <div style={{ flex: 1, height: 92, background: '#101010', borderRadius: 12 }} />
-        <div style={{ flex: 1, height: 92, background: '#0e0e0e', borderRadius: 12 }} />
+
+      <div style={{ display: 'flex', gap: 12 }}>
+        {['Why You Cannot Stop', 'The Algorithm Explained', 'One More Episode'].map((t, i) => (
+          <div key={t} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{
+              height: 58, borderRadius: 8,
+              background: ['#17171C', '#14141A', '#111117'][i],
+            }} />
+            <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.42)', lineHeight: 1.35 }}>{t}</span>
+          </div>
+        ))}
       </div>
     </div>
   )
 
   if (kind === 'research') return (
-    <div style={{ padding: '34px 46px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {bar('220px', 20, '#dcdcd8')}
-      <div style={{ display: 'flex', gap: 18, marginTop: 8 }}>
-        {[0, 1, 2].map(i => (
-          <div key={i} style={{
-            flex: 1, borderRadius: 14, padding: 20,
-            border: i === 1 ? '2px solid #4A7C59' : '1px solid #e6e6e2',
-            background: i === 1 ? '#F3F7F3' : '#fbfbfa',
-            display: 'flex', flexDirection: 'column', gap: 12, height: 250,
+    <div style={{ padding: '26px 40px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <Nav brand="ATLASPLAN" links={['Product', 'Pricing', 'Docs']} />
+
+      <div style={{ display: 'flex', gap: 14 }}>
+        {[
+          { name: 'Starter', price: '9',  lines: ['3 projects', 'Basic exports', 'Email support'] },
+          { name: 'Studio',  price: '19', lines: ['Unlimited projects', 'Priority exports', 'Shared workspaces'] },
+        ].map((plan, i) => (
+          <div key={plan.name} style={{
+            width: 176, borderRadius: 12, padding: '16px 16px 18px',
+            border: i === 1 ? '2px solid #4A7C59' : '1px solid #EAEAE4',
+            background: i === 1 ? '#F4F8F4' : '#FFFFFF',
+            display: 'flex', flexDirection: 'column', gap: 9,
           }}>
-            {bar('56%', 13, '#dcdcd8')}
-            <span style={{ fontSize: 26, fontWeight: 700, color: '#33332f' }}>
-              ${[9, 19, 49][i]}<span style={{ fontSize: 12, fontWeight: 500, color: '#9b9b95' }}>/mo</span>
-            </span>
-            {bar('100%', 10, '#eaeae6')}{bar('84%', 10, '#eaeae6')}{bar('90%', 10, '#eaeae6')}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: INK }}>{plan.name}</span>
+              {i === 1 && (
+                <span style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: '#4A7C59',
+                  background: 'rgba(74,124,89,0.12)', borderRadius: 4, padding: '2px 5px',
+                }}>POPULAR</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+              <span style={{ fontSize: 26, fontWeight: 700, color: INK }}>${plan.price}</span>
+              <span style={{ fontSize: 11, color: FAINT, fontWeight: 500 }}>/mo</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 2 }}>
+              {plan.lines.map(l => (
+                <span key={l} style={{ fontSize: 10.5, color: MUTED, lineHeight: 1.4 }}>✓&nbsp;&nbsp;{l}</span>
+              ))}
+            </div>
             <div style={{
-              marginTop: 'auto', height: 38, borderRadius: 8,
-              background: i === 1 ? '#4A7C59' : '#eaeae6',
-            }} />
+              marginTop: 'auto', height: 32, borderRadius: 7,
+              background: i === 1 ? '#4A7C59' : '#F1F1EC',
+              color: i === 1 ? '#fff' : MUTED,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11.5, fontWeight: 600,
+            }}>
+              Choose {plan.name}
+            </div>
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-        <div style={{ width: 34, height: 18, borderRadius: 9, background: '#4A7C59', position: 'relative' }}>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 32, height: 18, borderRadius: 9, background: '#4A7C59', position: 'relative' }}>
           <div style={{
             position: 'absolute', top: 2, right: 2, width: 14, height: 14,
             borderRadius: '50%', background: '#fff',
           }} />
         </div>
-        <span style={{ fontSize: 13, color: '#6b6b64' }}>Billed annually — save 20%</span>
+        <span style={{ fontSize: 12, color: MUTED }}>Billed annually — save 20%</span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxWidth: 430, marginTop: 2 }}>
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: INK }}>Frequently asked</span>
+        <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.55 }}>
+          Can I switch plans later? Yes — annual plans are refunded pro rata within 14 days.
+        </span>
       </div>
     </div>
   )
 
   return (
-    <div style={{ padding: '34px 46px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {bar('180px', 18, '#dcdcd8')}
-      <div style={{ height: 1, background: '#ececE8' }} />
-      {bar('100%', 12, '#ececE8')}{bar('92%', 12, '#ececE8')}{bar('70%', 12, '#f2f2ee')}
+    <div style={{ padding: '26px 40px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <Nav brand="THE DAILY REVIEW" links={['World', 'Business', 'Culture']} />
+      <span style={{ fontSize: 20, fontWeight: 600, color: INK, maxWidth: 430, lineHeight: 1.3 }}>
+        The quiet economics of holding your attention
+      </span>
+      <span style={{ fontSize: 12, color: MUTED, maxWidth: 430, lineHeight: 1.65 }}>
+        Every interface you use today was shaped by someone measuring how long you stayed.
+        The results are rarely accidental, and almost never neutral.
+      </span>
     </div>
   )
 }

@@ -126,17 +126,22 @@ function PopupShowcase() {
           <Popup />
         </div>
       </div>
-      <div style={{ flex: 1, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 22 }}>
+      {/* A 2x2 grid rather than a bullet list: the list left the right half of
+          the frame empty, which reads as unfinished at gallery size. */}
+      <div style={{
+        flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr',
+        gap: 16, alignContent: 'stretch', height: 462,
+      }}>
         {notes.map(([title, body]) => (
-          <div key={title} style={{ display: 'flex', gap: 14 }}>
-            <span style={{
-              marginTop: 7, width: 7, height: 7, borderRadius: '50%',
-              background: SAGE, flexShrink: 0,
-            }} />
-            <div>
-              <div style={{ fontSize: 16.5, fontWeight: 600, color: INK, marginBottom: 4 }}>{title}</div>
-              <div style={{ fontSize: 14.5, lineHeight: 1.6, color: '#6B6B64' }}>{body}</div>
-            </div>
+          <div key={title} style={{
+            background: '#fff', borderRadius: 14, padding: '22px 24px',
+            border: '1px solid rgba(74,124,89,0.14)',
+            boxShadow: '0 10px 26px rgba(40,50,42,0.07)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 9,
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: SAGE }} />
+            <div style={{ fontSize: 16, fontWeight: 600, color: INK, marginTop: 2 }}>{title}</div>
+            <div style={{ fontSize: 14, lineHeight: 1.55, color: '#6B6B64' }}>{body}</div>
           </div>
         ))}
       </div>
