@@ -1,8 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Angel",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Angel — a private on-device AI companion for intentional browsing.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "storage",
     "offscreen",
@@ -33,6 +39,12 @@
     }
   ],
   "action": {
-    "default_popup": "src/popup/index.html"
+    "default_popup": "src/popup/index.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   }
 }
