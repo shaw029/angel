@@ -13,7 +13,7 @@ export function PrivacyPolicy() {
       <header className="border-b border-border">
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
           <a href="./" className="flex items-center gap-2 group">
-            <span className="h-1.5 w-1.5 rounded-full bg-sage" />
+            <img src={`${import.meta.env.BASE_URL}apple-touch-icon.png`} alt="" className="h-4 w-4 rounded-[22%]" />
             <span className="text-sm font-medium group-hover:text-sage transition-colors">Angel</span>
           </a>
           <a

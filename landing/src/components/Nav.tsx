@@ -15,7 +15,7 @@ export function Nav() {
       <div className="relative flex items-center justify-between">
         {/* Wordmark */}
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-sage" />
+          <img src={`${import.meta.env.BASE_URL}apple-touch-icon.png`} alt="" className="h-5 w-5 rounded-[22%]" />
           <span className="text-sm font-medium text-ink-primary tracking-tight">Angel</span>
         </div>
 

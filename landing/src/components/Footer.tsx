@@ -10,7 +10,7 @@ export function Footer() {
           {/* Brand */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-sage" />
+              <img src={`${import.meta.env.BASE_URL}apple-touch-icon.png`} alt="" className="h-4 w-4 rounded-[22%]" />
               <span className="text-sm font-medium text-white/70">Angel</span>
             </div>
             <p className="text-xs leading-relaxed max-w-xs">
