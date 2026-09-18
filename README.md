@@ -1,3 +1,5 @@
+<p align="center"><img src="icons/icon128.png" width="96" height="96" alt="Angel icon" /></p>
+
 # Angel
 
 > **Adaptive cognitive protection powered by on-device Gemma inference.**
