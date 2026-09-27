@@ -10,12 +10,18 @@ const RE_EXPIRY = /\b(?:offer|deal|sale|access|limited)\s+ends?\b|\bexpires?\s+(
 
 // Stores last extracted seconds per element to detect decreasing values.
 // Only numbers are stored — no text content.
-const lastSeconds = new WeakMap<Element, number>()
+let lastSeconds = new WeakMap<Element, number>()
 let confirmedDecreasing = false
 
 export const id = 'countdown-timer' as const
 
+export function reset(): void {
+  lastSeconds = new WeakMap<Element, number>()
+  confirmedDecreasing = false
+}
+
 export function scan(): DetectionResult {
+  confirmedDecreasing = false
   let colonCount = 0
   let durationCount = 0
   let hasExpiry = false

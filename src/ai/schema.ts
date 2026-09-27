@@ -8,7 +8,7 @@ import type {
 
 // ─── Enum tables ─────────────────────────────────────────────────────────────
 
-const ALIGNMENTS: readonly IntentAlignment[]        = ['aligned', 'drifting', 'captured']
+const ALIGNMENTS: readonly IntentAlignment[]        = ['unknown', 'aligned', 'drifting', 'captured']
 const DECISION_STATES: readonly DecisionState[]     = ['intervene', 'observe', 'skip']
 const TIER_HINTS: readonly ('subtle' | 'full')[]    = ['subtle', 'full']
 const INTERVENTION_STYLES: readonly InterventionStyle[] = ['gentle', 'curious', 'reflective']
@@ -71,7 +71,7 @@ function normalizeConfidence(value: unknown): number {
  * Throws SchemaError with the offending field name on any violation.
  *
  * Strict fields (retried on failure): alignment, decision_state, confidence,
- * and — only when intervening — intervention_message. Everything else degrades
+ * with message copy provided by the grounded renderer. Everything else degrades
  * to a sensible default so trivia never burns a retry.
  */
 export function validate(raw: unknown): InferenceOutput {
@@ -92,10 +92,6 @@ export function validate(raw: unknown): InferenceOutput {
   const narrative = softString(o.narrative, 240)
   const intent    = softString(o.intent, 60)
   const message   = softString(o.intervention_message, 160)
-
-  if (decision_state === 'intervene' && !message) {
-    throw new SchemaError('intervention_message', 'must be non-empty when decision_state is intervene')
-  }
 
   return {
     alignment,

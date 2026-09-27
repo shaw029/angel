@@ -1,5 +1,5 @@
 import type { CognitiveState, InterventionStyle } from '@shared/types'
-import { openMemoryDB, dbGet, dbPut, STORE } from './db'
+import { openMemoryDB, dbGet, STORE } from './db'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -223,6 +223,15 @@ export async function recordReflectiveEngagement(dwellMs: number): Promise<void>
   })
 }
 
+export async function recordStateInterventionShown(state: CognitiveState): Promise<void> {
+  await mutate(p => {
+    if (!p.stateStats) p.stateStats = {}
+    const stats = p.stateStats[state] ?? { shown: 0, accepted: 0 }
+    stats.shown++
+    p.stateStats[state] = stats
+  })
+}
+
 /**
  * Records the outcome of an intervention shown while in a specific cognitive state.
  * Builds a per-state responsiveness model used by the gate to personalize timing.
@@ -235,7 +244,6 @@ export async function recordStateInterventionOutcome(
   await mutate(p => {
     if (!p.stateStats) p.stateStats = {}
     const ss = p.stateStats[state] ?? { shown: 0, accepted: 0 }
-    ss.shown++
     if (accepted) ss.accepted++
     p.stateStats[state] = ss
   })
@@ -263,19 +271,22 @@ function ema(prev: number, obs: number, alpha: number): number {
 
 async function mutate(fn: (p: CognitiveProfile) => void): Promise<void> {
   try {
-    const db     = await openMemoryDB()
-    const stored = await dbGet<CognitiveProfile>(db, STORE.COGNITIVE_PROFILE, PROFILE_KEY)
-    const p: CognitiveProfile = stored
-      ? {
-          ...stored,
-          styleStats: { ...stored.styleStats },
-          stateStats: stored.stateStats ? { ...stored.stateStats } : undefined,
-        }
-      : blank()
-    p.updatedAt = Date.now()
-    fn(p)
-    await dbPut(db, STORE.COGNITIVE_PROFILE, p)
+    const db = await openMemoryDB()
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(STORE.COGNITIVE_PROFILE, 'readwrite')
+      const store = transaction.objectStore(STORE.COGNITIVE_PROFILE)
+      const request = store.get(PROFILE_KEY)
+      request.onsuccess = () => {
+        const profile = (request.result as CognitiveProfile | undefined) ?? blank()
+        profile.updatedAt = Date.now()
+        fn(profile)
+        store.put(profile)
+      }
+      transaction.oncomplete = () => resolve()
+      transaction.onerror = () => reject(transaction.error)
+      transaction.onabort = () => reject(transaction.error)
+    })
   } catch {
-    // Non-critical — profile degrades gracefully to defaults
+    // Non-critical — profile degrades gracefully to defaults.
   }
 }

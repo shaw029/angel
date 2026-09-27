@@ -57,7 +57,23 @@ function classifyEntry(): EntryType {
   }
 }
 
-const entryType = classifyEntry()
+let entryType = classifyEntry()
+const documentId = crypto.randomUUID()
+let currentUrl = location.href
+let navigationRevision = 0
+
+export function contextKey(): string {
+  if (currentUrl !== location.href) {
+    currentUrl = location.href
+    navigationRevision++
+    maxScrollDepth = 0
+    visibleAccumMs = 0
+    visibleSince = document.hidden ? null : Date.now()
+    lastInteractionTime = Date.now()
+    entryType = 'internal'
+  }
+  return `${documentId}:${navigationRevision}`
+}
 
 // ── Media awareness ───────────────────────────────────────────────────────────
 // Watching a video is engagement, not idleness. Without this, a lecture or a
@@ -92,9 +108,11 @@ document.addEventListener('click', (e) => {
 document.addEventListener('keydown', () => { lastInteractionTime = Date.now() })
 
 export function snapshot(switchCount: number): BrowsingSignal {
+  const key = contextKey()
   const now   = Date.now()
   const media = mediaPlaying()
   return {
+    contextKey: key,
     url: location.href,
     domain: location.hostname,
     timestamp: now,

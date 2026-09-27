@@ -1,23 +1,13 @@
 import { getState, patchState } from '@storage/index'
-import { incrementPattern } from '@memory/index'
+import { incrementPattern, recordStateInterventionShown } from '@memory/index'
 import { afterIntervention } from './gate'
-import { MSG, SNOOZE } from '@shared/constants'
+import { getCompanion, isCurrentIntervention } from './companion'
+import { MSG, SNOOZE, GATE } from '@shared/constants'
 import type { Intervention } from '@shared/types'
 
-// ─── Deferred re-delivery ─────────────────────────────────────────────────────
-// "Remind me later" is the one path where a nudge reaches the user without the
-// Guardian's approval — because the user asked for it. Sending it back through
-// guardianVerdict would swallow it: the 5-minute deferral clears MIN_GAP_MS but
-// loses to SUBTLE_COOLDOWN_MS once the adaptive multiplier is above 1.
-//
-// Two things still hold. The nudge is only re-delivered into the context it was
-// raised in (same tab, same origin) — a reflection about a checkout countdown is
-// noise on an unrelated page. And delivery is recorded through afterIntervention,
-// so the hourly budget and subsequent cooldowns account for it; the bypass skips
-// the veto, not the bookkeeping.
-//
-// chrome.alarms rather than setTimeout: the MV3 service worker is terminated
-// after ~30s idle, so a timer would never survive to fire.
+// User-requested reminders skip adaptive spacing, but still respect the hard
+// floor, hourly budget, current episode, correction revision, and expiry.
+// Alarms survive service-worker suspension; stale reminders are discarded.
 
 const PREFIX = 'snooze:'
 
@@ -72,7 +62,7 @@ export async function scheduleSnooze(
     {
       tabId,
       origin,
-      intervention: { ...intervention, snoozeCount: nextCount },
+      intervention: { ...intervention, snoozeCount: nextCount, expiresAt: Date.now() + SNOOZE.DELAY_MS + 5 * 60_000 },
       retries:      0,
     },
     SNOOZE.DELAY_MS,
@@ -94,12 +84,23 @@ export async function onSnoozeAlarm(alarm: chrome.alarms.Alarm): Promise<boolean
   // Angel was switched off during the deferral — that veto still stands.
   const state = await getState()
   if (!state.enabled) return true
+  if (!isCurrentIntervention(record.intervention, await getCompanion(record.tabId))) return true
+  const now = Date.now()
+  const last = Math.max(state.lastFullIntervention ?? 0, state.lastSubtleIntervention ?? 0)
+  if (now - last < GATE.MIN_GAP_MS || (state.recentNudges ?? []).filter(t => now - t < 60 * 60_000).length >= GATE.HOURLY_BUDGET) {
+    if (record.retries < SNOOZE.MAX_RETRIES) await arm(alarm.name, { ...record, retries: record.retries + 1 }, SNOOZE.RETRY_MS)
+    return true
+  }
 
   // The nudge belongs to a moment, not just a tab. If that moment is gone —
   // tab closed, or navigated to a different site — let the reminder go with it.
   try {
     const tab = await chrome.tabs.get(record.tabId)
     if (!tab.url || new URL(tab.url).origin !== record.origin) return true
+    if (!tab.active) {
+      if (record.retries < SNOOZE.MAX_RETRIES) await arm(alarm.name, { ...record, retries: record.retries + 1 }, SNOOZE.RETRY_MS)
+      return true
+    }
   } catch {
     return true
   }
@@ -127,6 +128,7 @@ export async function onSnoozeAlarm(alarm: chrome.alarms.Alarm): Promise<boolean
   // A re-delivery is a real delivery: it counts toward the hourly budget, the
   // nudge total, and the denominator the evaluation rates divide by.
   await patchState(afterIntervention(record.intervention.tier, state))
+  if (record.intervention.cogState) await recordStateInterventionShown(record.intervention.cogState)
   void incrementPattern('interventions_shown')
   return true
 }

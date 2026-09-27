@@ -1,6 +1,8 @@
 export function textWalker(root: Element = document.body): TreeWalker {
   return document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
+      const parent = node.parentElement
+      if (!parent || parent.closest('#ca-nudge-host') || !isVisible(parent)) return NodeFilter.FILTER_REJECT
       const tag = (node.parentElement?.tagName ?? '').toUpperCase()
       if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT' || tag === 'TEMPLATE') {
         return NodeFilter.FILTER_REJECT

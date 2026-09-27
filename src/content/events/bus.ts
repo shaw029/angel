@@ -1,3 +1,4 @@
+import { contextKey } from '../observer'
 import type { BehavioralEvent } from '@shared/types'
 import { MSG } from '@shared/constants'
 
@@ -11,9 +12,12 @@ const URGENT_CONFIDENCE   =  0.75
 const MAX_QUEUE           =    40   // oldest events evicted when over limit
 
 const queue: BehavioralEvent[] = []
+let queuedContext = contextKey()
 let flushTimer: ReturnType<typeof setTimeout> | null = null
 
 export function push(event: BehavioralEvent): void {
+  const current = contextKey()
+  if (current !== queuedContext) { queue.length = 0; queuedContext = current }
   // Evict oldest entry if queue is full
   if (queue.length >= MAX_QUEUE) queue.shift()
   queue.push(event)
@@ -32,11 +36,12 @@ export function push(event: BehavioralEvent): void {
 
 function flush(): void {
   flushTimer = null
+  if (queuedContext !== contextKey()) { queue.length = 0; return }
   if (queue.length === 0) return
 
   const batch = queue.splice(0)
   try {
-    chrome.runtime.sendMessage({ type: MSG.BEHAVIORAL_EVENTS, payload: batch })
+    chrome.runtime.sendMessage({ type: MSG.BEHAVIORAL_EVENTS, payload: { contextKey: queuedContext, events: batch } })
   } catch {
     // Extension reloaded while content script was alive — discard safely
   }

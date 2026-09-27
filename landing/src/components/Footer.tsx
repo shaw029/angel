@@ -14,7 +14,7 @@ export function Footer() {
               <span className="text-sm font-medium text-white/70">Angel</span>
             </div>
             <p className="text-xs leading-relaxed max-w-xs">
-              An adaptive cognitive protection system powered by on-device Gemma inference. Browsing data and behavioural signals never leave your device. Model files are downloaded once and cached locally.
+              A browsing companion powered by local Gemma inference. Browsing observations stay on your device. Model files are downloaded and cached locally.
             </p>
           </div>
 
@@ -51,7 +51,7 @@ export function Footer() {
           <div className="flex flex-col gap-2 max-w-xs">
             <p className="text-[10px] font-semibold tracking-widest uppercase text-white/25 mb-1">Privacy</p>
             <p className="text-xs leading-relaxed">
-              Angel reads page titles, scans visible text for manipulative patterns, and tracks behavioural signals — all locally. Only the result of a scan is kept, never the text, and session stories vanish when the tab closes. Only anonymous behavioral counters are kept in your browser's IndexedDB. No network calls beyond the one-time model download.
+              Angel processes titles, visible-text pattern results, and browsing signals locally. Storage includes aggregate history and temporary session context; saving a page explicitly keeps its URL and title. Model downloads can recur after cache clearing or upgrades.
             </p>
             <a
               href="privacy.html"
@@ -64,7 +64,7 @@ export function Footer() {
 
         <div className="mt-10 pt-6 border-t border-white/5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs">
-            Powered locally by <span className="text-white/60">Gemma 4 2B</span>
+            Powered locally by <span className="text-white/60">Gemma</span>
           </p>
           <p className="text-xs">MIT License · Open source</p>
         </div>

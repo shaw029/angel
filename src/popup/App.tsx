@@ -1,3 +1,4 @@
+import { CompanionPanel } from './CompanionPanel'
 import { useEffect, useState } from 'react'
 import type { StorageState, ModelLoadStatus, EvaluationMetrics, TrendDirection, CognitiveState } from '@shared/types'
 import { MSG, COOLDOWN_DEFAULT_MINUTES, PRESENCE_DEFAULT } from '@shared/constants'
@@ -125,7 +126,7 @@ function buildInsightRows(m: EvaluationMetrics): InsightRow[] {
   if (m.postNudgeRecoveryRate !== null) {
     const pct = Math.round(m.postNudgeRecoveryRate * 100)
     rows.push({
-      label: 'Stepped away after a nudge',
+      label: 'State eased after a nudge',
       value: `${pct}%`,
       trend: m.recoveryTrend,
     })
@@ -134,7 +135,7 @@ function buildInsightRows(m: EvaluationMetrics): InsightRow[] {
   if (m.reflectiveEngagementRate !== null) {
     const pct = Math.round(m.reflectiveEngagementRate * 100)
     rows.push({
-      label: 'Paused after a nudge',
+      label: 'Marked helpful after 8+ seconds',
       value: `${pct}%`,
       trend: m.engagementTrend,
     })
@@ -142,7 +143,7 @@ function buildInsightRows(m: EvaluationMetrics): InsightRow[] {
 
   if (m.recoveryDurationMinutes !== null) {
     rows.push({
-      label: 'Avg. time to refocus',
+      label: 'Avg. estimated loop duration',
       value: `${Math.round(m.recoveryDurationMinutes)} min`,
       trend: m.recoveryTrend,
     })
@@ -272,7 +273,7 @@ function InsightPanel({ metrics }: { metrics: EvaluationMetrics }) {
 
   return (
     <div className="mt-3 pt-3 border-t border-neutral-100">
-      <p className="text-[10px] text-ink-muted mb-2">{weekLabel} of awareness data</p>
+      <p className="text-[10px] text-ink-muted mb-2">{weekLabel} of local observations</p>
       <div className="space-y-1.5">
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between">
@@ -380,21 +381,13 @@ export function App() {
     if (!state) return
     const next = !state.enabled
     setState((s) => (s ? { ...s, enabled: next } : s))
-    const current = await new Promise<Record<string, unknown>>(
-      (resolve) => chrome.storage.local.get('state', resolve)
-    )
-    chrome.storage.local.set({ state: { ...STATE_DEFAULTS, ...(current.state as object), enabled: next } })
-    chrome.runtime.sendMessage({ type: MSG.SET_ENABLED, payload: next })
+    await chrome.runtime.sendMessage({ type: MSG.SET_ENABLED, payload: next })
   }
 
   async function setPresence(level: number) {
     if (!state) return
     setState((s) => (s ? { ...s, presenceLevel: level } : s))
-    const current = await new Promise<Record<string, unknown>>(
-      (resolve) => chrome.storage.local.get('state', resolve)
-    )
-    chrome.storage.local.set({ state: { ...STATE_DEFAULTS, ...(current.state as object), presenceLevel: level } })
-    chrome.runtime.sendMessage({ type: MSG.SET_PRESENCE, payload: level })
+    await chrome.runtime.sendMessage({ type: MSG.SET_PRESENCE, payload: level })
   }
 
   if (!state) {
@@ -406,11 +399,12 @@ export function App() {
   }
 
   return (
-    <div className="w-60 p-5 bg-surface font-sans">
+    <div className="w-80 p-5 bg-surface font-sans">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-ink-primary">Angel</span>
         <button
           onClick={toggle}
+          aria-label="Enable proactive nudges"
           role="switch"
           aria-checked={state.enabled}
           className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage ${
@@ -447,6 +441,7 @@ export function App() {
         disabled={!state.enabled}
       />
 
+      <CompanionPanel />
       <ModelStatusBadge status={modelStatus} />
     </div>
   )

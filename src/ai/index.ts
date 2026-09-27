@@ -1,6 +1,7 @@
+import { explainEvidence, groundedMessage } from '@shared/evidence-copy'
 import type { AlignmentJudgment, CompressedContext, Intervention } from '@shared/types'
 import { infer } from './infer'
-import { generateInterpretation } from './interpretation'
+import { classifyMechanic } from './interpretation'
 
 export { infer } from './infer'
 
@@ -21,9 +22,10 @@ export interface SessionVerdict {
  * regardless of what the decision field says — an aligned user is never nudged.
  */
 export async function judgeSession(ctx: CompressedContext): Promise<SessionVerdict> {
-  const interpretation = generateInterpretation(ctx, ctx.recentPhrases ?? [])
+  const interpretation = { mechanic: classifyMechanic(ctx), explanation: explainEvidence(ctx.signals) }
 
   const output = await infer({
+    explicitIntent: ctx.explicitIntent,
     event_type:      ctx.event_type,
     signals:         ctx.signals,
     session_context: ctx.session_context,
@@ -52,22 +54,24 @@ export async function judgeSession(ctx: CompressedContext): Promise<SessionVerdi
 
   const wantsNudge =
     output.decision_state === 'intervene' &&
-    output.alignment !== 'aligned' &&
-    output.confidence >= 0.5 &&
-    output.intervention_message.length > 0
+    (output.alignment === 'drifting' || output.alignment === 'captured') &&
+    output.confidence >= 0.5
 
-  if (!wantsNudge) return { judgment, intervention: null }
+  const message = groundedMessage(ctx.signals)
+  if (!wantsNudge || !message) return { judgment, intervention: null }
 
   return {
     judgment,
     intervention: {
       id:          crypto.randomUUID(),
-      message:     output.intervention_message,
+      message,
+      explanation: explainEvidence(ctx.signals),
+      reasonKey: [...ctx.signals].filter(s => s !== 'session_long').sort().join(','),
       tone:        output.intervention_style,
       action:      output.suggested_action,
       confidence:  output.confidence,
       tier:        output.tier_hint,  // proposal — the Guardian may clamp full → subtle
-      observation: interpretation.observation || undefined,
+      observation: undefined,
       mechanic:    interpretation.mechanic,
       category:    ctx.page_context.category,
     },

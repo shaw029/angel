@@ -1,5 +1,5 @@
 const GITHUB_URL = 'https://github.com/shaw029/angel'
-const UPDATED    = '7 September 2026'
+const UPDATED    = '27 September 2026'
 
 /**
  * The Chrome Web Store requires a posted privacy policy from any extension that
@@ -30,150 +30,120 @@ export function PrivacyPolicy() {
           Privacy Policy
         </p>
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-5">
-          Angel does not collect your data
+          Your browsing context stays on your device
         </h1>
         <p className="text-base leading-relaxed text-ink-secondary">
-          The Angel extension has no servers, no accounts, and no analytics. Everything it
-          observes is processed on your own machine and stays there. This page describes exactly
-          what it reads, what it keeps, and the single network request it makes — plus, at the
-          end, what this website itself measures — so you can check the claims against{' '}
-          <a href={GITHUB_URL} className="text-sage underline underline-offset-2" target="_blank" rel="noopener noreferrer">
-            the source code
-          </a>.
+          Angel processes browsing observations locally. The extension has no account service,
+          telemetry, or remote inference. This page explains what it reads and stores, the model
+          downloads it makes, and the separate services used by this website.
         </p>
         <p className="mt-6 text-xs text-ink-faint">
-          Last updated {UPDATED} · Applies to Angel 0.2.1 and later
+          Last updated {UPDATED} · Describes the 0.3.0 development source. Companion controls are
+          unreleased; published downloads and the store may offer an earlier version.
         </p>
 
-        <Section title="What Angel reads while you browse">
-          <p>
-            On pages you visit, Angel's content script keeps a short-lived picture of the
-            current moment in memory:
-          </p>
+        <Section title="What Angel reads">
           <List items={[
-            'The page address and hostname.',
-            'The page title, truncated to 120 characters.',
-            'How long the tab has been visible in the foreground, how far you have scrolled, and how long since your last interaction.',
-            'How many times you have switched tabs in the last ten minutes.',
-            'Whether audio or video is currently playing.',
-            'How you arrived — typed, from a search engine, from a social feed, an internal link, or a reload. The referring hostname is matched locally and immediately discarded; only the category label is kept.',
+            'The current page address, hostname, and title (truncated to 120 characters).',
+            'Foreground duration, scroll depth, time since interaction, recent tab switching, and whether media is playing.',
+            'A coarse arrival category such as search, social referral, internal navigation, reload, or direct/no referrer. This does not prove why you arrived.',
+            'Visible text and DOM patterns for urgency wording, timers, billing/trial language, gamification, autoplay attributes, and feed growth.',
           ]} />
           <p>
-            Angel also scans the visible text of the page against a fixed list of patterns for
-            manipulative design: urgency phrasing ("only 2 left", "ends tonight"), countdown
-            timers, recurring-billing and trial wording, and gamification prompts. Those patterns
-            are written into the source and cannot change at runtime.
-          </p>
-          <p>
-            Only the <Strong>result</Strong> of that scan is kept — which pattern categories
-            matched, how many times, and a confidence score. The text itself is never stored,
-            never included in what the model is shown, and never leaves the page; it is matched
-            and discarded in the same function.
-          </p>
-          <p>
-            Angel does <Strong>not</Strong> read what you type. It never accesses the value of any
-            form field, search box, or password input — only text the page itself displays.
-          </p>
-          <p>
-            This picture lives in memory for as long as the tab does. It is never written to disk
-            and never leaves the browser.
+            Text-pattern scans retain result categories, counts, and scores rather than the matched
+            passages. Page titles are handled separately and may be included in local context.
+            Angel does not read host-page form values, search inputs, or passwords. Text you
+            intentionally enter into Ask Angel is processed locally as your stated intent.
           </p>
         </Section>
 
         <Section title="What the local model sees">
           <p>
-            When Angel considers speaking, it passes a compressed description of the moment to a
-            Gemma model running on your own device: a category label for the kind of site, bucketed
-            scroll depth and duration, the current page title and up to four previous titles, how
-            you arrived, whether media is playing, the labels of any manipulation patterns that
-            matched, and aggregate counts from your own history. The model is given those labels,
-            never the page text that produced them.
+            The prompt can contain the current title and up to four previous titles, an arrival
+            category, media activity, active duration, detector labels, a mechanic hypothesis,
+            behavioral estimates, a previous narrative, aggregate history, and optional stated
+            intent. It does not contain raw page HTML or the passages matched by text detectors.
           </p>
           <p>
-            The model runs entirely inside your browser through WebGPU. No prompt, no page title,
-            and no browsing signal is ever sent over the network.
+            Gemma runs inside the browser using WebGPU where available, with a WASM fallback.
+            Prompts, titles, and browsing observations are not sent to a remote inference service.
           </p>
         </Section>
 
-        <Section title="What is stored on your device">
-          <p>Three things persist, all locally, all in your own browser profile:</p>
+        <Section title="What is stored locally">
           <List items={[
-            'Your settings — whether Angel is on, and where the presence slider sits.',
-            'A fixed set of counters, in IndexedDB. These are strictly enumerated: how many long passive sessions occurred, how many nudges were shown, accepted, quickly dismissed, or withheld. No URLs and no page content are stored — the key list is fixed in the source and cannot grow dynamically.',
-            'Weekly aggregate summaries, automatically deleted after twelve weeks.',
+            'Persistent settings, recent delivery/outcome records, and correction-based priors grouped by coarse site category.',
+            'IndexedDB aggregate counters, behavioral profile summaries, and weekly aggregate snapshots. Old weekly snapshots are pruned on subsequent writes; aggregates do not contain URLs or page passages.',
+            'Browser session storage for tab/site context, including evidence signatures containing the current title, optional intent, quiet preference, explanations, and requested reminders.',
+            'An explicitly saved URL/title when you choose Save this page for later. It remains associated with that tab until forgotten, the tab closes, or the browser session ends.',
+            'Cached model and tokenizer files, which the browser may evict or you may clear.',
           ]} />
           <p>
-            Removing the extension removes all of it. Nothing survives uninstallation, because
-            nothing was ever stored anywhere but your browser.
+            Intent and quiet mode reset when the tab changes origin or resumes after 30 minutes
+            without an observed foreground snapshot. Saved return points survive navigation.
+            In-memory title trails, narratives, and estimates can reset when their process restarts.
+            Uninstalling removes extension-managed settings and history from your browser profile.
           </p>
         </Section>
 
-        <Section title="The one network request">
+        <Section title="Network requests">
           <p>
-            The first time Angel runs, it downloads the Gemma model's weights and tokenizer from
-            the public Hugging Face CDN, then caches them locally so it never needs to fetch them
-            again. As with any file download, that CDN sees the request and the IP address it came
-            from. Nothing about you or your browsing is included.
+            Angel downloads model weights, tokenizer files, and related model configuration from
+            Hugging Face. These can require multiple requests and can be downloaded again after
+            cache eviction, clearing, or an upgrade. The download service receives normal request
+            metadata, including your IP address; prompts and browsing observations are not included.
           </p>
           <p>
-            Angel makes no other network requests of any kind. There is no telemetry, no crash
-            reporting, and no update ping beyond Chrome's own extension updates.
-          </p>
-        </Section>
-
-        <Section title="Why Angel asks to read every site">
-          <p>
-            Angel requests access to all http and https pages. The patterns it exists to notice —
-            a fourth video in a row, a third return to the same checkout, a decision being circled
-            for an hour — can only be recognised from whatever page you happen to be on. A fixed
-            site list would defeat the purpose: Angel responds to the moment, not the domain.
-          </p>
-          <p>
-            That access is used solely to observe the signals listed above, in your browser, and
-            for nothing else.
+            The extension sends no analytics or crash reports. Chrome handles extension updates
+            separately. Opening a saved page is a navigation you request and contacts that website
+            in the normal way.
           </p>
         </Section>
 
-        <Section title="What Angel never does">
-          <List items={[
-            'It does not transmit your browsing data anywhere.',
-            'It does not sell or share data with third parties — there is no data to sell and no third party to share it with.',
-            'It does not use your data for advertising, profiling for others, or creditworthiness.',
-            'It does not require an account, and it does not know who you are.',
-          ]} />
+        <Section title="Why the extension requests site access">
+          <p>
+            Angel requests access to HTTP and HTTPS pages so its content script can observe the
+            listed signals and display optional nudges across sites. Generic detectors can notice
+            feed growth or urgency wording; they do not establish your mental state, verify a
+            seller's deadline, or prove that media was automatically selected.
+          </p>
         </Section>
 
         <Section title="Your controls">
           <List items={[
-            'The switch in the popup stops Angel entirely.',
-            'The presence slider sets how often it may speak, from quiet to active.',
-            'Dismissing a nudge teaches it to speak less; "remind me later" defers one without losing it.',
-            'Uninstalling deletes every counter and setting along with the extension.',
+            'The popup switch disables proactive nudges. Page observation is not a separate opt-out under that switch; Chrome site-access controls can restrict where the extension runs.',
+            'The presence slider adjusts permitted nudge frequency within hard interruption limits.',
+            'Ask Angel lets you state or clear intent, inspect the last explanation, quiet/resume an episode, and save/open/forget a return point.',
+            'I chose this corrects Angel and quiets the current episode. Requested reminders remain subject to context, expiry, and interruption limits.',
           ]} />
+          <p>
+            Angel does not sell or transmit browsing observations to third parties or use them for
+            advertising or profiling for others. It does not block sites or navigate automatically.
+          </p>
         </Section>
 
         <Section title="This website and the store listing">
           <p>
-            The extension collects nothing. This website is a separate thing, and it is not
-            silent: these pages use Google Analytics to count visits and see where people arrive
-            from, which sets cookies in your browser. The Chrome Web Store listing reports its own
-            aggregate view and install counts back to us the same way, de-identified by Google.
+            This website is separate from the extension. It uses Google Analytics for visits and
+            referral information, which can set cookies, and embeds a YouTube video that can contact
+            YouTube. Browser privacy controls can limit these services. The Chrome Web Store also
+            provides listing and installation metrics through Google's own systems.
           </p>
           <p>
-            None of that is connected to the extension. Angel reports nothing, so nothing you do
-            with it can be linked to a visit here. If you would rather not be counted, any
-            tracker-blocking extension or your browser's own controls will stop it, and the site
-            works exactly the same.
+            The extension does not report browsing observations or its local counters to these
+            services. Website measurement is not extension telemetry.
           </p>
         </Section>
 
         <Section title="Changes and contact">
           <p>
-            If Angel's data handling ever changes, this page changes with it and the date above is
-            updated. Questions, or a discrepancy between this page and the code, are best raised as
-            an issue on{' '}
+            Data-handling changes should update this policy alongside the code. For questions or
+            discrepancies, see the{' '}
             <a href={`${GITHUB_URL}/issues`} className="text-sage underline underline-offset-2" target="_blank" rel="noopener noreferrer">
-              the GitHub repository
+              GitHub issue tracker
+            </a>. Release versions and their source are listed in the{' '}
+            <a href={`${GITHUB_URL}/releases`} className="text-sage underline underline-offset-2" target="_blank" rel="noopener noreferrer">
+              release history
             </a>.
           </p>
         </Section>
@@ -211,8 +181,4 @@ function List({ items }: { items: string[] }) {
       ))}
     </ul>
   )
-}
-
-function Strong({ children }: { children: React.ReactNode }) {
-  return <span className="font-medium text-ink-primary">{children}</span>
 }

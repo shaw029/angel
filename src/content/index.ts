@@ -1,4 +1,4 @@
-import { snapshot } from './observer'
+import { snapshot, contextKey } from './observer'
 import { MSG, SIGNAL_INTERVAL_MS, SWITCH_WINDOW_MS } from '@shared/constants'
 import type { Message } from '@shared/messages'
 import type { Intervention, NudgeOutcome } from '@shared/types'
@@ -19,6 +19,8 @@ function switchCount(): number {
 }
 
 let hostEl: HTMLElement | null = null
+let unmountNudge: (() => void) | null = null
+let observedContext = contextKey()
 let shownAt:  number | null = null  // wall-clock ms when current nudge appeared
 
 document.addEventListener('visibilitychange', () => {
@@ -27,7 +29,7 @@ document.addEventListener('visibilitychange', () => {
 
 function safeSend(message: Message): void {
   try {
-    chrome.runtime.sendMessage(message)
+    void chrome.runtime.sendMessage(message).catch(() => undefined)
   } catch {
     // Extension was reloaded while this content script was still alive — ignore.
   }
@@ -35,32 +37,46 @@ function safeSend(message: Message): void {
 
 // Periodic browsing signal (basic metrics)
 setInterval(() => {
+  checkNavigation()
   if (document.hidden) return
   safeSend({ type: MSG.BROWSING_SIGNAL, payload: snapshot(switchCount()) })
 }, SIGNAL_INTERVAL_MS)
 
 chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
-  if (message.type === MSG.INTERVENTION) {
-    // Answer synchronously with whether the nudge actually mounted. A deferred
-    // reminder can arrive while another nudge still occupies the slot, and the
-    // background re-arms rather than dropping it — but only if it can tell.
-    sendResponse(showNudge(message.payload))
+  if (message.type === MSG.GET_PAGE_SNAPSHOT) {
+    checkNavigation()
+    sendResponse(document.hidden ? null : snapshot(switchCount()))
+    return false
   }
+  if (message.type === MSG.CLEAR_NUDGE) {
+    clearNudge()
+    sendResponse(true)
+    return false
+  }
+  if (message.type === MSG.INTERVENTION) {
+    void chrome.storage.local.get('state').then(({ state }) => {
+      checkNavigation()
+      const nudge = message.payload
+      const valid = state?.enabled !== false && !document.hidden &&
+        nudge.contextKey === contextKey() &&
+        nudge.contextTitle === document.title.slice(0, 120) &&
+        (nudge.expiresAt ?? 0) > Date.now()
+      sendResponse(valid && showNudge(nudge))
+    }).catch(() => sendResponse(false))
+    return true
+  }
+  return false
 })
 
 // Behavioral detection + tracking — events flow through the bus to background
-const teardownDetectors = setupDetectors(push)
-const teardownTrackers  = setupTrackers(push)
+let teardownDetectors = setupDetectors(push)
+let teardownTrackers  = setupTrackers(push)
 
 // Demo trigger: dispatched by demo HTML pages via document.dispatchEvent(new CustomEvent('ca:demo-trigger')).
 // Calls showNudge directly — no inference needed, works before the model is loaded.
 // Force-clears any existing nudge so repeated demo triggers always work.
 document.addEventListener('ca:demo-trigger', () => {
-  if (hostEl) {
-    hostEl.remove()
-    hostEl  = null
-    shownAt = null
-  }
+  clearNudge()
   void showNudge({
     id:         crypto.randomUUID(),
     message:    "You can take a moment before deciding.",
@@ -71,7 +87,34 @@ document.addEventListener('ca:demo-trigger', () => {
   })
 })
 
+const navigationTimer = setInterval(checkNavigation, 1_000)
+function checkNavigation(): void {
+  const key = contextKey()
+  if (observedContext === key) return
+  observedContext = key
+  clearNudge()
+  teardownDetectors()
+  teardownTrackers()
+  focusEvents = []
+  teardownDetectors = setupDetectors(push)
+  teardownTrackers = setupTrackers(push)
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) clearNudge()
+})
+
+function clearNudge(): void {
+  unmountNudge?.()
+  unmountNudge = null
+  hostEl?.remove()
+  hostEl = null
+  shownAt = null
+}
+
 window.addEventListener('beforeunload', () => {
+  clearInterval(navigationTimer)
+  clearNudge()
   teardownDetectors()
   teardownTrackers()
 }, { once: true })
@@ -93,7 +136,10 @@ function showNudge(intervention: Intervention): boolean {
     pointerEvents: 'none',
   })
   document.body.appendChild(hostEl)
-  mountNudge(hostEl, intervention, (outcome) => dismiss(intervention, outcome))
+  unmountNudge = mountNudge(hostEl, intervention, (outcome) => dismiss(intervention, outcome), async () => {
+    const result = await chrome.runtime.sendMessage({ type: MSG.COMPANION_ACTION, payload: { action: 'save' } })
+    return !!result?.session?.returnPoint && !result.error
+  })
   return true
 }
 
@@ -104,6 +150,7 @@ function dismiss(intervention: Intervention, outcome: NudgeOutcome) {
     type: MSG.DISMISSED,
     payload: {
       id:       intervention.id,
+      episodeId: intervention.episodeId,
       dwellMs,
       outcome,
       tone:     intervention.tone,
@@ -120,7 +167,5 @@ function dismiss(intervention: Intervention, outcome: NudgeOutcome) {
     },
   })
 
-  hostEl?.remove()
-  hostEl  = null
-  shownAt = null
+  clearNudge()
 }

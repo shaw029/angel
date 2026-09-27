@@ -4,17 +4,17 @@ const steps = [
   {
     number: '01',
     title: 'Witness the environment',
-    body: 'Angel collects evidence — endless-scroll mechanics, urgency pressure, autoplay chains, compulsive switching, how you arrived and where the session has drifted. Evidence is never a verdict: nothing here can trigger a nudge by itself.',
+    body: 'Angel collects evidence — endless-scroll mechanics, urgency pressure, autoplay settings, compulsive switching, how you arrived and where the session has drifted. Evidence is never a verdict: nothing here can trigger a nudge by itself.',
   },
   {
     number: '02',
     title: 'Understand the session',
-    body: 'Gemma, running locally on-device, reconstructs the story of your session and asks one question: is this still serving the intent you arrived with? A lecture, a paper, a film you chose — aligned sessions are never interrupted, whatever the site or subject.',
+    body: 'Gemma uses local context to estimate whether an offer might help. It can be wrong: titles, duration, and arrival clues do not establish your purpose. In the companion development version, you can state your intent, and unknown judgments stay quiet.',
   },
   {
     number: '03',
     title: 'Nudge, learn, back off',
-    body: 'When the environment is steering instead of you, a lightweight nudge names what is happening — grounded in your session\'s own story. Hard limits keep nudges rare, and one tap on "Not now — I chose to be here" teaches Angel where its judgment was wrong.',
+    body: 'A dismissible nudge describes observed page mechanics. Hard limits keep offers sparse. The companion development version adds explanations and an "I chose this" correction on both nudge sizes, so your choice takes precedence.',
   },
 ]
 

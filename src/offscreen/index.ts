@@ -5,13 +5,14 @@ import { engine } from '@ai/engine'
 import type { ModelLoadStatus } from '@shared/types'
 
 // ─── Service-worker keepalive ─────────────────────────────────────────────────
-// The SW goes idle after ~30 s of inactivity and takes this offscreen doc with
-// it, cancelling the in-flight ONNX fetch. We use two complementary strategies:
+// The SW can suspend while local work is running. Keep request routing alive
+// during model loading and inference, and let it sleep otherwise:
 //
-//   1. Long-lived port (Chrome ≥ 116) — an open port prevents SW termination
-//      as long as the port stays connected. No polling needed.
-//   2. Timer fallback (10 s) — if the port can't be opened (older Chrome or
-//      context gone), periodic pings keep the SW event loop alive.
+//   1. A port reports disconnects. Opening it alone does not keep the SW alive.
+//   2. Bounded 10-second pings reset the idle timer only while loading.
+
+let loadingModel = false
+let activeInferences = 0
 
 let livePort:      chrome.runtime.Port | null = null
 let keepaliveTimer: ReturnType<typeof setInterval> | null = null
@@ -20,9 +21,10 @@ function startKeepalive() {
   if (livePort !== null || keepaliveTimer !== null) return
   try {
     livePort = chrome.runtime.connect({ name: 'model-keepalive' })
+    startTimerFallback()
     livePort.onDisconnect.addListener(() => {
       livePort = null
-      startTimerFallback()   // port dropped — fall back to pings
+      // The timer already keeps loading alive; an idle worker may restart later.
     })
   } catch {
     startTimerFallback()
@@ -32,14 +34,15 @@ function startKeepalive() {
 function startTimerFallback() {
   if (keepaliveTimer !== null) return
   keepaliveTimer = setInterval(() => {
-    try { chrome.runtime.sendMessage({ type: MSG.KEEPALIVE }) }
+    try { void chrome.runtime.sendMessage({ type: MSG.KEEPALIVE }).catch(() => stopKeepalive()) }
     catch { stopKeepalive() }
   }, 10_000)
 }
 
 function stopKeepalive() {
-  livePort?.disconnect()
+  const port = livePort
   livePort = null
+  port?.disconnect()
   if (keepaliveTimer !== null) { clearInterval(keepaliveTimer); keepaliveTimer = null }
 }
 
@@ -52,7 +55,8 @@ engine.onProgress((status: ModelLoadStatus) => {
     // Extension context may be invalidated during extension reload in dev
   }
 
-  if (status.phase === 'checking' || status.phase === 'downloading' || status.phase === 'loading') {
+  loadingModel = status.phase === 'checking' || status.phase === 'downloading' || status.phase === 'loading'
+  if (loadingModel || activeInferences > 0) {
     startKeepalive()
   } else {
     stopKeepalive()
@@ -67,17 +71,28 @@ void engine.ensureReady().catch(() => {
   stopKeepalive()
 })
 
-chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
-  if (message.type !== MSG.AI_CONTEXT) {
-    sendResponse(null)
-    return false
-  }
+let inferenceQueue: Promise<unknown> = Promise.resolve()
 
-  const { requestId, tabId, ctx } = message.payload
+chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
+  // Unhandled messages belong to the background/popup; never race their replies.
+  if (message.type !== MSG.AI_CONTEXT) return false
+
+  const { requestId, tabId, ctx, expiresAt } = message.payload
 
   // Always answer — even a failed inference must release the background's
   // in-flight lock for this tab, or the tab goes silent until SW restart.
-  void judgeSession(ctx)
+  const task = inferenceQueue.then(async () => {
+    if (Date.now() >= expiresAt) return { judgment: null, intervention: null }
+    activeInferences++
+    startKeepalive()
+    try { return await judgeSession(ctx) }
+    finally {
+      activeInferences--
+      if (!loadingModel && activeInferences === 0) stopKeepalive()
+    }
+  })
+  inferenceQueue = task.catch(() => undefined)
+  void task
     .then(({ judgment, intervention }) => {
       chrome.runtime.sendMessage({
         type:    MSG.JUDGMENT,

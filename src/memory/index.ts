@@ -13,6 +13,7 @@ export {
   recordSessionEnd,
   recordStateTransition,
   recordStateInterventionOutcome,
+  recordStateInterventionShown,
   recordReflectiveEngagement,
   getStateAcceptanceRate,
 } from './profile'
@@ -78,7 +79,14 @@ let lastSnapshotWeek   = ''
  * Increment a pattern counter. The main write entry-point for all callers.
  * Also triggers weekly snapshot and (once per SW lifetime) pruning.
  */
-export async function incrementPattern(
+let patternWrites: Promise<unknown> = Promise.resolve()
+export function incrementPattern(key: PatternKey, delta = 1): Promise<void> {
+  const write = patternWrites.then(() => incrementPatternSerial(key, delta))
+  patternWrites = write.catch(() => undefined)
+  return write
+}
+
+async function incrementPatternSerial(
   key:   PatternKey,
   delta: number = 1,
 ): Promise<void> {

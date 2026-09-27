@@ -1,17 +1,18 @@
 import type { BehavioralEvent, DetectionResult } from '@shared/types'
-import { scan as scanCountdown } from './countdown'
+import { scan as scanCountdown, reset as resetCountdown } from './countdown'
 import { scan as scanAutoplay } from './autoplay'
-import { scan as scanInfiniteScroll, onScroll as infiniteScrollOnScroll } from './infinite-scroll'
+import { scan as scanInfiniteScroll, reset as resetInfiniteScroll, onScroll as infiniteScrollOnScroll } from './infinite-scroll'
 import { scan as scanBilling } from './billing'
 import { scan as scanUrgency } from './urgency'
 import { scan as scanGamification } from './gamification'
 
 const SCANNERS = [scanCountdown, scanAutoplay, scanInfiniteScroll, scanBilling, scanUrgency, scanGamification]
 const MUTATION_DEBOUNCE_MS = 1_500   // was 500 — fewer scan batches per structural change
-const PERIODIC_INTERVAL_MS = 20_000  // was 12000 — countdown-only; fits within 30s signal window
+const PERIODIC_INTERVAL_MS = 30_000  // refresh before the 90-second evidence expiry
 
 // Track last emitted fingerprint per detector to avoid duplicate events
 const lastFingerprint = new Map<string, string>()
+const lastEmittedAt = new Map<string, number>()
 
 function debounce(fn: () => void, ms: number): () => void {
   let t: ReturnType<typeof setTimeout> | null = null
@@ -22,21 +23,27 @@ function debounce(fn: () => void, ms: number): () => void {
 }
 
 function fingerprint(r: DetectionResult): string {
-  return `${r.found ? 1 : 0}:${r.confidence.toFixed(2)}:${r.count}`
+  return `${r.found ? 1 : 0}:${r.confidence.toFixed(2)}:${r.count}:${r.categories?.join(",") ?? ""}`
 }
 
 export function setup(emit: (e: BehavioralEvent) => void): () => void {
+  let active = true
   const domain = location.hostname
+  lastFingerprint.clear()
+  lastEmittedAt.clear()
+  resetCountdown()
+  resetInfiniteScroll()
 
   function runScan(scanners = SCANNERS): void {
+    if (!active || document.hidden) return
     const now = Date.now()
     for (const scanFn of scanners) {
       const result = scanFn()
-      if (!result.found) continue
 
       const fp = fingerprint(result)
-      if (lastFingerprint.get(result.detector) === fp) continue
+      if (lastFingerprint.get(result.detector) === fp && now - (lastEmittedAt.get(result.detector) ?? 0) < 30_000) continue
       lastFingerprint.set(result.detector, fp)
+      lastEmittedAt.set(result.detector, now)
 
       emit({ id: crypto.randomUUID(), timestamp: now, domain, kind: 'detection', data: result })
     }
@@ -70,14 +77,14 @@ export function setup(emit: (e: BehavioralEvent) => void): () => void {
   }
   window.addEventListener('scroll', handleScroll, { passive: true })
 
-  // Periodic: countdown-only scan — cheaper than a full 5-detector text walk.
-  // Runs every 20s to confirm a decreasing value before the 30s BROWSING_SIGNAL fires.
+  // Refresh current detector states, including clears, before evidence expires.
   const periodicTimer = setInterval(() => {
     if (document.hidden) return
-    runScan([scanCountdown])
+    runScan()
   }, PERIODIC_INTERVAL_MS)
 
   return () => {
+    active = false
     observer.disconnect()
     clearInterval(periodicTimer)
     window.removeEventListener('scroll', handleScroll)

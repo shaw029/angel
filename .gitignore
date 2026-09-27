@@ -36,3 +36,6 @@ angel-extension.zip
 
 # Store submission working notes — kept local
 docs/CHROME_WEB_STORE.md
+
+# Versioned release packages
+artifacts/

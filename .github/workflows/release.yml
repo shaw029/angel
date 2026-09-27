@@ -1,0 +1,39 @@
+name: Draft release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+  draft:
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Verify tag matches source version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node --input-type=module -e 'import { checkVersions } from "./scripts/version.mjs"; if (process.env.RELEASE_TAG !== `v${await checkVersions()}`) throw new Error("Tag/version mismatch")'
+      - uses: actions/download-artifact@v4
+        with:
+          name: extension-${{ github.sha }}
+          path: artifacts
+      - name: Create a draft for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          args=(--draft --verify-tag --title "Angel $RELEASE_TAG" --generate-notes)
+          if [[ "$RELEASE_TAG" == *-* ]]; then args+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" "artifacts/$RELEASE_TAG/angel-extension.zip" "artifacts/$RELEASE_TAG/SHA256SUMS.txt" "${args[@]}"

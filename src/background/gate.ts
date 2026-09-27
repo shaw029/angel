@@ -86,6 +86,7 @@ export function guardianVerdict(
   cogState?:    CognitiveState,
   strategy?:    InterventionStrategy,
 ): InterventionTier {
+  if (!state.enabled) return 'none'
   // Strategy-level suppression (recovery in progress, entry delay, session cap)
   if (strategy?.preferredTier === 'none') return 'none'
 
@@ -124,7 +125,7 @@ export function isAnyTierAllowed(
   cogState?:  CognitiveState,
   strategy?:  InterventionStrategy,
 ): boolean {
-  if (strategy?.preferredTier === 'none') return false
+  if (!state.enabled || strategy?.preferredTier === 'none') return false
 
   const last = lastAnyNudge(state)
   if (now - last < GATE.MIN_GAP_MS) return false
@@ -187,16 +188,8 @@ function baseWeight(d: DismissalRecord): number {
 }
 
 function negativeWeight(d: DismissalRecord): number {
-  const base = baseWeight(d)
-
-  // Closing the deferral loop. A snooze on its own is free (weight 0), which is
-  // right when the user genuinely meant "later" — but it also makes "remind me
-  // later" the lowest-friction way to make a nudge go away, and a user who takes
-  // that exit every time would otherwise teach the gate nothing. So the deferral
-  // is judged by what happened when the nudge came back: asked for again and then
-  // walked away from is a stronger refusal than a first-time ignore. Accepting
-  // after a deferral stays weight 0 — that is the timing feedback working.
-  return d.deferred && base > 0 ? Math.min(base * 2, 1.5) : base
+  // Deferral does not make a later ignore more informative about intent.
+  return baseWeight(d)
 }
 
 /**

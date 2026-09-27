@@ -1,226 +1,39 @@
-# Evaluation Framework
+# Evaluation and validation limits
 
-Angel measures the quality of behavioral change, not the quantity of screen time avoided. This document describes the metrics, their measurement philosophy, and what success and failure look like.
+Scope: unreleased 0.3.0. Angel records local behavioral proxies, not psychological diagnoses or demonstrated wellbeing outcomes. No controlled user study or real-model benchmark is claimed here.
 
----
+## What the metrics mean
 
-## The Measurement Problem
+| Metric | Implementation and limits |
+| --- | --- |
+| Interventions shown | Incremented after delivery; per-state display counters are recorded separately from feedback. |
+| Acceptance rate | Explicit Helpful outcomes divided by displays. Missing feedback is not proof of dissatisfaction. |
+| Engagement after longer dwell | Accepted interventions displayed for at least eight seconds. Time on screen does not prove reflection or attention. |
+| Post-nudge recovery proxy | Qualifying transition after a nudge in the loop state, within 15 minutes. Attribution is per-tab and consumed once; temporal association is not causation. |
+| Recovery duration | Moving average of time in the loop estimate before leaving it. Any exit contributes; a different label is not necessarily a healthier state. |
+| Escalation depth | Moving average of active-session minutes at entries into the loop estimate. Depends on heuristic classification. |
+| Weekly trends | Differences between stored cumulative snapshots. Missing weeks, the first retained snapshot, and partial weeks can distort comparisons. |
+| Tolerance | Internal adaptation parameter based on interaction outcomes, not a measured personal trait. |
 
-Most digital wellbeing tools optimize for easily measurable proxies: screen time, app opens, notification count. These metrics are legible and convenient, but they are poor proxies for what actually matters — whether users develop greater capacity to navigate manipulative environments with intention.
+Rate fields with minimum sample thresholds can remain unavailable. The awareness-building flag is disabled because counter thresholds cannot establish improved awareness. Existing histories are retained; earlier releases used different accounting, so historical and new measurements may not be directly comparable. Worker suspension resets some in-memory attribution/history, which limits completeness.
 
-A user who has Angel installed and spends the same amount of time online, but exits compulsive loops faster and makes more deliberate purchasing decisions, is succeeding. A user who reduces screen time because they are anxious about the intervention system, or because they wait out a hard limit, is not building resilience — they are building a different dependency.
+Sources: [`evaluation.ts`](../src/memory/evaluation.ts), [`profile.ts`](../src/memory/profile.ts), and [background orchestration](../src/background/index.ts). UI wording should describe these observations without implying causal effectiveness.
 
-Angel's evaluation framework is built around this distinction.
+## Automated coverage
 
----
+Run `npm run check` for version consistency, TypeScript, and regression/static-rendering tests. Tests exercise evidence expiration and clearing, intent/quiet scope, saved pages, stale or unknown judgments, navigation and preference changes, concurrent delivery limits, reminders, state duration, and both nudge tiers' explanation/correction controls.
 
-## Core Metrics
+`npm run build` validates extension bundling; `npm --prefix landing run build` validates the website. The screenshot harness uses fixture data. Passing these checks does not demonstrate model accuracy or Chrome lifecycle reliability.
 
-### Post-Nudge Recovery Rate
+## Stable-release validation
 
-**Definition:** fraction of interventions delivered in `compulsive_loop` state that were followed by a recovery transition within 15 minutes.
+Before a stable release, record browser version, operating system, hardware, model configuration, build commit, and outcomes for:
 
-**Measurement:**
-```
-lastNudgeAt: timestamp of most recent delivered intervention
-POST_NUDGE_RECOVERY_WINDOW_MS: 15 * 60 * 1000
+1. Load/reload, model download progress, offline cache use, failed downloads, and unsupported GPU/WASM behavior.
+2. Tab switching, background tabs, same-site SPA navigation, cross-origin navigation, worker suspension, tab closure, and browser restart.
+3. Optional intent changes, I chose this, quiet/resume, global nudge toggle, save/open/forget, and controls while inference is pending.
+4. Reminder expiry/cancellation and global interruption limits across multiple tabs.
+5. Keyboard/focus behavior, readable explanations, hover/focus timeout handling, and page interaction around the overlay.
+6. Scenarios involving chosen entertainment, study, ambiguous evidence, checkout language, and cleared detectors. Assess false interruptions and correct abstention, not just nudge frequency.
 
-When a recovery transition fires:
-  if (lastNudgeAt !== null && Date.now() - lastNudgeAt < POST_NUDGE_RECOVERY_WINDOW_MS):
-    increment post_nudge_recoveries
-```
-
-**Denominator:** `stateStats.compulsive_loop.shown` (interventions shown in compulsive_loop state specifically)
-
-**Why this matters:** This is the closest proxy to "did the nudge actually interrupt a loop." It is not causal — the recovery might have happened anyway — but it measures temporal co-occurrence with a meaningful signal window.
-
-**Minimum data requirement:** 5 compulsive_loop nudges before this metric is displayed. Below this threshold, the value is `null` (displayed as "insufficient data").
-
-**What success looks like:** 40–60% recovery-after-nudge rate indicates strong responsiveness. Below 20% suggests the user is in states where nudges are not landing; the system should respond with increased cooldowns (and does, via per-state acceptance rate logic).
-
----
-
-### Reflective Engagement Rate
-
-**Definition:** fraction of accepted interventions where dwell time was ≥ 8 seconds.
-
-**Measurement:**
-```
-REFLECTIVE_DWELL_MS: 8_000
-
-In MSG.DISMISSED handler:
-  if (outcome === 'accepted' && dwellMs >= REFLECTIVE_DWELL_MS):
-    increment reflective_engagements
-    recordReflectiveEngagement(dwellMs)
-```
-
-**Denominator:** `interventions_accepted` (total accepted interventions)
-
-**Why 8 seconds:** 8 seconds is approximately the reading time for a 3-sentence nudge at average pace. Dwell below this threshold means the user clicked the action button without reading. Dwell above this threshold indicates the user paused, read, and reflected — the intended interaction.
-
-**What this measures:** It distinguishes two failure modes:
-1. User dismisses nudge immediately → captured by `interventions_quick_dismissed`
-2. User clicks accept without reading → captured by low reflective engagement rate
-
-A 40%+ reflective engagement rate means nearly half of accepted nudges are being genuinely processed.
-
-**Minimum data requirement:** 5 accepted interventions before metric is displayed.
-
----
-
-### Recovery Acceleration
-
-**Definition:** EMA of time from compulsive state onset to natural recovery, measured in minutes.
-
-**Measurement:** Stored in `CognitiveProfile.recoveryDurationMinutes` as an EMA (α = 0.2) updated on each `compulsive_loop → healthier_state` transition. The duration is computed from `durationMs` at the point of recovery transition.
-
-**Why this matters:** A decreasing `recoveryDurationMinutes` over weeks means the user is exiting compulsive loops faster — either they are catching themselves earlier (escalation awareness) or the loops are becoming shorter (reduced susceptibility). Both are positive outcomes.
-
-**Interpretation:**
-- Decreasing over 4+ weeks: user is developing self-regulation capacity
-- Stable: neither improving nor worsening
-- Increasing: user is spending longer in compulsive states (may indicate growing susceptibility)
-
-This metric is not directly displayed in the popup but feeds into the `awarenessBuilding` composite.
-
----
-
-### Escalation Depth
-
-**Definition:** EMA of time from session start to first compulsive state entry, measured in minutes.
-
-**Measurement:** Stored in `CognitiveProfile.escalationDepthMinutes`. Updated when a `compulsive_loop` state is entered, using `session_context.minutes_active` from the `CompressedContext`.
-
-**Why this matters:** Escalation depth measures how far into a session the user gets before slipping into a compulsive state. Increasing depth means the user is sustaining intentional or exploratory browsing for longer before the loop begins — they are more resistant at the start of sessions.
-
-This is the strongest resilience signal in the framework. If a user consistently takes 25 minutes to enter a compulsive state where they previously took 8 minutes, the tool is working.
-
----
-
-### Awareness Building (Composite)
-
-**Definition:** boolean composite — `escalationDepthMinutes > 10 minutes` AND `weeklyTrends.length >= 2` AND escalation depth is trending upward.
-
-**Measurement:** Derived in `getEvaluationMetrics()`:
-```typescript
-const awarenessBuilding = (
-  profile.escalationDepthMinutes !== null &&
-  profile.escalationDepthMinutes > 10 &&
-  weeklyTrends.length >= 2
-)
-```
-
-**Why a composite:** Individual metrics can be noisy. The awareness building flag combines a threshold (> 10 minutes is meaningful escalation depth — better than average) with longitudinal depth (at least 2 weeks of weekly snapshots). It is a conservative signal that only fires when there is genuine multi-week evidence of improved resilience.
-
----
-
-## Weekly Trend Directions
-
-Each metric produces a weekly trend direction computed from the last two weekly delta values:
-
-```typescript
-function computeTrendDirection(weeks, getValue): TrendDirection {
-  if (weeks.length < 2) return 'insufficient_data'
-
-  const recent = getValue(weeks[weeks.length - 1])
-  const prior  = getValue(weeks[weeks.length - 2])
-
-  if (prior < 1 && recent < 1) return 'insufficient_data'
-  if (prior === 0) return recent > 0 ? 'improving' : 'insufficient_data'
-
-  const change = (recent - prior) / prior
-  if (change >= 0.20)  return 'improving'
-  if (change <= -0.20) return 'needs_attention'
-  return 'stable'
-}
-```
-
-The 20% threshold prevents noise from being misread as meaningful change. A metric can move by 15% from week to week due to natural variation in browsing behavior; only sustained directional movement above this threshold is reported.
-
----
-
-## Judgment Quality Signals
-
-With the intent-alignment architecture, the system also measures *its own judgment*, not just the user's behavior:
-
-**Rejection rate.** Every full-card nudge carries "Not now — I chose to be here." A rejection is a ground-truth label: the Narrator judged the session `captured` and the user said otherwise. Rejections immediately cap the session for that cognitive state, weight the suppression multiplier at 1.5× (the strongest negative outcome), and write a corrective `aligned` tally into the domain category's alignment prior. A falling rejection rate over weeks means the Narrator's judgment is calibrating to this user.
-
-**Ignore rate.** Auto-dismissed nudges (shown, never touched) are recorded as `ignored` — a distinct outcome with 0.5 negative weight. Previously these were indistinguishable from engaged dismissals, which systematically inflated the system's estimate of its own welcome. A high ignore rate now correctly drives cooldowns up.
-
-**Deferral outcome — timing vs. judgment.** "Remind me later" separates two things the other outcomes conflate. A rejection says the judgment was wrong; a deferral says the judgment was fine and the moment was not. That distinction is only worth anything if the loop closes, so the deferral is scored by what happens when the nudge returns five minutes later. Deferred-then-accepted is the timing model correcting itself and stays weight 0. Deferred-then-ignored means the deferral was a softer dismissal, and the negative weight doubles (capped at 1.5) — the same nudge, asked for and then abandoned, is a stronger refusal than one that was never touched. Watch the ratio between the two: a rising deferred-then-ignored share means "Remind me later" has become the path of least resistance rather than genuine feedback, and the button's value should be reconsidered.
-
-**Alignment priors as a calibration record.** The per-category verdict tallies (`aligned` / `drifting` / `captured`, with decay) double as a longitudinal record of where the Narrator's judgments concentrate — and, via rejection corrections, where they tend to be wrong.
-
-**Trend directions in the popup:**
-- `↑` — improving (green)
-- `→` — stable (muted)
-- `↓` — needs_attention (amber)
-- (no indicator) — insufficient_data
-
----
-
-## What Is Explicitly Not Measured
-
-### Total Screen Time
-
-Screen time is a proxy that conflates useful and manipulative engagement. A 2-hour deep-work session on a code editor and a 2-hour compulsive doom-scroll session both score "2 hours" — one is productive, one is exploitation. Angel ignores screen time entirely.
-
-### "Productive" vs. "Unproductive" Time
-
-This distinction requires Angel to make judgments about what the user's time should be used for — a paternalistic position that violates the autonomy-preservation principle. Angel does not know (and does not try to know) whether a user is correctly spending time on Twitter or incorrectly spending time on a work document. The intent-alignment judgment is deliberately different in kind: it asks whether the session serves *the user's own* apparent intent, never whether that intent is worthwhile.
-
-### Acceptance Rate as a Performance Goal
-
-The popup displays acceptance rate as context, not as a target. A high acceptance rate with no recovery transitions or reflective engagement means the user is clicking the action button reflexively — performing engagement without experiencing it. This is a form of failure.
-
-A user with a 20% acceptance rate but strong post-nudge recovery rate and increasing escalation depth is succeeding. Angel's response to low acceptance rate is to extend cooldowns and reduce frequency — not to increase pressure.
-
-### Intervention Count
-
-The number of nudges shown is shown in the popup as context. It is not framed as a measure of protection received or work done by the system. More interventions is not better.
-
----
-
-## Popup Display Philosophy
-
-The `InsightPanel` in the popup shows at most 3 rows of data, chosen from available metrics in priority order. It appears only when there are ≥ 5 interventions on record (below this, users see "Still learning your patterns.").
-
-The framing is observational: "Loop exits after nudge: 68% ↑" — not "Great job!" or "Needs improvement." The numbers are descriptive artifacts that the user can interpret for themselves, not gamification scores.
-
-There are no streaks, no achievement badges, no session goals, no weekly summaries. These features create anxiety and gamification pressure that are forms of the same manipulation Angel is trying to counter.
-
----
-
-## Longitudinal Measurement Architecture
-
-### Weekly Snapshot Design
-
-Pattern counters are cumulative. The weekly snapshot at the start of each ISO week records the current cumulative values. Delta computation (`this_week = snapshot_now - snapshot_last_week`) produces the weekly count without requiring per-event timestamps.
-
-This design means:
-- No event-level data is ever stored
-- Trend computation works across arbitrary time gaps (missed weeks are correctly counted as zero-delta)
-- Storage is bounded: 15 PatternKeys × 12 weeks × ~50 bytes = ~9 KB total for the snapshot store
-
-### Evaluation Metrics Derivation
-
-`getEvaluationMetrics()` (in `src/memory/evaluation.ts`) reads:
-1. The current `CognitiveProfile` from IndexedDB
-2. The current pattern counts from `STORE.PATTERNS`
-3. The last 8 weekly snapshots from `STORE.WEEKLY_SUMMARIES`
-
-It computes all metrics locally, with no external calls. The popup calls this directly (same extension origin) without a background round-trip.
-
----
-
-## Research Alignment
-
-These metrics are designed to align with established frameworks for measuring self-regulation and behavioral change:
-
-**Habit loop interruption** (Duhigg, 2012): The post-nudge recovery rate measures whether interventions successfully interrupt the cue-routine-reward loop. Escalation depth measures how well users recognize and avoid the cue.
-
-**Metacognitive awareness** (Flavell, 1979): Reflective engagement rate is a proxy for metacognitive processing — the user pausing to think about their own thinking. 8-second dwell is a conservative minimum for this cognitive event to occur.
-
-**Self-determination theory** (Deci & Ryan, 2000): The framework explicitly avoids metrics that would create external pressure (targets, streaks, comparative scores). All metrics are descriptive of the user's own behavior, not comparative to an external standard.
-
-**Temporal discounting and present bias** (Laibson, 1997): Recovery acceleration and escalation depth together measure the user's capacity to resist manipulation that exploits present-bias — the tendency to favor immediate engagement over deferred deliberation.
+Interactive Chrome testing and actual inference evaluation have not yet been completed for this development version. Smaller-model benchmarking is deferred at the user's request. Any future opt-in study requires its own explicit data handling and measurement design.

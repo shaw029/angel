@@ -47,6 +47,10 @@ export const MSG = {
   SET_PRESENCE:     'SET_PRESENCE',
   MODEL_PROGRESS:   'MODEL_PROGRESS',
   KEEPALIVE:        'KEEPALIVE',
+  GET_PAGE_SNAPSHOT: 'GET_PAGE_SNAPSHOT',
+  GET_COMPANION:     'GET_COMPANION',
+  COMPANION_ACTION:  'COMPANION_ACTION',
+  CLEAR_NUDGE:       'CLEAR_NUDGE',
 } as const
 
 // ─── Intervention gating ──────────────────────────────────────────────────────
@@ -87,8 +91,8 @@ export const GATE = {
 } as const
 
 // ─── Deferral ("remind me later") ─────────────────────────────────────────────
-// A snooze is user-requested, so re-delivery bypasses the Guardian's veto (see
-// snooze.ts). These bounds are what keeps that bypass from becoming a loophole.
+// Requested reminders skip adaptive spacing but retain hard limits, current
+// context checks, and bounded retries (see snooze.ts).
 
 export const SNOOZE = {
   // How long "Remind me later" defers the nudge

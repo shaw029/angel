@@ -1,6 +1,7 @@
 export type Timestamp = number
 
 export interface BrowsingSignal {
+  contextKey: string   // document + navigation identity; session-local only
   url: string
   domain: string
   timestamp: Timestamp
@@ -13,8 +14,7 @@ export interface BrowsingSignal {
   entry: EntryType      // how this page was reached (provenance = intent evidence)
 }
 
-// How the user arrived — the strongest cheap signal of intent.
-// 'direct'/'search' = pull (user chose), 'social'/'external' link = push (environment chose).
+// Entry is provenance, never proof of intent or loss of agency.
 export type EntryType =
   | 'direct'    // typed URL, bookmark, or no referrer
   | 'search'    // arrived from a search engine
@@ -42,6 +42,7 @@ export type HeuristicReason =
 // Alignment is a property of the *session trajectory*, never of the content.
 
 export type IntentAlignment =
+  | 'unknown'   // insufficient evidence — stay quiet, never learn this as alignment
   | 'aligned'   // session serves an intent the user plausibly chose — never nudge
   | 'drifting'  // trajectory diverging from the entry intent — observe, maybe subtle
   | 'captured'  // environment mechanics are steering the session — intervene
@@ -65,6 +66,27 @@ export interface PageSemantics {
   titleTrail:   string[]   // up to 4 previous titles, oldest first — topic-drift evidence
   entry:        EntryType
   mediaPlaying: boolean
+}
+
+export interface CompanionSession {
+  episodeId: string
+  origin: string
+  contextKey: string
+  revision: number
+  lastSeenAt: number
+  intent: string | null
+  quiet: boolean
+  evidenceSignature: string
+  lastExplanation?: string
+  lastReason?: string
+  returnPoint?: { url: string; title: string }
+}
+
+export type CompanionAction = 'intent' | 'quiet' | 'resume' | 'save' | 'open' | 'forget'
+export interface CompanionView {
+  available: boolean
+  session: CompanionSession | null
+  error?: string
 }
 
 export type DecisionState      = 'intervene' | 'observe' | 'skip'
@@ -118,6 +140,7 @@ export interface InferenceInput {
   page?:              PageSemantics
   previousNarrative?: string              // last narrative for this tab, if any
   alignmentPrior?:    AlignmentPriorLabel // per-category longitudinal prior
+  explicitIntent?:    string
 }
 
 export interface InferenceOutput {
@@ -155,6 +178,13 @@ export interface Intervention {
   cogState?:   CognitiveState                  // state when nudge was shown — echoed back in DISMISSED
   category?:   DomainCategory                  // echoed back so rejections correct the alignment prior
   snoozeCount?: number                         // times deferred via "remind me later"; caps re-delivery
+  contextKey?: string
+  contextTitle?: string
+  episodeId?: string
+  revision?: number
+  expiresAt?: number
+  explanation?: string
+  reasonKey?: string
 }
 
 export interface StorageState {
@@ -339,6 +369,7 @@ export interface CognitiveStateEstimate {
   scores:     Partial<Record<CognitiveState, number>>  // all scores for explainability
   transition: CognitiveStateTransition | null           // populated if state changed this cycle
   durationMs: number                                    // ms in current state
+  previousDurationMs?: number                           // elapsed time before a transition
 }
 
 // ─── Evaluation framework ────────────────────────────────────────────────────
@@ -411,4 +442,5 @@ export interface CompressedContext {
   page?:              PageSemantics
   previousNarrative?: string
   alignmentPrior?:    AlignmentPriorLabel
+  explicitIntent?:    string
 }

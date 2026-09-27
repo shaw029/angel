@@ -21,7 +21,7 @@ export function classifyMechanic(ctx: CompressedContext): ManipulationMechanic |
 
   if (s.has('social_proof_live'))                           return 'social_momentum'
   if (et === 'checkout_pressure')                           return 'urgency_amplification'
-  if (et === 'subscription_funnel')                         return 'emotional_escalation'
+  if (et === 'subscription_funnel')                         return 'decision_pressure'
   if (s.has('autoplay_media') && s.has('infinite_feed'))    return 'variable_reward'
   if (s.has('infinite_feed')  || s.has('doom_scrolling'))   return 'engagement_loop'
   if (s.has('autoplay_media'))                              return 'engagement_loop'

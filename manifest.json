@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Angel: Mindful Browsing",
   "short_name": "Angel",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Detects infinite scroll, autoplay and other attention traps, then offers one quiet nudge. Runs on-device. No account, no cloud.",
   "homepage_url": "https://shaw029.github.io/angel/",
   "icons": {
@@ -48,5 +48,6 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
-  }
+  },
+  "version_name": "0.3.0-dev.0"
 }

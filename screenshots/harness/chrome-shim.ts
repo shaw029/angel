@@ -1,3 +1,11 @@
+import type { CompanionSession } from '../../src/shared/types'
+
+const companion: CompanionSession = {
+  episodeId: 'preview', origin: 'https://shop.example', contextKey: 'preview:0',
+  revision: 0, lastSeenAt: Date.now(), intent: null, quiet: false, evidenceSignature: '',
+  lastExplanation: 'Limited-stock language was detected on this page. That does not tell me your intent.',
+}
+
 /**
  * Minimal chrome.* shim so the real popup component can render outside the
  * extension. Only the surface App.tsx touches is implemented.
@@ -40,7 +48,19 @@ function area(values: Record<string, unknown>) {
   },
   runtime: {
     onMessage: noopEvent,
-    sendMessage() { return Promise.resolve() },
+    async sendMessage(message: { type: string; payload?: { action?: string; intent?: string } }) {
+      if (message.type === 'GET_COMPANION') return { available: true, session: { ...companion } }
+      if (message.type === 'COMPANION_ACTION') {
+        const p = message.payload
+        if (p?.action === 'intent') { companion.intent = p.intent?.trim() || null; companion.quiet = false }
+        if (p?.action === 'quiet') companion.quiet = true
+        if (p?.action === 'resume') companion.quiet = false
+        if (p?.action === 'save') companion.returnPoint = { url: 'https://shop.example/headphones', title: 'Headphone comparison' }
+        if (p?.action === 'forget') companion.returnPoint = undefined
+        return { available: true, session: { ...companion } }
+      }
+      return null
+    },
     getURL: (p: string) => p,
   },
 }

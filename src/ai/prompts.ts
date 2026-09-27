@@ -12,8 +12,8 @@ import { INFERENCE_SYSTEM_PROMPT } from './system-prompt'
  *   2. witness  — cognitive state, event type, trajectory, session dynamics
  *   3. context  — previous narrative, priors, history, tone, skip phrases
  *
- * Titles and narratives exist only in this prompt and the per-tab in-memory
- * story — they are never persisted and never leave the device.
+ * Narrative history stays in memory. Current titles also appear in temporary
+ * session evidence signatures and explicitly saved return points; all stay local.
  */
 export function buildInferencePrompt(input: InferenceInput): ChatMessage[] {
   return [
@@ -25,16 +25,20 @@ export function buildInferencePrompt(input: InferenceInput): ChatMessage[] {
 // ─── Evidence encoding ────────────────────────────────────────────────────────
 
 function encodeEvidence(input: InferenceInput): string {
-  const { event_type, session_context: sc, memory, intensity, recentPhrases, cognitiveState, drift, page, previousNarrative, alignmentPrior } = input
+  const { event_type, session_context: sc, memory, intensity, cognitiveState, drift, page, previousNarrative, alignmentPrior } = input
 
   const lines: string[] = []
+  // JSON strings keep page-supplied text separate from the evidence protocol.
+  if (input.explicitIntent) lines.push(`user_stated_intent:${JSON.stringify(input.explicitIntent)}`)
+  lines.push(`observed_signals:${JSON.stringify(input.signals)}`)
+  if (input.interpretation) lines.push(`mechanic_hypothesis:${JSON.stringify(input.interpretation)}`)
 
   // ── Line 1: semantic page context ──
   if (page) {
     const semantic = [
-      `page:"${page.title || 'untitled'}"`,
+      `page:${JSON.stringify(page.title || "untitled")}`,
       page.titleTrail.length > 0
-        ? `trail:${page.titleTrail.map(t => `"${t}"`).join(' > ')}`
+        ? `trail:${page.titleTrail.map(t => JSON.stringify(t)).join(' > ')}`
         : null,
       `entry:${page.entry}`,
       page.mediaPlaying ? 'media' : null,
@@ -63,7 +67,7 @@ function encodeEvidence(input: InferenceInput): string {
   // ── Line 3: continuity + history + tone ──
   const ctxParts: string[] = []
 
-  if (previousNarrative) ctxParts.push(`story:"${previousNarrative}"`)
+  if (previousNarrative) ctxParts.push(`story:${JSON.stringify(previousNarrative)}`)
   if (alignmentPrior)    ctxParts.push(`prior:${alignmentPrior}`)
 
   if (memory) {
@@ -81,12 +85,6 @@ function encodeEvidence(input: InferenceInput): string {
   }
 
   ctxParts.push(`tone:${intensity ?? 'gentle'}`)
-
-  // Skip phrases — last 4 recent phrases only to avoid over-constraining
-  const recent = (recentPhrases ?? []).slice(-4)
-  if (recent.length > 0) {
-    ctxParts.push(`skip:${recent.map(p => `"${p}"`).join(' ')}`)
-  }
 
   lines.push(ctxParts.join(' | '))
 

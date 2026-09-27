@@ -14,7 +14,7 @@ function LiveNudge({ scene }: { scene: Scene }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!ref.current || !scene.intervention) return
-    mountNudge(ref.current, scene.intervention, () => {})
+    return mountNudge(ref.current, scene.intervention, () => {}, async () => true)
   }, [scene])
   return <div ref={ref} style={{ position: 'absolute', top: 28, right: 28, zIndex: 999, pointerEvents: 'none' }} />
 }
@@ -54,9 +54,9 @@ function BrowserWindow({ scene }: { scene: Scene }) {
 
 function Statement() {
   const points = [
-    ['Runs on your machine', 'Gemma loads once through WebGPU and answers locally.'],
-    ['No account, no server', 'There is nothing to sign into and nowhere for data to go.'],
-    ['Text is matched, not kept', 'Angel checks a page for manipulative patterns and keeps only the verdict — never the text.'],
+    ['Runs on your machine', 'Gemma answers locally through WebGPU or WASM. Model files are downloaded and cached.'],
+    ['No account, no server', 'No account or remote inference. Browsing observations stay in your browser.'],
+    ['Local context, clear boundaries', 'Text scans keep pattern results. Titles, optional intent, and pages you save have separate local storage.'],
   ]
   return (
     <div style={{ width: 1128, display: 'flex', flexDirection: 'column', gap: 26 }}>
@@ -91,9 +91,8 @@ function Statement() {
             Why it asks to read every site
           </div>
           <div style={{ fontSize: 14.5, lineHeight: 1.65, color: '#6B6B64', maxWidth: 900 }}>
-            A pattern like “fourth video in a row” or “third return to this checkout” can only be
-            seen from the page you are on. Angel reads that page in your browser to recognise the
-            moment — and keeps every byte of it there.
+            Patterns like feed growth and urgency wording require observing the current page.
+            Angel processes those signals locally; they are evidence, not proof of your intent.
           </div>
         </div>
       </div>
@@ -103,10 +102,10 @@ function Statement() {
 
 function PopupShowcase() {
   const notes = [
-    ['One switch', 'Turn Angel off entirely, on any tab, at any time.'],
+    ['One switch', 'Disable proactive nudges across tabs at any time.'],
     ['A presence slider', 'From quiet to active — you decide how often it is allowed to speak.'],
     ['An honest tally', 'Every nudge it offered, grouped by the situation that prompted it.'],
-    ['On-device status', 'The model runs through WebGPU on your own machine.'],
+    ['On-device status', 'The model runs locally through WebGPU or WASM.'],
   ]
   return (
     <div style={{ width: 1128, display: 'flex', alignItems: 'flex-start', gap: 84 }}>
@@ -161,7 +160,7 @@ function Frame({ scene }: { scene: Scene }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: SAGE }} />
           <span style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: '0.09em', color: SAGE, textTransform: 'uppercase' }}>
-            Angel
+            Angel · Illustrative development preview
           </span>
         </div>
         <h1 style={{ margin: 0, fontSize: 46, fontWeight: 600, letterSpacing: '-0.026em', color: INK, lineHeight: 1.1 }}>
@@ -189,7 +188,7 @@ function Frame({ scene }: { scene: Scene }) {
 const params = new URLSearchParams(location.search)
 const id     = params.get('scene') ?? SCENES[0].id
 const scene  = SCENES.find(s => s.id === id) ?? SCENES[0]
-createRoot(document.getElementById('root')!).render(<Frame scene={scene} />)
+createRoot(document.getElementById('root')!).render(params.has('companion') ? <Popup /> : <Frame scene={scene} />)
 
 // Headless Chrome screenshots on the load event. The nudge animates in after
 // mount, so hold the load event open with an image the capture server answers

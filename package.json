@@ -1,15 +1,23 @@
 {
   "name": "angel",
-  "version": "0.2.2",
+  "version": "0.3.0-dev.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "setup": "cp node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.wasm public/",
+    "setup": "node scripts/setup.mjs",
     "dev": "vite build --watch",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "demo": "python3 -m http.server 3001 --directory demo",
-    "start": "concurrently -n build,demo -c cyan,magenta \"vite build --watch\" \"python3 -m http.server 3001 --directory demo\""
+    "start": "concurrently -n build,demo -c cyan,magenta \"vite build --watch\" \"python3 -m http.server 3001 --directory demo\"",
+    "test": "node scripts/test.mjs && node --test tests/release.test.mjs",
+    "prebuild": "npm run setup",
+    "predev": "npm run setup",
+    "prestart": "npm run setup",
+    "version:check": "node scripts/version.mjs --check",
+    "version:set": "node scripts/version.mjs",
+    "check": "npm run version:check && npm run typecheck && npm test",
+    "package": "npm run check && npm run build && node scripts/package.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
@@ -28,6 +36,10 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
     "typescript": "^5.7.2",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "esbuild": "^0.21.5"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

@@ -6,10 +6,18 @@ const SAMPLE_GAP_MS = 600       // min ms between height samples
 const heightSamples: number[] = []
 let growthEvents = 0            // times height grew while near bottom
 let lastSampleAt = 0
+let lastGrowthAt = 0
 
 export const id = 'infinite-scroll' as const
 
 // Called by the orchestrator's scroll listener
+export function reset(): void {
+  heightSamples.length = 0
+  growthEvents = 0
+  lastSampleAt = 0
+  lastGrowthAt = 0
+}
+
 export function onScroll(): void {
   const now = Date.now()
   if (now - lastSampleAt < SAMPLE_GAP_MS) return
@@ -24,10 +32,11 @@ export function onScroll(): void {
 
   const grew = h > prev
   const nearBottom = h > 0 && pos / h > NEAR_BOTTOM_RATIO
-  if (grew && nearBottom) growthEvents++
+  if (grew && nearBottom) { growthEvents++; lastGrowthAt = now }
 }
 
 export function scan(): DetectionResult {
+  if (Date.now() - lastGrowthAt > 90_000) growthEvents = 0
   if (growthEvents > 0) {
     const confidence = growthEvents >= 3 ? 0.92 : 0.75
     return { detector: 'infinite-scroll', found: true, confidence, count: growthEvents }

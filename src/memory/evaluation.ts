@@ -69,15 +69,8 @@ export async function getEvaluationMetrics(): Promise<EvaluationMetrics> {
   const recoveryTrend   = computeTrendDirection(weeklyTrends, w => w.recoveryTransitions)
   const engagementTrend = computeTrendDirection(weeklyTrends, w => w.reflectiveEngagements)
 
-  // ── Awareness-building proxy ──────────────────────────────────────────────
-  // escalationDepthMinutes increasing = catching compulsive loops later in session
-  // which means the user is sustaining intentional browsing longer before slipping.
-  // We approximate the trend from the EMA value vs a reasonable baseline (10 min).
-  const awarenessBuilding = (
-    profile.escalationDepthMinutes !== null &&
-    profile.escalationDepthMinutes > 10 &&
-    weeklyTrends.length >= 2
-  )
+  // A threshold and snapshot count do not establish improved awareness.
+  const awarenessBuilding = false
 
   const weeksActive = rawSnapshots.length
 

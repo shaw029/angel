@@ -10,6 +10,7 @@ import type {
   NudgeOutcome,
   CognitiveState,
   DomainCategory,
+  CompanionAction,
 } from './types'
 import type { MSG } from './constants'
 
@@ -19,6 +20,7 @@ type MsgKey = typeof MSG
 // entry in the background; tabId makes delivery explicit (no module-global slot).
 export interface NarratorRequest {
   requestId: string
+  expiresAt: number
   tabId:     number
   ctx:       CompressedContext
 }
@@ -40,20 +42,19 @@ export interface DismissedPayload {
   cogState:  CognitiveState
   category?: DomainCategory
 
-  // Deferrals this nudge has already been through. > 0 means the user asked to
-  // see it again, which is what lets the background judge whether the deferral
-  // was genuine timing feedback or a softer way of dismissing it.
+  // Number of user-requested deferrals. Used to bound reminders, not infer intent.
   snoozeCount?: number
 
   // Present only when outcome is 'snoozed' — the payload to re-deliver.
   // The content script already holds it, so echoing it back avoids the
   // background having to retain every in-flight nudge just in case.
   intervention?: Intervention
+  episodeId?: string
 }
 
 export type Message =
   | { type: MsgKey['BROWSING_SIGNAL'];   payload: BrowsingSignal }
-  | { type: MsgKey['BEHAVIORAL_EVENTS']; payload: BehavioralEvent[] }
+  | { type: MsgKey['BEHAVIORAL_EVENTS']; payload: { contextKey: string; events: BehavioralEvent[] } }
   | { type: MsgKey['AI_CONTEXT'];        payload: NarratorRequest }
   | { type: MsgKey['JUDGMENT'];          payload: JudgmentPayload }
   | { type: MsgKey['INTERVENTION'];      payload: Intervention }
@@ -63,6 +64,10 @@ export type Message =
   | { type: MsgKey['SET_PRESENCE'];      payload: number }
   | { type: MsgKey['MODEL_PROGRESS'];    payload: ModelLoadStatus }
   | { type: MsgKey['KEEPALIVE'] }
+  | { type: MsgKey['GET_PAGE_SNAPSHOT'] }
+  | { type: MsgKey['GET_COMPANION'] }
+  | { type: MsgKey['COMPANION_ACTION']; payload: { action: CompanionAction; intent?: string } }
+  | { type: MsgKey['CLEAR_NUDGE'] }
 
 export type MessageOf<T extends Message['type']> = Extract<Message, { type: T }>
 

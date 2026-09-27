@@ -5,12 +5,10 @@ import type { AlignmentPriorLabel, DomainCategory, IntentAlignment } from '@shar
 // of context before, and did the user agree? Keyed by DomainCategory — never by
 // domain or URL — so the stored memory keeps the "no URLs, no content" guarantee.
 //
-// Two writers:
-//   - every judgment records its alignment verdict
-//   - a 'rejected' nudge records a corrective 'aligned' (the model called it
-//     captured; the user said otherwise — the strongest label we ever get)
+// Only explicit user corrections are stored. Model predictions are not labels.
+// A new key avoids carrying forward self-reinforcing legacy model tallies.
 
-const KEY = 'ca_alignment_priors'
+const KEY = 'ca_user_alignment_priors_v2'
 const MIN_OBSERVATIONS = 5
 
 type Tally  = { aligned: number; drifting: number; captured: number }
@@ -20,6 +18,7 @@ export async function recordAlignment(
   category:  DomainCategory,
   alignment: IntentAlignment,
 ): Promise<void> {
+  if (alignment === 'unknown') return
   try {
     const stored = await chrome.storage.local.get(KEY)
     const priors = (stored[KEY] as Priors | undefined) ?? {}

@@ -77,8 +77,14 @@ export function Hero({ onInstall }: HeroProps) {
           animate="visible"
           custom={0.4}
         >
-          Angel watches the one thing that matters — whether your session still serves the intent you arrived with. It judges the trajectory, never the content: a lecture, a PDF, a chosen film are yours. When the environment starts steering instead, Angel quietly says so.
+          Angel notices page mechanics and browsing patterns, then occasionally offers a quiet perspective. A lecture, a PDF, a chosen film are yours to enjoy. Its estimates can be wrong; you stay in control, with no blocking or enforced breaks.
         </motion.p>
+
+        <p className="mt-4 text-xs leading-relaxed text-ink-muted max-w-2xl mx-auto">
+          Ask Angel and the companion controls shown here are in development. Downloads provide
+          the published release; see the{' '}
+          <a href="https://github.com/shaw029/angel/releases" className="underline underline-offset-2">release history</a>.
+        </p>
 
         {/* CTAs */}
         <motion.div

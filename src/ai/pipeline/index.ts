@@ -28,7 +28,8 @@ export function compress(
     .filter((e): e is Extract<BehavioralEvent, { kind: 'tracking' }> => e.kind === 'tracking')
     .map((e): TrackingResult => e.data)
 
-  const signals = extractSignals(detections, tracking)
+  const signals = extractSignals(detections, tracking.filter(t => t.tracker !== 'session-duration'))
+  if (browsingSignal.timeOnPage >= 600) signals.push('session_long')
   const eventType = classifyEventType(signals)
 
   return {

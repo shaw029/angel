@@ -12,19 +12,19 @@ const slides: Array<{
   {
     label:  'Privacy',
     title:  'Private by design.',
-    body:   'Browsing content, behavioural signals, and intervention history stay local.\nModel files are downloaded once and cached on your device.',
+    body:   'Browsing content, behavioural signals, and intervention history stay local.\nModel files are downloaded and cached on your device.',
     visual: <PopupMockup />,
   },
   {
     label:  'Intent',
-    title:  'It knows chosen from captured.',
-    body:   'The same long session can be a lecture or a rabbit hole — content alone can\'t tell them apart.\nAngel reads how your session began and where it has drifted, and stays silent while it\'s still yours.',
+    title:  'Your intent comes first.',
+    body:   'A long session can be exactly what you chose. Context offers clues, not certainty.\nThe companion development version adds optional stated intent and explicit corrections.',
     visual: <NudgeMockup />,
   },
   {
-    label:  'Resilience',
+    label:  'Awareness',
     title:  'Designed for what comes next.',
-    body:   'Online influence systems are becoming more adaptive, emotional, and difficult to recognize.\nAngel evolves alongside them.',
+    body:   'Online influence systems are becoming more adaptive, emotional, and difficult to recognize.\nAngel aims to make their mechanics easier to notice while leaving decisions with you.',
     visual: <AwarenessMockup />,
   },
 ]
@@ -212,11 +212,11 @@ function PopupMockup() {
 
         {/* Insights */}
         <div className="pt-3 border-t border-border/60">
-          <p className="text-[10px] text-ink-muted mb-2">2 weeks of awareness data</p>
+          <p className="text-[10px] text-ink-muted mb-2">Illustrative data · not measured outcomes</p>
           <div className="space-y-1.5">
-            <MetricRow label="Stepped away after a nudge" value="64%" up />
-            <MetricRow label="Paused after a nudge"        value="48%" up />
-            <MetricRow label="Avg. time to refocus"        value="11 min" />
+            <MetricRow label="Helpful feedback" value="64%" up />
+            <MetricRow label="Helpful after longer dwell"        value="48%" up />
+            <MetricRow label="Estimated loop duration"        value="11 min" />
           </div>
         </div>
 
@@ -244,7 +244,7 @@ function PopupMockup() {
 }
 
 // ─── Mockup: In-page nudge card ───────────────────────────────────────────────
-// Matches the real FullCard in Nudge.tsx — same structure, dimensions, styling.
+// Illustrative development preview; the production UI lives in Nudge.tsx.
 
 function NudgeMockup() {
   return (
@@ -276,14 +276,14 @@ function NudgeMockup() {
           This kind of feed rarely gives you a natural place to stop.
         </p>
         <p className="px-4 pt-1.5 text-[13px] leading-[1.6] text-neutral-600">
-          This started with a search — the feed has chosen the last few videos.
+          More content is loading as you scroll. You can choose your own stopping point.
         </p>
         <div className="px-4 pt-3 pb-3.5">
           <button className="w-full text-left text-[12px] font-medium text-sage px-3 py-1.5 rounded-lg bg-sage/10" tabIndex={-1}>
-            Pause for a moment
+            Save this page for later
           </button>
           <button className="mt-1.5 w-full text-left text-[11px] text-neutral-300" tabIndex={-1}>
-            Not now — I chose to be here
+            I chose this
           </button>
         </div>
       </div>
@@ -319,14 +319,14 @@ function AwarenessMockup() {
           </button>
         </div>
         <p className="px-4 pt-2.5 text-[11px] leading-[1.5] text-neutral-400">
-          When everything feels urgent, it gets harder to think clearly. Right now, decisions may feel more pressing than they actually are.
+          This page includes countdown and urgency wording. Angel cannot verify whether the deadline is genuine.
         </p>
         <p className="px-4 pt-1.5 text-[13px] leading-[1.6] text-neutral-600">
-          None of these are about the product. They're designed to make the decision feel more urgent than it is.
+          A timer can make a choice feel urgent. You can take a moment to check the terms.
         </p>
         <div className="px-4 pt-3 pb-3.5">
           <button className="w-full text-left text-[12px] font-medium text-sage px-3 py-1.5 rounded-lg bg-sage/10" tabIndex={-1}>
-            Come back to this later
+            Save this page for later
           </button>
         </div>
       </div>

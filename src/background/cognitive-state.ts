@@ -69,6 +69,7 @@ export function estimateCognitiveState(
       scores,
       transition,
       durationMs: now - enteredAt,
+      previousDurationMs: transition ? now - current.enteredAt : undefined,
     },
     next: { state: nextState, enteredAt, history },
   }

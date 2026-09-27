@@ -15,14 +15,17 @@ export function mountNudge(
   host: HTMLElement,
   intervention: Intervention,
   onDismiss: (outcome: NudgeOutcome) => void,
+  onSave?: () => Promise<boolean>,
 ) {
   const shadow    = host.shadowRoot ?? host.attachShadow({ mode: 'open' })
   const container = document.createElement('div')
   shadow.appendChild(container)
 
-  createRoot(container).render(
+  const root = createRoot(container)
+  root.render(
     <React.StrictMode>
-      <Nudge intervention={intervention} onDismiss={onDismiss} />
+      <Nudge intervention={intervention} onDismiss={onDismiss} onSave={onSave} />
     </React.StrictMode>,
   )
+  return () => root.unmount()
 }

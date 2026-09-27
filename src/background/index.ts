@@ -3,19 +3,20 @@ import { getState, patchState } from '@storage/index'
 import { ensureOffscreenDocument } from './offscreen'
 import { compress } from '@ai/pipeline'
 import { guardianVerdict, isAnyTierAllowed, afterIntervention, afterDismissal } from './gate'
-import { incrementPattern, getMemorySummary, recordInterventionOutcome, recordSessionEnd, recordStateTransition, recordStateInterventionOutcome, recordReflectiveEngagement, getCognitiveProfile, getStateAcceptanceRate } from '@memory/index'
+import { incrementPattern, getMemorySummary, recordInterventionOutcome, recordSessionEnd, recordStateTransition, recordStateInterventionOutcome, recordStateInterventionShown, recordReflectiveEngagement } from '@memory/index'
 import { resolveIntensity } from '@ai/guidance'
 import { getRecentPhrases, recordPhrase } from './phrase-cache'
 import { estimateCognitiveState } from './cognitive-state'
 import { analyzeDrift, driftCooldownScale, HEALTH_SCORE } from './drift'
 import { resolveStrategy } from './intervention-strategy'
 import { scheduleSnooze, onSnoozeAlarm, clearSnoozesForTab } from './snooze'
-import { resolveAction } from './action-resolver'
+import { serial } from './serial'
+import { freshEvents } from './evidence'
+import { getCompanion, putCompanion, clearCompanion, nextSession, isCurrentIntervention } from './companion'
 import { derivePresence } from './presence'
 import * as narrator from './narrator'
 import { recordAlignment, getAlignmentPrior } from './priors'
 import type { RollingCognitiveContext } from './cognitive-state'
-import type { InterventionStrategy } from './intervention-strategy'
 import type { PatternKey } from '@memory/index'
 import type { Message, JudgmentPayload, DismissedPayload } from '@shared/messages'
 import { MSG, GATE, PRESENCE_DEFAULT } from '@shared/constants'
@@ -28,6 +29,8 @@ import type {
   CompressedContext,
   EventType,
   DomainCategory,
+  CompanionSession,
+  CompanionView,
 } from '@shared/types'
 
 // Pre-warm the offscreen document (and start Gemma download) as soon as the
@@ -44,10 +47,10 @@ chrome.runtime.onStartup.addListener(()   => void ensureOffscreenDocument())
 interface PendingRequest {
   tabId:     number
   eventType: EventType
-  strategy:  InterventionStrategy
   cogState:  CognitiveState
   category:  DomainCategory
   at:        number
+  session:   CompanionSession
 }
 
 const pending = new Map<string, PendingRequest>()
@@ -65,7 +68,7 @@ const sessionQuickDismissalsByState = new Map<CognitiveState, number>()
 
 // Evaluation: timestamp of most recent shown intervention, used to detect
 // post-nudge recovery transitions.
-let lastNudgeAt: number | null = null
+const lastNudgeAt = new Map<number, number>()
 
 // Evaluation thresholds
 const REFLECTIVE_DWELL_MS          = 8_000        // genuine read+reflect threshold
@@ -77,21 +80,28 @@ let latestModelStatus: ModelLoadStatus = { phase: 'idle' }
 // Bounded per-tab event buffer — enriches CompressedContext when Gemma is invoked
 const MAX_EVENTS_PER_TAB = 60
 const tabEvents           = new Map<number, BehavioralEvent[]>()
+const latestSignals = new Map<number, BrowsingSignal>()
+const recordedPatterns = new Map<number, Set<string>>()
 const tabCognitiveContext = new Map<number, RollingCognitiveContext>()
 
 function storeEvents(tabId: number, events: BehavioralEvent[]): void {
   const existing = tabEvents.get(tabId) ?? []
-  const combined = [...existing, ...events]
+  const combined = freshEvents([...existing, ...events])
   tabEvents.set(tabId, combined.slice(-MAX_EVENTS_PER_TAB))
 }
 
 function recentDetections(tabId: number): DetectionResult[] {
-  return (tabEvents.get(tabId) ?? [])
+  return freshEvents(tabEvents.get(tabId) ?? [])
     .filter((e): e is Extract<BehavioralEvent, { kind: 'detection' }> => e.kind === 'detection')
     .map(e => e.data)
 }
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+  void serial(() => clearCompanion(tabId))
+  latestSignals.delete(tabId)
+  recordedPatterns.delete(tabId)
+  lastNudgeAt.delete(tabId)
+  invalidateRequests(tabId)
   tabEvents.delete(tabId)
   tabCognitiveContext.delete(tabId)
   narrator.clearTab(tabId)
@@ -102,19 +112,24 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // Deferred nudges ("remind me later") come back through here. chrome.alarms
 // rather than a timer because the service worker is terminated while idle.
 chrome.alarms.onAlarm.addListener((alarm) => {
-  void onSnoozeAlarm(alarm)
+  void serial(() => onSnoozeAlarm(alarm))
 })
 
 // Accept the long-lived port from the offscreen document while the model is
-// loading. Holding an open port prevents Chrome from terminating the SW (≥116).
+// loading. Only actual messages reset the service-worker idle timer.
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== 'model-keepalive') port.disconnect()
-  // No further action needed — the open connection itself is the keepalive.
+  // The offscreen document sends bounded keepalive messages while loading.
 })
 
 chrome.runtime.onMessage.addListener(
   (message: Message, sender, sendResponse) => {
-    void dispatch(message, sender.tab?.id, sendResponse)
+    if (message.type === MSG.AI_CONTEXT || message.type === MSG.INTERVENTION ||
+        message.type === MSG.GET_PAGE_SNAPSHOT || message.type === MSG.CLEAR_NUDGE) return false
+    void serial(() => dispatch(message, sender.tab?.id, sendResponse)).catch(err => {
+      console.error('[Angel] message failed:', err)
+      sendResponse({ error: 'Could not update Angel. Please try again.' })
+    })
     return true
   },
 )
@@ -129,9 +144,23 @@ async function dispatch(
       await onBrowsingSignal(message.payload, senderTabId)
       break
 
-    case MSG.BEHAVIORAL_EVENTS:
-      if (senderTabId !== undefined) storeEvents(senderTabId, message.payload)
+    case MSG.BEHAVIORAL_EVENTS: {
+      if (senderTabId === undefined || !(await getState()).enabled) break
+      const signal = await readSnapshot(senderTabId)
+      if (!signal || signal.contextKey !== message.payload.contextKey) break
+      await observeSession(senderTabId, signal)
+      storeEvents(senderTabId, message.payload.events)
+      await onBrowsingSignal(signal, senderTabId)
       break
+    }
+
+    case MSG.GET_COMPANION:
+      sendResponse(await companionView(senderTabId))
+      return
+
+    case MSG.COMPANION_ACTION:
+      sendResponse(await companionAction(message.payload, senderTabId))
+      return
 
     case MSG.JUDGMENT:
       await onJudgment(message.payload)
@@ -159,22 +188,13 @@ async function dispatch(
       return
 
     case MSG.SET_ENABLED:
-      if (message.payload === true) {
-        // Re-enabling: clear all in-memory and persisted gate state so nudges
-        // can fire immediately on a clean slate.
-        sessionQuickDismissalsByState.clear()
-        tabCognitiveContext.clear()  // drop stale drift history so recovery_in_progress doesn't persist
-        pending.clear()
-        await patchState({
-          enabled:                true,
-          lastFullIntervention:   null,
-          lastSubtleIntervention: null,
-          suppressionMultiplier:  1.0,
-          recentDismissals:       [],
-          recentNudges:           [],
-        })
-      } else {
-        await patchState({ enabled: false })
+      // Toggling must not erase user corrections or the interruption budget.
+      for (const tabId of latestSignals.keys()) invalidateRequests(tabId)
+      await patchState({ enabled: message.payload })
+      if (!message.payload) {
+        const tabs = await chrome.tabs.query({})
+        await Promise.allSettled(tabs.filter(t => t.id !== undefined).map(t =>
+          chrome.tabs.sendMessage(t.id!, { type: MSG.CLEAR_NUDGE })))
       }
       break
 
@@ -197,16 +217,16 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
 
   // Fold the signal into the tab's session story regardless of flagging —
   // the Narrator needs the title trail even for quiet stretches.
+  const session = await observeSession(tabId, signal)
   narrator.noteSignal(tabId, signal)
 
   const result = evaluate(signal)
-  if (!result.flagged) return
 
   const rawCtx = compress(
     result.reasons,
     signal,
     recentDetections(tabId),
-    tabEvents.get(tabId) ?? [],
+    freshEvents(tabEvents.get(tabId) ?? []),
   )
 
   // Cognitive state estimation — runs synchronously from heuristics, no I/O
@@ -224,7 +244,7 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
       t.from,
       t.to,
       rawCtx.session_context.minutes_active,
-      cognitiveState.durationMs,
+      cognitiveState.previousDurationMs ?? 0,
       new Date().getHours(),
     )
 
@@ -239,11 +259,23 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
     )
     if (isRecovery) {
       void incrementPattern('recovery_transitions')
-      if (lastNudgeAt !== null && Date.now() - lastNudgeAt < POST_NUDGE_RECOVERY_WINDOW_MS) {
+      const nudgeAt = lastNudgeAt.get(tabId)
+      if (t.from === 'compulsive_loop' && nudgeAt !== undefined && Date.now() - nudgeAt < POST_NUDGE_RECOVERY_WINDOW_MS) {
+        lastNudgeAt.delete(tabId)
         void incrementPattern('post_nudge_recoveries')
       }
     }
   }
+
+  const signature = JSON.stringify([signal.pageTitle, signal.mediaPlaying, [...rawCtx.signals].sort()])
+  if (session.evidenceSignature !== signature) {
+    session.evidenceSignature = signature
+    session.revision++
+    invalidateRequests(tabId)
+    await putCompanion(tabId, session)
+  }
+  // Cheap state estimation runs even during quiet stretches. Inference remains sparse.
+  if (session.quiet || (!result.flagged && rawCtx.signals.every(s => s === 'session_long'))) return
 
   // Drift analysis — reads from the updated history, no I/O
   const drift      = analyzeDrift(cognitiveState.state, nextCogCtx.history)
@@ -258,7 +290,7 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
   // Resolve intervention strategy for current state, trajectory, and session history
   const sessionDismissals = sessionQuickDismissalsByState.get(cognitiveState.state) ?? 0
   const presence = derivePresence(state.presenceLevel ?? PRESENCE_DEFAULT)
-  let strategy = resolveStrategy(
+  const strategy = resolveStrategy(
     cognitiveState.state,
     drift,
     cognitiveState.durationMs,
@@ -268,7 +300,7 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
 
   // Record behavioral patterns regardless of whether an intervention fires.
   // The gate controls nudge frequency, not behavioural observation.
-  void recordPatterns(rawCtx)
+  void recordPatterns(rawCtx, tabId)
 
   const now = Date.now()
 
@@ -284,16 +316,9 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
   const intensity     = resolveIntensity(rawCtx.event_type, memory)
   const recentPhrases = await getRecentPhrases()
 
-  // Responsiveness modifier: if this user rarely engages during this cognitive state,
-  // extend cooldowns further rather than continuing to fire unproductive interventions.
-  const profile         = await getCognitiveProfile().catch(() => null)
-  const stateAcceptance = profile ? getStateAcceptanceRate(profile, cognitiveState.state) : null
-  if (stateAcceptance !== null && stateAcceptance < 0.20) {
-    strategy = { ...strategy, cooldownScale: strategy.cooldownScale * 1.5 }
-  }
-
   const ctx: CompressedContext = {
     ...rawCtx,
+    explicitIntent: session.intent ?? undefined,
     memory,
     intensity,
     recentPhrases,
@@ -309,39 +334,59 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
   pending.set(requestId, {
     tabId,
     eventType: rawCtx.event_type,
-    strategy,
     cogState:  cognitiveState.state,
     category:  rawCtx.page_context.category,
     at:        now,
+    session,
   })
   narrator.markRequested(tabId, now)
 
-  await ensureOffscreenDocument()
-  chrome.runtime.sendMessage({ type: MSG.AI_CONTEXT, payload: { requestId, tabId, ctx } })
+  try {
+    await ensureOffscreenDocument()
+    void chrome.runtime.sendMessage({ type: MSG.AI_CONTEXT, payload: { requestId, tabId, ctx, expiresAt: now + 90_000 } }).catch(() => {
+      if (pending.delete(requestId)) narrator.invalidate(tabId)
+    })
+  } catch {
+    pending.delete(requestId)
+    narrator.invalidate(tabId)
+  }
 }
 
 async function onJudgment({ requestId, judgment, intervention }: JudgmentPayload) {
   const req = pending.get(requestId)
   pending.delete(requestId)
-  if (!req) return  // orphaned response (SW restarted, or request pruned)
+  if (!req) return
+  const currentSession = await getCompanion(req.tabId)
+  const signal = await readSnapshot(req.tabId)
+  if (!currentSession || !signal || currentSession.revision !== req.session.revision ||
+      currentSession.episodeId !== req.session.episodeId || currentSession.quiet ||
+      signal.contextKey !== req.session.contextKey ||
+      Date.now() - req.at > 90_000 || !(await getState()).enabled) {
+    narrator.invalidate(req.tabId)
+    return
+  }
 
-  // Always fold the judgment into the tab story and longitudinal priors —
-  // an 'aligned' verdict is as valuable to learn from as a 'captured' one.
+  const currentContext = compress([], signal, recentDetections(req.tabId), freshEvents(tabEvents.get(req.tabId) ?? []))
+  const signature = JSON.stringify([signal.pageTitle, signal.mediaPlaying, [...currentContext.signals].sort()])
+  if (signature !== currentSession.evidenceSignature) {
+    invalidateRequests(req.tabId)
+    return
+  }
   narrator.recordJudgment(req.tabId, judgment, req.eventType)
-  if (judgment) void recordAlignment(req.category, judgment.alignment)
-
-  if (!judgment || !intervention) return
+  // Model predictions are not user labels and never train alignment priors.
+  if (!judgment || !intervention || judgment.alignment === 'aligned' || judgment.alignment === 'unknown') return
+  if (intervention.reasonKey && currentSession.lastReason === intervention.reasonKey) return
 
   const state = await getState()
-  const tier  = guardianVerdict(
-    intervention.tier,     // the Narrator's proposal
-    intervention.confidence,
-    state,
-    Date.now(),
-    req.eventType,
-    req.cogState,
-    req.strategy,
-  )
+  const rolling = tabCognitiveContext.get(req.tabId)
+  if (!rolling) return
+  const drift = analyzeDrift(rolling.state, rolling.history)
+  const strategy = resolveStrategy(rolling.state, drift, Date.now() - rolling.enteredAt,
+    sessionQuickDismissalsByState.get(rolling.state) ?? 0,
+    derivePresence(state.presenceLevel ?? PRESENCE_DEFAULT))
+  const tier = guardianVerdict(intervention.tier, intervention.confidence,
+    { ...state, suppressionMultiplier: state.suppressionMultiplier * driftCooldownScale(drift) },
+    Date.now(), currentContext.event_type, rolling.state, strategy)
   if (tier === 'none') {
     // The Narrator had something to say and the Guardian declined it. Counting
     // these is what lets the popup show restraint rather than only activity —
@@ -353,7 +398,12 @@ async function onJudgment({ requestId, judgment, intervention }: JudgmentPayload
   const tiered = {
     ...intervention,
     tier,
-    action:   resolveAction(req.cogState, intervention.mechanic ?? null),
+    action: 'none' as const,
+    contextKey: req.session.contextKey,
+    contextTitle: signal.pageTitle,
+    episodeId: req.session.episodeId,
+    revision: req.session.revision,
+    expiresAt: req.at + 90_000,
     cogState: req.cogState,
     category: req.category,
   }
@@ -362,6 +412,8 @@ async function onJudgment({ requestId, judgment, intervention }: JudgmentPayload
   // reached the screen. Without this, a closed tab (or one already showing a
   // nudge) burns cooldown budget with nothing shown.
   try {
+    const tab = await chrome.tabs.get(req.tabId)
+    if (!tab.active || !isCurrentIntervention(tiered, currentSession)) return
     const shown = await chrome.tabs.sendMessage(req.tabId, { type: MSG.INTERVENTION, payload: tiered })
     if (shown !== true) return  // slot occupied by an existing nudge
   } catch {
@@ -370,14 +422,18 @@ async function onJudgment({ requestId, judgment, intervention }: JudgmentPayload
 
   // Delivery succeeded — record state, patterns, and tracking metadata
   await patchState(afterIntervention(tier, state))
+  await recordStateInterventionShown(req.cogState)
   void incrementPattern('interventions_shown')
   void recordPhrase(intervention.message)
 
-  lastNudgeAt = Date.now()
+  currentSession.lastExplanation = intervention.explanation
+  currentSession.lastReason = intervention.reasonKey
+  await putCompanion(req.tabId, currentSession)
+  if (req.cogState === 'compulsive_loop') lastNudgeAt.set(req.tabId, Date.now())
 }
 
 async function onDismissed(
-  { dwellMs, outcome, tone, cogState, category, snoozeCount, intervention }: DismissedPayload,
+  { dwellMs, outcome, tone, cogState, category, snoozeCount, intervention, episodeId }: DismissedPayload,
   senderTabId?: number,
 ) {
   // "Remind me later": re-arm before anything else, so nothing downstream can
@@ -395,12 +451,8 @@ async function onDismissed(
   const rejected     = outcome === 'rejected'
   const quickDismiss = outcome === 'dismissed' && dwellMs < GATE.QUICK_DISMISS_MS
 
-  // A nudge the user asked to have brought back, and then let time out, was not
-  // really deferred — the deferral was the dismissal, just a politer one. This
-  // is the only way that distinction reaches memory, since 'snoozed' itself is
-  // recorded neutrally on the way in.
-  const abandoned = deferred && outcome === 'ignored'
-  const negative  = quickDismiss || rejected || abandoned
+  // An ignored reminder is ambiguous timing feedback, never a hidden refusal.
+  const negative = quickDismiss || rejected
 
   // Memory: pattern counters — fire-and-forget, non-critical.
   // 'ignored' is deliberately neutral here: an unattended nudge is neither
@@ -417,31 +469,41 @@ async function onDismissed(
     void recordReflectiveEngagement(dwellMs)
   }
 
-  // Profile: record tone + per-state responsiveness. Rejection counts as the
-  // strongest negative; 'ignored' passes through as neutral non-acceptance.
-  void recordInterventionOutcome(tone, accepted, negative)
-  void recordStateInterventionOutcome(cogState, accepted, negative)
+    // Only explicit feedback compares usefulness. Unattended pills cannot be
+  // treated as failed acceptances of an action they never offered.
+  if (accepted || rejected) {
+    await recordInterventionOutcome(tone, accepted, negative)
+    await recordStateInterventionOutcome(cogState, accepted, negative)
+  }
 
   // Session cap: quick dismissals accumulate; an explicit rejection opts the
   // user out of this state's nudges for the rest of the session immediately.
-  if (quickDismiss || abandoned) {
+  if (quickDismiss) {
     const prev = sessionQuickDismissalsByState.get(cogState) ?? 0
     sessionQuickDismissalsByState.set(cogState, prev + 1)
-  } else if (rejected) {
-    sessionQuickDismissalsByState.set(cogState, 99)
+  }
+  if (rejected && senderTabId !== undefined) {
+    const session = await getCompanion(senderTabId)
+    if (session && session.episodeId === episodeId) {
+      session.quiet = true
+      session.revision++
+      await putCompanion(senderTabId, session)
+      invalidateRequests(senderTabId)
+      await clearSnoozesForTab(senderTabId)
+    }
   }
 
   // Feedback loop: a rejection means the Narrator called 'captured' and the
   // user disagreed — the strongest alignment label we ever receive.
   if (rejected && category) {
-    void recordAlignment(category, 'aligned')
+    await recordAlignment(category, 'aligned')
   }
 }
 
 // ─── Pattern recording ────────────────────────────────────────────────────────
 // Maps abstract behavioral context to pattern keys. No URLs, no content.
 
-async function recordPatterns(ctx: CompressedContext): Promise<void> {
+async function recordPatterns(ctx: CompressedContext, tabId: number): Promise<void> {
   const hour = new Date().getHours()
   const late = hour >= 22 || hour <= 4
 
@@ -474,7 +536,96 @@ async function recordPatterns(ctx: CompressedContext): Promise<void> {
   }
 
   // Sequential to avoid concurrent IDB transactions on the same store
+  const seen = recordedPatterns.get(tabId) ?? new Set<string>()
+  recordedPatterns.set(tabId, seen)
   for (const [key, delta] of writes) {
+    if (seen.has(key)) continue
+    seen.add(key)
     await incrementPattern(key, delta)
   }
+}
+
+
+function invalidateRequests(tabId: number): void {
+  for (const [id, request] of pending) if (request.tabId === tabId) pending.delete(id)
+  narrator.invalidate(tabId)
+}
+
+async function readSnapshot(tabId: number): Promise<BrowsingSignal | null> {
+  try { return await chrome.tabs.sendMessage(tabId, { type: MSG.GET_PAGE_SNAPSHOT }) ?? null }
+  catch { return null }
+}
+
+async function observeSession(tabId: number, signal: BrowsingSignal): Promise<CompanionSession> {
+  const previous = await getCompanion(tabId)
+  const session = nextSession(previous, signal)
+  if (previous?.contextKey !== signal.contextKey) {
+    invalidateRequests(tabId)
+    tabEvents.delete(tabId)
+    tabCognitiveContext.delete(tabId)
+    lastNudgeAt.delete(tabId)
+    await clearSnoozesForTab(tabId)
+  }
+  if (previous?.episodeId !== session.episodeId) {
+    narrator.clearTab(tabId)
+    recordedPatterns.delete(tabId)
+  }
+  latestSignals.set(tabId, signal)
+  await putCompanion(tabId, session)
+  return session
+}
+
+async function companionTarget(senderTabId?: number): Promise<number | undefined> {
+  if (senderTabId !== undefined) return senderTabId
+  return (await chrome.tabs.query({ active: true, currentWindow: true }))[0]?.id
+}
+
+async function companionView(senderTabId?: number): Promise<CompanionView> {
+  const tabId = await companionTarget(senderTabId)
+  if (tabId === undefined) return { available: false, session: null }
+  const signal = await readSnapshot(tabId)
+  if (!signal) return { available: false, session: null }
+  return { available: true, session: await observeSession(tabId, signal) }
+}
+
+async function companionAction(
+  payload: { action: import('@shared/types').CompanionAction; intent?: string },
+  senderTabId?: number,
+): Promise<CompanionView> {
+  const tabId = await companionTarget(senderTabId)
+  if (tabId === undefined) return { available: false, session: null }
+  const view = await companionView(tabId)
+  const session = view.session
+  if (!session) return view
+  switch (payload.action) {
+    case 'intent':
+      session.intent = typeof payload.intent === 'string' ? payload.intent.trim().slice(0, 160) || null : null
+      session.quiet = false
+      session.lastReason = undefined
+      break
+    case 'quiet': session.quiet = true; break
+    case 'resume': session.quiet = false; break
+    case 'save': {
+      const signal = latestSignals.get(tabId)
+      if (signal && /^https?:\/\//.test(signal.url)) {
+        session.returnPoint = { url: signal.url, title: signal.pageTitle || 'Saved page' }
+      }
+      break
+    }
+    case 'open':
+      if (session.returnPoint && /^https?:\/\//.test(session.returnPoint.url)) {
+        await chrome.tabs.create({ url: session.returnPoint.url })
+      }
+      return view
+    case 'forget': session.returnPoint = undefined; break
+    default: return view
+  }
+  if (payload.action !== 'save' && payload.action !== 'forget') session.revision++
+  await putCompanion(tabId, session)
+  invalidateRequests(tabId)
+  await clearSnoozesForTab(tabId)
+  if (payload.action !== 'save' && payload.action !== 'forget') {
+    await chrome.tabs.sendMessage(tabId, { type: MSG.CLEAR_NUDGE }).catch(() => undefined)
+  }
+  return { available: true, session }
 }

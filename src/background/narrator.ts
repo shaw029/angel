@@ -48,7 +48,7 @@ function story(tabId: number): TabStory {
 /** Folds each browsing signal into the tab's story (title drift, entry type). */
 export function noteSignal(tabId: number, signal: BrowsingSignal): void {
   const s = story(tabId)
-  s.entry = signal.entry
+  if (s.entry === 'unknown') s.entry = signal.entry
 
   if (signal.pageTitle && signal.pageTitle !== s.currentTitle) {
     if (s.currentTitle) {
@@ -130,4 +130,12 @@ export function recordJudgment(
 
 export function clearTab(tabId: number): void {
   stories.delete(tabId)
+}
+
+export function invalidate(tabId: number): void {
+  const s = stories.get(tabId)
+  if (!s) return
+  s.lastJudgment = null
+  s.narrative = null
+  s.inFlight = false
 }
