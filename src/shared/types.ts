@@ -212,7 +212,7 @@ export interface StorageState {
 export type ModelLoadStatus =
   | { phase: 'idle' }
   | { phase: 'checking' }
-  | { phase: 'downloading'; progress: number; file: string }
+  | { phase: 'downloading'; progress: number; file: string; loadedBytes?: number; totalBytes?: number }
   | { phase: 'loading'; file: string; filesLoaded: number }
   | { phase: 'ready'; device: 'webgpu' | 'wasm'; storageWarning?: string }
   | { phase: 'error'; reason: string }
@@ -443,4 +443,22 @@ export interface CompressedContext {
   previousNarrative?: string
   alignmentPrior?:    AlignmentPriorLabel
   explicitIntent?:    string
+}
+
+// Consent is separate from the proactive-nudge switch and never inferred from a cache.
+export type ModelDevice = 'webgpu' | 'wasm'
+export interface ModelPreference {
+  choice: 'pending' | 'deferred' | 'enabled'
+  revision?: string
+  device?: ModelDevice
+}
+export interface ModelRun {
+  id: string
+  revision: string
+  device: ModelDevice
+  allowDownload: boolean
+}
+export interface ModelSetupView {
+  preference: ModelPreference
+  status: ModelLoadStatus
 }

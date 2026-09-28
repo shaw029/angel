@@ -24,6 +24,8 @@ A companion episode belongs to one tab and origin. Intent, quiet mode, the last 
 
 The background requests a fresh page snapshot before accepting delayed inference. It checks page identity, title, evidence signature, visibility, episode revision, preference state, and expiry. Delivery and reminder decisions share a serialized queue so competing work cannot independently spend the same interruption budget. Closing a tab clears its temporary companion/reminder records.
 
+Model consent is stored separately from the nudge switch. No model document is started without consent for the current pinned revision and processor. `src/background/model-setup.ts` controls runs; cancellation revokes the run before closing its document. Startup uses cached files only, and failure needs an explicit retry. Progress is accepted only from the active run. See [AI onboarding](AI_ONBOARDING.md).
+
 The offscreen document owns the model runtime and a shared inference queue. Expired queued requests are skipped. Keepalive messages accompany active initialization/inference; unrelated runtime messages are not answered by the offscreen listener. In-memory narrator and state-estimator history can still reset on worker suspension; session-stored controls do not depend on that history.
 
 ## Timing and adaptation
@@ -37,8 +39,8 @@ Requested reminders wait five minutes and may skip adaptive spacing, but retain 
 | Location | Contents | Lifetime |
 | --- | --- | --- |
 | Content/background memory | Current observations, short title trail, narrative, fresh evidence, heuristic history | Reset by navigation/context changes or process lifecycle as applicable |
-| `chrome.storage.session` | Companion origin/context and evidence signature, optional intent, quiet state, explanations, reminder records, explicitly saved URL/title | Browser session; tab-specific records removed when the tab closes |
-| `chrome.storage.local` | Settings, gate/outcome history, coarse user-correction priors | Until cleared or extension removed |
+| `chrome.storage.session` | AI run/status, companion origin/context and evidence signature, optional intent, quiet state, explanations, reminder records, explicitly saved URL/title | Browser session; tab-specific records removed when the tab closes |
+| `chrome.storage.local` | Settings, AI consent and approved model revision/processor, gate/outcome history, coarse user-correction priors | Until cleared or extension removed |
 | IndexedDB | Enumerated aggregate counters, behavioral profile, weekly snapshots | Local persistent history; old weekly snapshots pruned on subsequent writes |
 | Browser model cache | Downloaded model/tokenizer files | Until cleared/evicted or replaced |
 

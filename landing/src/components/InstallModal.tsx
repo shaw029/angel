@@ -1,3 +1,4 @@
+import { ModelDownloadNotice } from './ModelDownloadNotice'
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -106,6 +107,8 @@ export function InstallModal({ open, onClose }: { open: boolean; onClose: () => 
                 </li>
               ))}
             </ol>
+
+            <ModelDownloadNotice />
 
             {/* Download CTA */}
             <a

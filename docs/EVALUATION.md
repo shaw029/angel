@@ -21,7 +21,7 @@ Sources: [`evaluation.ts`](../src/memory/evaluation.ts), [`profile.ts`](../src/m
 
 ## Automated coverage
 
-Run `npm run check` for version consistency, TypeScript, and regression/static-rendering tests. Tests exercise evidence expiration and clearing, intent/quiet scope, saved pages, stale or unknown judgments, navigation and preference changes, concurrent delivery limits, reminders, state duration, and both nudge tiers' explanation/correction controls.
+Run `npm run check` for version consistency, TypeScript, and regression/static-rendering tests. Tests exercise evidence expiration and clearing, intent/quiet scope, saved pages, stale or unknown judgments, navigation and preference changes, concurrent delivery limits, reminders, state duration, both nudge tiers' explanation/correction controls, model download consent, cancellation, cached-only restores, and progress accounting.
 
 `npm run build` validates extension bundling; `npm --prefix landing run build` validates the website. The screenshot harness uses fixture data. Passing these checks does not demonstrate model accuracy or Chrome lifecycle reliability.
 

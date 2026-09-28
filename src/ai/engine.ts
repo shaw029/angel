@@ -1,7 +1,7 @@
 import { pipeline, env } from '@huggingface/transformers'
 import { MODEL_ID, MODEL_DTYPE_WEBGPU, MODEL_DTYPE_WASM } from '@shared/constants'
 import type { ModelLoadStatus } from '@shared/types'
-import { isCached, markCached, clearCachedRecord, clearStaleModelCaches } from './cache'
+import { getAuthorizedModelRun, MODEL_REVISION, ModelDownloadProgress } from '@shared/model-plan'
 
 // Transformers.js progress event shape (v3)
 interface TFProgressEvent {
@@ -40,18 +40,16 @@ type AnyToAnyPipeline = (
 
 type Device = 'webgpu' | 'wasm'
 
-class GemmaEngine {
+export class GemmaEngine {
   private pipe: AnyToAnyPipeline | null = null
   private initPromise: Promise<void> | null = null
   private progressCb: ((s: ModelLoadStatus) => void) | null = null
   private _device: Device = 'wasm'
   private filesLoaded   = 0
   private currentFile   = ''
-  // Byte-weighted progress: tracks only files currently downloading.
-  // Keyed by filename, value is { loaded, total } in bytes.
-  // Files are removed on 'done' so completed ones don't inflate the denominator.
-  private activeBytes  = new Map<string, { loaded: number; total: number }>()
   private quotaExceeded = false
+  private lastProgressAt = 0
+  private lastProgressPhase = ''
 
   get isReady(): boolean { return this.pipe !== null }
   get device(): Device   { return this._device }
@@ -89,6 +87,14 @@ class GemmaEngine {
   }
 
   private emit(status: ModelLoadStatus): void {
+    // Avoid filling the serialized background queue with per-chunk storage writes,
+    // so Cancel remains responsive during a multi-gigabyte transfer.
+    if (status.phase === 'downloading' || status.phase === 'loading') {
+      const now = Date.now()
+      if (this.lastProgressPhase === status.phase && now - this.lastProgressAt < 250) return
+      this.lastProgressPhase = status.phase
+      this.lastProgressAt = now
+    }
     this.progressCb?.(status)
   }
 
@@ -96,10 +102,16 @@ class GemmaEngine {
   private async load(): Promise<void> {
     this.emit({ phase: 'checking' })
 
-    const device = await detectDevice()
+    const run = await getAuthorizedModelRun()
+    if (!run) throw new Error('Enable local AI before loading a model.')
+    const device = run.device
     this._device = device
+    const progress = new ModelDownloadProgress(device)
+    this.filesLoaded = 0
+    this.quotaExceeded = false
 
-    env.allowRemoteModels = true
+    env.allowRemoteModels = run.allowDownload
+    env.allowLocalModels = true
     env.useBrowserCache   = true
     env.useWasmCache      = false  // Cache API rejects chrome-extension:// URLs
 
@@ -112,8 +124,6 @@ class GemmaEngine {
       wasm: `${ortBase}ort-wasm-simd-threaded.asyncify.wasm`,
     }
 
-    const alreadyCached = await isCached(MODEL_ID, device)
-    if (!alreadyCached) await clearStaleModelCaches()
     const dtype = device === 'webgpu' ? MODEL_DTYPE_WEBGPU : MODEL_DTYPE_WASM
 
     // Intercept console.warn during pipeline() to detect Cache API quota errors.
@@ -125,52 +135,37 @@ class GemmaEngine {
       const raw = await pipeline('text-generation', MODEL_ID, {
         device,
         dtype,
+        revision: MODEL_REVISION,
+        local_files_only: !run.allowDownload,
         progress_callback: (raw: unknown) => {
-          if (alreadyCached) return
           const info = raw as TFProgressEvent
           const fileName = info.file ?? info.name ?? ''
-
-          if (info.status === 'progress' && info.progress !== undefined) {
-            const loaded = info.loaded ?? 0
-            const total  = info.total  ?? 0
-            if (total > 0) {
-              this.activeBytes.set(fileName, { loaded, total })
-            }
-            const vals        = [...this.activeBytes.values()]
-            const totalLoaded = vals.reduce((s, v) => s + v.loaded, 0)
-            const totalBytes  = vals.reduce((s, v) => s + v.total,  0)
-            const progress    = totalBytes > 0
-              ? totalLoaded / totalBytes
-              : (info.progress ?? 0) / 100
-            this.emit({ phase: 'downloading', progress, file: fileName })
+          if (!run.allowDownload) {
+            if (info.status === 'done') this.filesLoaded++
+            this.emit({ phase: 'loading', file: fileName, filesLoaded: this.filesLoaded })
+          } else if (info.status === 'progress') {
+            this.emit({ phase: 'downloading', ...progress.update(fileName, info.loaded ?? 0), file: fileName })
           } else if (info.status === 'initiate' || info.status === 'download') {
             if (fileName) this.currentFile = fileName
-            this.emit({ phase: 'loading', file: this.currentFile, filesLoaded: this.filesLoaded })
+            if (run.allowDownload) this.emit({ phase: 'downloading', ...progress.update(fileName, 0), file: fileName })
           } else if (info.status === 'done') {
-            this.activeBytes.delete(fileName)
             this.filesLoaded++
-            this.emit({ phase: 'loading', file: this.currentFile, filesLoaded: this.filesLoaded })
+            const current = progress.update(fileName, 0, true)
+            this.emit(current.progress >= 1 || !run.allowDownload
+              ? { phase: 'loading', file: this.currentFile, filesLoaded: this.filesLoaded }
+              : { phase: 'downloading', ...current, file: fileName })
           }
         },
       })
 
       this.pipe = raw as unknown as AnyToAnyPipeline
 
-      // Only mark cached if the Cache API writes actually succeeded.
-      // If quota was exceeded the files weren't stored, so next session should
-      // show the progress bar and retry rather than silently re-downloading.
-      if (!alreadyCached && !this.quotaExceeded) {
-        await markCached(MODEL_ID, device)
-      } else if (alreadyCached && this.quotaExceeded) {
-        // IDB said "cached" but the Cache API files were evicted and couldn't be
-        // re-stored. Clear the stale IDB record so the next session starts clean
-        // (calls clearStaleModelCaches before downloading) rather than looping.
-        await clearCachedRecord(MODEL_ID, device)
-      }
-      const storageWarning = this.quotaExceeded ? 'Storage nearly full — model may reload slowly' : undefined
+      const storageWarning = this.quotaExceeded ? 'Some model files could not be cached. A future download may be needed; Angel will ask first.' : undefined
       this.emit({ phase: 'ready', device, ...(storageWarning ? { storageWarning } : {}) })
     } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err)
+      const reason = run.allowDownload
+        ? 'AI setup did not finish. Check your connection and available storage, then try again. If this device cannot prepare the model, try the other processor option.'
+        : 'Saved model files could not be loaded. They may be missing or incompatible. You can retry setup after reviewing the download size.'
       console.error('[GemmaEngine] load failed:', err)
       this.emit({ phase: 'error', reason })
       this.initPromise = null
@@ -190,17 +185,6 @@ class GemmaEngine {
       original(...args)
     }
     return () => { console.warn = original }
-  }
-}
-
-async function detectDevice(): Promise<Device> {
-  if (typeof navigator === 'undefined' || !('gpu' in navigator)) return 'wasm'
-  try {
-    const gpu = (navigator as Navigator & { gpu: { requestAdapter(): Promise<unknown> } }).gpu
-    const adapter = await gpu.requestAdapter()
-    return adapter ? 'webgpu' : 'wasm'
-  } catch {
-    return 'wasm'
   }
 }
 

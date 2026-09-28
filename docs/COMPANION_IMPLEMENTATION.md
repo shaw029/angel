@@ -1,6 +1,6 @@
 # Companion context and controls
 
-Scope: unreleased 0.3.0, initially implemented on `feat/adaptive-companion-context`. See the [changelog](../CHANGELOG.md) for release status. Gemma and its quantization configuration are unchanged. Smaller-model benchmarking is deferred.
+Scope: unreleased 0.3.0, initially implemented on `feat/adaptive-companion-context`. See the [changelog](../CHANGELOG.md) for release status. Gemma and its quantization configuration are unchanged; the model revision is now pinned for consent and size disclosure. The 0.3.0-dev.1 [AI onboarding](AI_ONBOARDING.md) adds explicit download consent, cancellation, and cached-only automatic restores. Smaller-model benchmarking is deferred.
 
 ## User-facing behavior
 
@@ -29,9 +29,9 @@ State transitions now pass the previous state's actual duration. Recovery attrib
 
 ## Verification
 
-- `npm run check`: version consistency, TypeScript, the 18 companion tests below, and two release-metadata tests.
+- `npm run check`: version consistency, TypeScript, 26 companion/onboarding/runtime tests, and two release-metadata tests.
 - `npm run typecheck`
-- `npm test`: 18 regression/static-rendering tests covering evidence expiry and clearing; optional intent and quiet scope; saved return points; disabled, navigated, corrected, stale, and unknown responses; concurrent delivery budgets; reminder limits; actual recovery duration; grounded copy; and correction/explanation controls on both tiers.
+- `npm test`: regression/static-rendering tests covering evidence expiry and clearing; optional intent and quiet scope; saved return points; disabled, navigated, corrected, stale, and unknown responses; concurrent delivery budgets; reminder limits; actual recovery duration; grounded copy; and correction/explanation controls on both tiers.
 - `npm run package`: extension build, root manifest and runtime packaging, ZIP, and SHA-256 checksum.
 - `npm run build`
 - `npx vite build --config screenshots/harness/vite.config.ts`

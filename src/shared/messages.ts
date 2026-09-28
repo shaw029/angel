@@ -11,6 +11,7 @@ import type {
   CognitiveState,
   DomainCategory,
   CompanionAction,
+  ModelDevice,
 } from './types'
 import type { MSG } from './constants'
 
@@ -19,6 +20,7 @@ type MsgKey = typeof MSG
 // Routed inference request: requestId ties the judgment back to the pending
 // entry in the background; tabId makes delivery explicit (no module-global slot).
 export interface NarratorRequest {
+  modelRunId: string
   requestId: string
   expiresAt: number
   tabId:     number
@@ -62,7 +64,9 @@ export type Message =
   | { type: MsgKey['GET_STATE'] }
   | { type: MsgKey['SET_ENABLED'];       payload: boolean }
   | { type: MsgKey['SET_PRESENCE'];      payload: number }
-  | { type: MsgKey['MODEL_PROGRESS'];    payload: ModelLoadStatus }
+  | { type: MsgKey['MODEL_PROGRESS'];    payload: ModelLoadStatus; runId: string }
+  | { type: MsgKey['GET_MODEL_SETUP'] }
+  | { type: MsgKey['SET_MODEL_SETUP']; payload: { action: 'enable' | 'defer' | 'cancel'; device?: ModelDevice } }
   | { type: MsgKey['KEEPALIVE'] }
   | { type: MsgKey['GET_PAGE_SNAPSHOT'] }
   | { type: MsgKey['GET_COMPANION'] }

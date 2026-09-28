@@ -1,3 +1,5 @@
+import { modelSetupView } from './model-setup'
+import { getAuthorizedModelRun } from '@shared/model-plan'
 import { getState, patchState } from '@storage/index'
 import { incrementPattern, recordStateInterventionShown } from '@memory/index'
 import { afterIntervention } from './gate'
@@ -83,7 +85,7 @@ export async function onSnoozeAlarm(alarm: chrome.alarms.Alarm): Promise<boolean
 
   // Angel was switched off during the deferral — that veto still stands.
   const state = await getState()
-  if (!state.enabled) return true
+  if (!state.enabled || !(await getAuthorizedModelRun()) || (await modelSetupView()).status.phase !== 'ready') return true
   if (!isCurrentIntervention(record.intervention, await getCompanion(record.tabId))) return true
   const now = Date.now()
   const last = Math.max(state.lastFullIntervention ?? 0, state.lastSubtleIntervention ?? 0)

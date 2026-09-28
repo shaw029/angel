@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { MODEL_REVISION } from '../src/shared/model-plan'
 import { MSG, SNOOZE } from '../src/shared/constants'
 import { transitions } from './fixtures/memory'
 import type { BrowsingSignal, CompanionView, Intervention } from '../src/shared/types'
@@ -16,6 +17,11 @@ const alarms = new Map<string, any>()
 let listener: any
 let alarmListener: any
 let removedListener: any
+let installedListener: any
+let startupListener: any
+let hasDocument = true
+let documentsCreated = 0
+let documentsClosed = 0
 const noop = { addListener() {} }
 function area(values: Record<string, any>) {
   return {
@@ -27,11 +33,12 @@ function area(values: Record<string, any>) {
 ;(globalThis as any).chrome = {
   storage: { local: area(local), session: area(session) },
   runtime: {
-    onInstalled: noop, onStartup: noop, onConnect: noop,
+    onInstalled: { addListener(fn: any) { installedListener = fn } }, onStartup: { addListener(fn: any) { startupListener = fn } }, onConnect: noop,
+    getURL: (path: string) => path,
     onMessage: { addListener(fn: any) { listener = fn } },
     async sendMessage(message: any) { if (message.type === MSG.AI_CONTEXT) requested.push(message.payload) },
   },
-  offscreen: { async hasDocument() { return true } },
+  offscreen: { Reason: { DOM_SCRAPING: 'DOM_SCRAPING' }, async hasDocument() { return hasDocument }, async closeDocument() { hasDocument = false; documentsClosed++ }, async createDocument() { hasDocument = true; documentsCreated++ } },
   tabs: {
     onRemoved: { addListener(fn: any) { removedListener = fn } },
     async query() { return [...snapshots.keys()].map(id => ({ id, active: true })) },
@@ -57,6 +64,10 @@ async function send(message: any, tabId?: number): Promise<any> {
 }
 const action = (tabId: number, action: string, intent?: string) => send({ type: MSG.COMPANION_ACTION, payload: { action, intent } }, tabId)
 function setup(tabId: number) {
+  hasDocument = true
+  local.modelPreference = { choice: 'enabled', device: 'webgpu', revision: MODEL_REVISION }
+  session.modelRun = { id: 'test-run', revision: MODEL_REVISION, device: 'webgpu', allowDownload: false }
+  session.modelStatus = { phase: 'ready', device: 'webgpu' }
   local.state = { enabled: true, presenceLevel: 0.5, recentNudges: [], lastFullIntervention: null, lastSubtleIntervention: null, suppressionMultiplier: 1 }
   snapshots.set(tabId, { contextKey: `doc:${tabId}`, url: 'https://shop.example/item', domain: 'shop.example', timestamp: now,
     timeOnPage: 100, scrollDepth: 0.8, idleTime: 0, switchCount: 0, pageTitle: 'Headphones', mediaPlaying: false, entry: 'search' })
@@ -169,4 +180,79 @@ test('quiet snapshots still record recovery and the previous state duration', as
   const recovery = transitions.findLast(t => t[0] === 'compulsive_loop')
   assert.ok(recovery)
   assert.equal(recovery[3], 120_000)
+})
+
+
+test('install, startup, signals and popup cannot start a download without consent', async () => {
+  setup(20)
+  delete local.modelPreference
+  delete session.modelRun
+  delete session.modelStatus
+  hasDocument = false
+  const before = documentsCreated
+  installedListener()
+  startupListener()
+  await serial(async () => {})
+  await evidence(20)
+  const view = await send({ type: MSG.GET_MODEL_SETUP })
+  assert.equal(view.preference.choice, 'pending')
+  assert.equal(documentsCreated, before)
+  assert.equal(requested.filter(r => r.tabId === 20).length, 0)
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'defer' } })
+  installedListener()
+  await serial(async () => {})
+  assert.equal((await send({ type: MSG.GET_MODEL_SETUP })).preference.choice, 'deferred')
+  assert.equal(documentsCreated, before)
+})
+
+test('consent starts one run; cancel closes its owner and late progress cannot revive it', async () => {
+  const before = documentsCreated
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'wasm' } })
+  const run = structuredClone(session.modelRun)
+  assert.equal(run.allowDownload, true)
+  assert.equal(run.device, 'wasm')
+  assert.equal(documentsCreated, before + 1)
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'wasm' } })
+  assert.equal(documentsCreated, before + 1)
+  const closed = documentsClosed
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'cancel' } })
+  assert.equal(documentsClosed, closed + 1)
+  assert.equal(session.modelRun, undefined)
+  await send({ type: MSG.MODEL_PROGRESS, runId: run.id, payload: { phase: 'ready', device: 'wasm' } })
+  assert.equal(session.modelStatus.phase, 'idle')
+  startupListener()
+  await serial(async () => {})
+  assert.equal(documentsCreated, before + 1)
+})
+
+test('restart uses cached files only; missing cache never triggers an automatic retry', async () => {
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'webgpu' } })
+  const run = session.modelRun
+  await send({ type: MSG.MODEL_PROGRESS, runId: run.id, payload: { phase: 'ready', device: 'webgpu' } })
+  assert.equal(session.modelRun.allowDownload, false)
+  hasDocument = false
+  delete session.modelRun
+  delete session.modelStatus
+  startupListener()
+  await serial(async () => {})
+  assert.equal(session.modelRun.allowDownload, false)
+  await send({ type: MSG.MODEL_PROGRESS, runId: session.modelRun.id, payload: { phase: 'error', reason: 'Cache unavailable' } })
+  hasDocument = false
+  const before = documentsCreated
+  await send({ type: MSG.GET_MODEL_SETUP })
+  assert.equal(documentsCreated, before)
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'webgpu' } })
+  assert.equal(session.modelRun.allowDownload, true)
+  assert.equal(documentsCreated, before + 1)
+})
+
+test('old model consent and cached files cannot authorize a different revision', async () => {
+  local.modelPreference.revision = 'old-version'
+  const before = documentsCreated
+  installedListener()
+  await serial(async () => {})
+  const view = await send({ type: MSG.GET_MODEL_SETUP })
+  assert.equal(view.preference.choice, 'pending')
+  assert.equal(session.modelRun, undefined)
+  assert.equal(documentsCreated, before)
 })

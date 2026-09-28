@@ -1,6 +1,7 @@
 import { evaluate } from '@heuristics/index'
 import { getState, patchState } from '@storage/index'
-import { ensureOffscreenDocument } from './offscreen'
+import { modelSetupView, enableModel, stopModel, restoreModel, acceptModelProgress } from './model-setup'
+import { getAuthorizedModelRun } from '@shared/model-plan'
 import { compress } from '@ai/pipeline'
 import { guardianVerdict, isAnyTierAllowed, afterIntervention, afterDismissal } from './gate'
 import { incrementPattern, getMemorySummary, recordInterventionOutcome, recordSessionEnd, recordStateTransition, recordStateInterventionOutcome, recordStateInterventionShown, recordReflectiveEngagement } from '@memory/index'
@@ -25,7 +26,6 @@ import type {
   BehavioralEvent,
   CognitiveState,
   DetectionResult,
-  ModelLoadStatus,
   CompressedContext,
   EventType,
   DomainCategory,
@@ -33,11 +33,9 @@ import type {
   CompanionView,
 } from '@shared/types'
 
-// Pre-warm the offscreen document (and start Gemma download) as soon as the
-// extension loads — not lazily on first signal. This means the model is
-// downloading in the background from day one, visible in the popup.
-chrome.runtime.onInstalled.addListener(() => void ensureOffscreenDocument())
-chrome.runtime.onStartup.addListener(()   => void ensureOffscreenDocument())
+// Consent is required even for installations upgraded from automatic loading.
+chrome.runtime.onInstalled.addListener(() => { void serial(() => restoreModel()) })
+chrome.runtime.onStartup.addListener(() => { void serial(() => restoreModel()) })
 
 // ─── In-flight inference routing ──────────────────────────────────────────────
 // Each Narrator consultation is keyed by requestId so concurrent requests from
@@ -73,9 +71,6 @@ const lastNudgeAt = new Map<number, number>()
 // Evaluation thresholds
 const REFLECTIVE_DWELL_MS          = 8_000        // genuine read+reflect threshold
 const POST_NUDGE_RECOVERY_WINDOW_MS = 15 * 60_000  // nudge → recovery attribution window
-
-// Latest model status relayed from offscreen — injected into GET_STATE responses
-let latestModelStatus: ModelLoadStatus = { phase: 'idle' }
 
 // Bounded per-tab event buffer — enriches CompressedContext when Gemma is invoked
 const MAX_EVENTS_PER_TAB = 60
@@ -170,21 +165,35 @@ async function dispatch(
       await onDismissed(message.payload, senderTabId)
       break
 
-    case MSG.MODEL_PROGRESS: {
-      const incoming = message.payload as import('@shared/types').ModelLoadStatus
-      // Preserve max filesLoaded across reloads — engine counter resets but storage doesn't
-      if (incoming.phase === 'loading') {
-        const prev = await chrome.storage.session.get('modelStatus')
-        const prevCount: number = (prev.modelStatus as { filesLoaded?: number })?.filesLoaded ?? 0
-        incoming.filesLoaded = Math.max(prevCount, incoming.filesLoaded)
+    case MSG.GET_MODEL_SETUP:
+      await restoreModel()
+      sendResponse(await modelSetupView())
+      return
+
+    case MSG.SET_MODEL_SETUP:
+      if (senderTabId !== undefined) throw new Error('Model setup belongs to extension controls')
+      for (const tabId of latestSignals.keys()) invalidateRequests(tabId)
+      if (message.payload.action === 'enable') {
+        const device = message.payload.device
+        if (device !== 'webgpu' && device !== 'wasm') throw new Error('Choose a supported device')
+        await enableModel(device)
+      } else if (message.payload.action === 'defer' || message.payload.action === 'cancel') {
+        await stopModel()
+        const tabs = await chrome.tabs.query({})
+        await Promise.allSettled(tabs.filter(t => t.id !== undefined).map(async t => {
+          await clearSnoozesForTab(t.id!)
+          await chrome.tabs.sendMessage(t.id!, { type: MSG.CLEAR_NUDGE })
+        }))
       }
-      latestModelStatus = incoming
-      void chrome.storage.session.set({ modelStatus: incoming })
+      sendResponse(await modelSetupView())
+      return
+
+    case MSG.MODEL_PROGRESS:
+      if (senderTabId === undefined) await acceptModelProgress(message.runId, message.payload)
       break
-    }
 
     case MSG.GET_STATE:
-      sendResponse({ ...(await getState()), modelStatus: latestModelStatus })
+      sendResponse({ ...(await getState()), modelStatus: (await modelSetupView()).status })
       return
 
     case MSG.SET_ENABLED:
@@ -304,6 +313,10 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
 
   const now = Date.now()
 
+  await restoreModel()
+  const modelRun = await getAuthorizedModelRun()
+  if (!modelRun || (await modelSetupView()).status.phase !== 'ready') return
+
   // Guardian pre-check: skip inference when nothing could be delivered anyway
   if (!isAnyTierAllowed(adjustedState, now, rawCtx.event_type, cognitiveState.state, strategy)) return
 
@@ -342,8 +355,7 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
   narrator.markRequested(tabId, now)
 
   try {
-    await ensureOffscreenDocument()
-    void chrome.runtime.sendMessage({ type: MSG.AI_CONTEXT, payload: { requestId, tabId, ctx, expiresAt: now + 90_000 } }).catch(() => {
+    void chrome.runtime.sendMessage({ type: MSG.AI_CONTEXT, payload: { modelRunId: modelRun.id, requestId, tabId, ctx, expiresAt: now + 90_000 } }).catch(() => {
       if (pending.delete(requestId)) narrator.invalidate(tabId)
     })
   } catch {
@@ -355,7 +367,7 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
 async function onJudgment({ requestId, judgment, intervention }: JudgmentPayload) {
   const req = pending.get(requestId)
   pending.delete(requestId)
-  if (!req) return
+  if (!req || !(await getAuthorizedModelRun()) || (await modelSetupView()).status.phase !== 'ready') return
   const currentSession = await getCompanion(req.tabId)
   const signal = await readSnapshot(req.tabId)
   if (!currentSession || !signal || currentSession.revision !== req.session.revision ||

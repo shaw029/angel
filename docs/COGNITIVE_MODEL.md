@@ -24,7 +24,7 @@ The estimator retains up to 15 transitions in memory. On transition it reports t
 
 The model receives optional user-stated intent, current signal labels, an observed mechanic hypothesis, page titles, entry category, media activity, duration, and behavioral estimates. Page strings are quoted as data. Arrival provenance is weak evidence; a missing referrer does not prove a typed URL or a chosen purpose.
 
-Judgments can be `aligned`, `mixed`, `captured`, or `unknown`. Both `aligned` and `unknown` suppress intervention. The model's remaining proposal still needs fresh evidence, eligible preferences, a strategy that permits delivery, and Guardian limits. Visible copy comes from observed evidence, with an inspectable explanation.
+Judgments can be `aligned`, `drifting`, `captured`, or `unknown`. Both `aligned` and `unknown` suppress intervention. The model's remaining proposal still needs fresh evidence, eligible preferences, a strategy that permits delivery, and Guardian limits. Visible copy comes from observed evidence, with an inspectable explanation.
 
 **I chose this** quiets the current episode and updates a coarse category prior. Model judgments do not update those priors. Stated intent takes precedence over aggregate history. Ask Angel allows changing or clearing intent without requiring model readiness.
 

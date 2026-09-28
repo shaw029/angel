@@ -1,6 +1,7 @@
+import { ModelSetup } from './ModelSetup'
 import { CompanionPanel } from './CompanionPanel'
 import { useEffect, useState } from 'react'
-import type { StorageState, ModelLoadStatus, EvaluationMetrics, TrendDirection, CognitiveState } from '@shared/types'
+import type { StorageState, EvaluationMetrics, TrendDirection, CognitiveState } from '@shared/types'
 import { MSG, COOLDOWN_DEFAULT_MINUTES, PRESENCE_DEFAULT } from '@shared/constants'
 import { getEvaluationMetrics } from '@memory/evaluation'
 import { getPatterns, getCognitiveProfile } from '@memory/index'
@@ -20,83 +21,6 @@ const STATE_DEFAULTS: Omit<StorageState, 'modelStatus'> = {
   presenceLevel:          PRESENCE_DEFAULT,
 }
 
-
-function ModelStatusBadge({ status }: { status: ModelLoadStatus }) {
-  // Never let the bar go backwards — brief dips happen when a file completes
-  // and leaves the active set while the next large file starts from 0.
-  const [displayPct, setDisplayPct] = useState(0)
-
-  useEffect(() => {
-    if (status.phase === 'downloading') {
-      setDisplayPct(prev => Math.max(prev, Math.round(status.progress * 100)))
-    }
-  }, [status])
-
-  if (status.phase === 'idle' || status.phase === 'checking') return null
-
-  if (status.phase === 'downloading') {
-    return (
-      <div className="mt-3 pt-3 border-t border-neutral-100">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] text-ink-muted">Setting up your companion…</span>
-          <span className="text-[10px] tabular-nums text-ink-muted">{displayPct}%</span>
-        </div>
-        <div className="h-0.5 w-full rounded-full bg-neutral-100 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-sage transition-all duration-700 ease-out"
-            style={{ width: `${displayPct}%` }}
-          />
-        </div>
-        <p className="mt-1.5 text-[10px] text-ink-muted">
-          One-time download — stays on your device.
-        </p>
-      </div>
-    )
-  }
-
-  if (status.phase === 'loading') {
-    return (
-      <div className="mt-3 pt-3 border-t border-neutral-100">
-        <span className="text-[10px] text-ink-muted">Setting up your companion…</span>
-        <div className="mt-1.5 h-0.5 w-full rounded-full bg-neutral-100 overflow-hidden relative">
-          <div className="absolute h-full w-1/3 rounded-full bg-sage animate-slide" />
-        </div>
-        <p className="mt-1.5 text-[10px] text-ink-muted">
-          One-time download — stays on your device.
-        </p>
-      </div>
-    )
-  }
-
-  if (status.phase === 'ready') {
-    return (
-      <div className="mt-3 pt-3 border-t border-neutral-100">
-        <div className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-sage" />
-          <span className="text-[10px] text-ink-muted">
-            AI ready · {status.device === 'webgpu' ? 'GPU' : 'CPU'}
-          </span>
-        </div>
-        {status.storageWarning && (
-          <p className="mt-1.5 text-[10px] text-amber-500">{status.storageWarning}</p>
-        )}
-      </div>
-    )
-  }
-
-  if (status.phase === 'error') {
-    return (
-      <div className="mt-3 pt-3 border-t border-neutral-100">
-        <span className="text-[10px] text-amber-500">Model unavailable — nudges paused</span>
-        {status.reason && (
-          <p className="mt-1 text-[10px] text-amber-400 break-all">{status.reason}</p>
-        )}
-      </div>
-    )
-  }
-
-  return null
-}
 
 // ─── Insight panel ────────────────────────────────────────────────────────────
 // Observational, non-gamified. Shows what's been building, not a score.
@@ -336,7 +260,7 @@ function PresenceSlider({
 
 export function App() {
   const [state,       setState      ] = useState<Omit<StorageState, 'modelStatus'> | null>(null)
-  const [modelStatus, setModelStatus] = useState<ModelLoadStatus>({ phase: 'idle' })
+  const [aiReady, setAiReady] = useState(false)
   const [metrics,     setMetrics    ] = useState<EvaluationMetrics | null>(null)
   const [patterns,    setPatterns   ] = useState<PatternCounts | null>(null)
   const [stateStats,  setStateStats ] = useState<StateStats | null>(null)
@@ -346,35 +270,10 @@ export function App() {
     chrome.storage.local.get('state', (result) => {
       setState({ ...STATE_DEFAULTS, ...(result.state ?? {}) })
     })
-    chrome.storage.session.get('modelStatus', (result) => {
-      if (result.modelStatus) setModelStatus(result.modelStatus as ModelLoadStatus)
-    })
     // Evaluation metrics — read from IDB directly (same extension origin)
     getEvaluationMetrics().then(setMetrics).catch(() => null)
     getPatterns().then(setPatterns).catch(() => null)
     getCognitiveProfile().then(p => setStateStats(p.stateStats ?? {})).catch(() => null)
-  }, [])
-
-  // Live model progress — two sources so we never miss an update:
-  // 1. Direct runtime messages (popup is open when event fires)
-  // 2. Storage changes (popup opened after event fired, reads latest from session)
-  useEffect(() => {
-    function onMessage(message: { type: string; payload?: unknown }) {
-      if (message.type === MSG.MODEL_PROGRESS) {
-        setModelStatus(message.payload as ModelLoadStatus)
-      }
-    }
-    function onStorageChanged(changes: Record<string, chrome.storage.StorageChange>) {
-      if (changes.modelStatus?.newValue) {
-        setModelStatus(changes.modelStatus.newValue as ModelLoadStatus)
-      }
-    }
-    chrome.runtime.onMessage.addListener(onMessage)
-    chrome.storage.session.onChanged.addListener(onStorageChanged)
-    return () => {
-      chrome.runtime.onMessage.removeListener(onMessage)
-      chrome.storage.session.onChanged.removeListener(onStorageChanged)
-    }
   }, [])
 
   async function toggle() {
@@ -421,9 +320,11 @@ export function App() {
 
       <p className="mt-3 text-xs leading-relaxed text-ink-muted">
         {state.enabled
-          ? 'Quietly watching for moments worth pausing on.'
+          ? aiReady ? 'Quietly watching for moments worth pausing on.' : 'Nudges are paused until local AI is ready.'
           : 'Paused — no nudges will appear.'}
       </p>
+
+      <ModelSetup onReady={setAiReady} />
 
       {state.interventionCount > 0 && (
         <NudgeBreakdown
@@ -433,16 +334,15 @@ export function App() {
         />
       )}
 
-      {metrics && <InsightPanel metrics={metrics} />}
+      {metrics && state.interventionCount > 0 && <InsightPanel metrics={metrics} />}
 
       <PresenceSlider
         value={state.presenceLevel ?? PRESENCE_DEFAULT}
         onChange={setPresence}
-        disabled={!state.enabled}
+        disabled={!state.enabled || !aiReady}
       />
 
       <CompanionPanel />
-      <ModelStatusBadge status={modelStatus} />
     </div>
   )
 }

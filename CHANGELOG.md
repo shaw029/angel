@@ -4,9 +4,13 @@ Changes are grouped by release. Unreleased entries describe this source tree, no
 
 ## Unreleased — 0.3.0
 
-Development builds currently identify as `0.3.0-dev.0`.
+Development builds currently identify as `0.3.0-dev.1`.
 
 ### Added
+
+- Explicit AI download consent with size disclosure, an illustrative example, and a remembered Not now choice.
+- Download progress across model files, cancellation, retry, cached-only automatic restart, and revision-specific consent.
+- Website disclosure and draft store copy distinguishing the extension ZIP from the separate model download.
 
 - Ask Angel controls for optional intent, explanations, quiet mode, and saved return points.
 - Explanations and explicit correction on both nudge tiers.

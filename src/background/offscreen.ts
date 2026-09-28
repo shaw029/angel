@@ -17,6 +17,10 @@ export async function ensureOffscreenDocument(): Promise<void> {
     justification: 'Local AI inference via WebGPU (Gemma)',
   })
 
-  await creating
-  creating = null
+  try { await creating } finally { creating = null }
+}
+
+export async function closeOffscreenDocument(): Promise<void> {
+  if (creating) await creating.catch(() => undefined)
+  if (await chrome.offscreen.hasDocument()) await chrome.offscreen.closeDocument()
 }

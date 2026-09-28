@@ -1,8 +1,9 @@
 import type { Message } from '@shared/messages'
+import { getAuthorizedModelRun } from '@shared/model-plan'
 import { MSG } from '@shared/constants'
 import { judgeSession } from '@ai/index'
 import { engine } from '@ai/engine'
-import type { ModelLoadStatus } from '@shared/types'
+import type { ModelLoadStatus, ModelRun } from '@shared/types'
 
 // ─── Service-worker keepalive ─────────────────────────────────────────────────
 // The SW can suspend while local work is running. Keep request routing alive
@@ -11,6 +12,7 @@ import type { ModelLoadStatus } from '@shared/types'
 //   1. A port reports disconnects. Opening it alone does not keep the SW alive.
 //   2. Bounded 10-second pings reset the idle timer only while loading.
 
+let startupRun: ModelRun | null = null
 let loadingModel = false
 let activeInferences = 0
 
@@ -50,7 +52,7 @@ function stopKeepalive() {
 // popup can reflect download progress. Set up once, before any inference.
 engine.onProgress((status: ModelLoadStatus) => {
   try {
-    chrome.runtime.sendMessage({ type: MSG.MODEL_PROGRESS, payload: status })
+    void chrome.runtime.sendMessage({ type: MSG.MODEL_PROGRESS, payload: status, runId: startupRun?.id }).catch(() => undefined)
   } catch {
     // Extension context may be invalidated during extension reload in dev
   }
@@ -63,13 +65,12 @@ engine.onProgress((status: ModelLoadStatus) => {
   }
 })
 
-// Start downloading/loading the model immediately — don't wait for the first
-// inference request. This way the model is ready (or still downloading and
-// showing progress) as soon as the user opens the popup.
-void engine.ensureReady().catch(() => {
-  // Error already surfaced via onProgress({ phase: 'error' }) — no action needed here
-  stopKeepalive()
-})
+// The background creates this document only after consent. Recheck storage here
+// as a second boundary; loading the HTML directly cannot authorize a download.
+void getAuthorizedModelRun().then(run => {
+  startupRun = run
+  if (run) return engine.ensureReady()
+}).catch(() => stopKeepalive())
 
 let inferenceQueue: Promise<unknown> = Promise.resolve()
 
@@ -77,12 +78,13 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
   // Unhandled messages belong to the background/popup; never race their replies.
   if (message.type !== MSG.AI_CONTEXT) return false
 
-  const { requestId, tabId, ctx, expiresAt } = message.payload
+  const { modelRunId, requestId, tabId, ctx, expiresAt } = message.payload
 
   // Always answer — even a failed inference must release the background's
   // in-flight lock for this tab, or the tab goes silent until SW restart.
   const task = inferenceQueue.then(async () => {
-    if (Date.now() >= expiresAt) return { judgment: null, intervention: null }
+    const run = await getAuthorizedModelRun()
+    if (!run || run.id !== modelRunId || run.id !== startupRun?.id || !engine.isReady || Date.now() >= expiresAt) return { judgment: null, intervention: null }
     activeInferences++
     startKeepalive()
     try { return await judgeSession(ctx) }

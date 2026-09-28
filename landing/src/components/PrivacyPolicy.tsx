@@ -1,5 +1,5 @@
 const GITHUB_URL = 'https://github.com/shaw029/angel'
-const UPDATED    = '27 September 2026'
+const UPDATED    = '28 September 2026'
 
 /**
  * The Chrome Web Store requires a posted privacy policy from any extension that
@@ -72,7 +72,7 @@ export function PrivacyPolicy() {
 
         <Section title="What is stored locally">
           <List items={[
-            'Persistent settings, recent delivery/outcome records, and correction-based priors grouped by coarse site category.',
+            'Your AI download choice, selected processor and approved model revision, persistent settings, recent delivery/outcome records, and correction-based priors grouped by coarse site category.',
             'IndexedDB aggregate counters, behavioral profile summaries, and weekly aggregate snapshots. Old weekly snapshots are pruned on subsequent writes; aggregates do not contain URLs or page passages.',
             'Browser session storage for tab/site context, including evidence signatures containing the current title, optional intent, quiet preference, explanations, and requested reminders.',
             'An explicitly saved URL/title when you choose Save this page for later. It remains associated with that tab until forgotten, the tab closes, or the browser session ends.',
@@ -88,9 +88,9 @@ export function PrivacyPolicy() {
 
         <Section title="Network requests">
           <p>
-            Angel downloads model weights, tokenizer files, and related model configuration from
+            After you choose Download and enable Angel, the development version downloads model weights, tokenizer files, and related model configuration from
             Hugging Face. These can require multiple requests and can be downloaded again after
-            cache eviction, clearing, or an upgrade. The download service receives normal request
+            cache eviction, clearing, or an upgrade. Automatic restarts use cached files only; missing files require another setup choice. A changed model revision requires renewed consent. Cancel setup stops the model-loading document; already completed cached files may remain for reuse. The download service receives normal request
             metadata, including your IP address; prompts and browsing observations are not included.
           </p>
           <p>
@@ -111,6 +111,7 @@ export function PrivacyPolicy() {
 
         <Section title="Your controls">
           <List items={[
+            'AI setup offers Download and enable Angel, Not now, and Cancel setup. Declining keeps controls available while proactive nudges stay paused.',
             'The popup switch disables proactive nudges. Page observation is not a separate opt-out under that switch; Chrome site-access controls can restrict where the extension runs.',
             'The presence slider adjusts permitted nudge frequency within hard interruption limits.',
             'Ask Angel lets you state or clear intent, inspect the last explanation, quiet/resume an episode, and save/open/forget a return point.',

@@ -188,7 +188,7 @@ function Frame({ scene }: { scene: Scene }) {
 const params = new URLSearchParams(location.search)
 const id     = params.get('scene') ?? SCENES[0].id
 const scene  = SCENES.find(s => s.id === id) ?? SCENES[0]
-createRoot(document.getElementById('root')!).render(params.has('companion') ? <Popup /> : <Frame scene={scene} />)
+createRoot(document.getElementById('root')!).render((params.has('companion') || params.has('setup')) ? <>{params.has('setup') && <p style={{ width: 320, padding: '12px 20px 0', fontSize: 12, color: '#4A7C59' }}>Preview only · model download is simulated</p>}<Popup /></> : <Frame scene={scene} />)
 
 // Headless Chrome screenshots on the load event. The nudge animates in after
 // mount, so hold the load event open with an image the capture server answers

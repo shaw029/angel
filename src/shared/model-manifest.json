@@ -1,0 +1,27 @@
+{
+  "modelId": "onnx-community/gemma-4-E2B-it-ONNX",
+  "revision": "9f4bef82ea6e296bc69f8a2f5939f73af81b07a6",
+  "verifiedAt": "2026-09-28",
+  "files": {
+    "webgpu": {
+      "config.json": 5549,
+      "generation_config.json": 238,
+      "onnx/decoder_model_merged_q4f16.onnx": 673231,
+      "onnx/decoder_model_merged_q4f16.onnx_data": 1519700992,
+      "onnx/embed_tokens_q4f16.onnx": 5621,
+      "onnx/embed_tokens_q4f16.onnx_data": 1590689792,
+      "tokenizer.json": 19439251,
+      "tokenizer_config.json": 18807
+    },
+    "wasm": {
+      "config.json": 5549,
+      "generation_config.json": 238,
+      "onnx/decoder_model_merged_q4.onnx": 647599,
+      "onnx/decoder_model_merged_q4.onnx_data": 1864102912,
+      "onnx/embed_tokens_q4.onnx": 5142,
+      "onnx/embed_tokens_q4.onnx_data": 1762656256,
+      "tokenizer.json": 19439251,
+      "tokenizer_config.json": 18807
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { ModelDownloadNotice } from './ModelDownloadNotice'
 import { motion } from 'framer-motion'
 
 const STORE_URL = 'https://chromewebstore.google.com/detail/angel/geemggebjlbjnkhgbgloldmnfefoghip'
@@ -85,6 +86,8 @@ export function Hero({ onInstall }: HeroProps) {
           the published release; see the{' '}
           <a href="https://github.com/shaw029/angel/releases" className="underline underline-offset-2">release history</a>.
         </p>
+
+        <ModelDownloadNotice />
 
         {/* CTAs */}
         <motion.div
