@@ -28,7 +28,7 @@ export function PrivacySection() {
               variants={fadeUp}
             >
               <span className="h-1.5 w-1.5 rounded-full bg-sage" />
-              <span className="text-xs font-medium text-sage/90 tracking-wide">Gemma · On-device inference</span>
+              <span className="text-xs font-medium text-sage/90 tracking-wide">Gemma profiles · On-device inference</span>
             </motion.div>
 
             <motion.h2
@@ -47,7 +47,7 @@ export function PrivacySection() {
 
             <motion.div className="mt-8 flex flex-col gap-3" variants={stagger}>
               {[
-                { label: 'No data stored or sent', detail: 'Titles and session stories live in memory only; inference stays on-device' },
+                { label: 'No data sent to a model server', detail: 'Titles and session stories are processed on-device' },
                 { label: 'No server, no account', detail: 'No API keys. No cloud. No sync.' },
                 { label: 'Fully auditable', detail: 'Open source — every line is readable' },
               ].map(({ label, detail }) => (
@@ -82,7 +82,7 @@ export function PrivacySection() {
 function LocalFlowDiagram() {
   const nodes = [
     { icon: <EyeIcon />,    label: 'Session evidence',    sub: 'What you do stays private' },
-    { icon: <GemmaIcon />,  label: 'Gemma 4 2B',          sub: 'Judges your session on-device' },
+    { icon: <GemmaIcon />,  label: 'Gemma Lite or Full',  sub: 'Judges your session on-device' },
     { icon: <NudgeIcon />,  label: 'Reflective nudge',    sub: 'Support without surveillance' },
   ]
 

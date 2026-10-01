@@ -1,7 +1,7 @@
 import { evaluate } from '@heuristics/index'
 import { getState, patchState } from '@storage/index'
 import { modelSetupView, enableModel, stopModel, restoreModel, acceptModelProgress } from './model-setup'
-import { getAuthorizedModelRun } from '@shared/model-plan'
+import { getAuthorizedModelRun, isModelProfile } from '@shared/model-plan'
 import { compress } from '@ai/pipeline'
 import { guardianVerdict, isAnyTierAllowed, afterIntervention, afterDismissal } from './gate'
 import { incrementPattern, getMemorySummary, recordInterventionOutcome, recordSessionEnd, recordStateTransition, recordStateInterventionOutcome, recordStateInterventionShown, recordReflectiveEngagement } from '@memory/index'
@@ -174,11 +174,13 @@ async function dispatch(
       if (senderTabId !== undefined) throw new Error('Model setup belongs to extension controls')
       for (const tabId of latestSignals.keys()) invalidateRequests(tabId)
       if (message.payload.action === 'enable') {
+        const model = message.payload.model
         const device = message.payload.device
+        if (!isModelProfile(model)) throw new Error('Choose a supported model')
         if (device !== 'webgpu' && device !== 'wasm') throw new Error('Choose a supported device')
-        await enableModel(device)
+        await enableModel(model, device)
       } else if (message.payload.action === 'defer' || message.payload.action === 'cancel') {
-        await stopModel()
+        await stopModel(message.payload.model, message.payload.device)
         const tabs = await chrome.tabs.query({})
         await Promise.allSettled(tabs.filter(t => t.id !== undefined).map(async t => {
           await clearSnoozesForTab(t.id!)

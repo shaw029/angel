@@ -1,6 +1,6 @@
 # Companion context and controls
 
-Scope: unreleased 0.3.0, initially implemented on `feat/adaptive-companion-context`. See the [changelog](../CHANGELOG.md) for release status. Gemma and its quantization configuration are unchanged; the model revision is now pinned for consent and size disclosure. The 0.3.0-dev.1 [AI onboarding](AI_ONBOARDING.md) adds explicit download consent, cancellation, and cached-only automatic restores. Smaller-model benchmarking is deferred.
+Scope: unreleased 0.3.0, initially implemented on `feat/adaptive-companion-context`. See the [changelog](../CHANGELOG.md) for release status. The 0.3.0-dev.1 [AI onboarding](AI_ONBOARDING.md) adds explicit download consent, cancellation, cached-only automatic restores, and a pinned Lite/Full profile choice. Lite's comparison gates are documented in [Local AI profiles](MODEL_PROFILES.md).
 
 ## User-facing behavior
 
@@ -37,10 +37,10 @@ State transitions now pass the previous state's actual duration. Recovery attrib
 - `npx vite build --config screenshots/harness/vite.config.ts`
 - `npm --prefix landing run build`
 
-The Browser tool reported no connected browsers. There has been no interactive visual QA, real Chrome extension lifecycle test, or real-model accuracy/performance measurement in this session. Static rendering and mocks do not replace those checks.
+There has been no interactive visual QA, real Chrome extension lifecycle test, or real-model accuracy/performance measurement in this session. Static rendering and mocks do not replace those checks, including Lite-versus-Full evaluation.
 
 For a manual UI preview, run `npx vite --config screenshots/harness/vite.config.ts` and open `/?companion` on the displayed local server. This renders the real popup with fixture-backed controls. Standard harness scenes still render the real nudges. For full extension testing, run the repository's setup/build instructions and reload `dist` in Chrome.
 
 ## Remaining boundaries
 
-The first version uses generic DOM detectors, not site-specific purchase parsing or verified autoplay-transition tracking. It does not infer a precise shopping goal or promise that a deadline is artificial. It keeps per-tab context, not a cross-tab browsing history. New model comparisons, unrestricted chat, longitudinal adaptive-policy experiments, and claims of improved resilience remain future work.
+The first version uses generic DOM detectors, not site-specific purchase parsing or verified autoplay-transition tracking. It does not infer a precise shopping goal or promise that a deadline is artificial. It keeps per-tab context, not a cross-tab browsing history. Lite-versus-Full comparison, unrestricted chat, longitudinal adaptive-policy experiments, and claims of improved resilience remain future work.

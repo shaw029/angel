@@ -36,4 +36,4 @@ Before a stable release, record browser version, operating system, hardware, mod
 5. Keyboard/focus behavior, readable explanations, hover/focus timeout handling, and page interaction around the overlay.
 6. Scenarios involving chosen entertainment, study, ambiguous evidence, checkout language, and cleared detectors. Assess false interruptions and correct abstention, not just nudge frequency.
 
-Interactive Chrome testing and actual inference evaluation have not yet been completed for this development version. Smaller-model benchmarking is deferred at the user's request. Any future opt-in study requires its own explicit data handling and measurement design.
+Interactive Chrome testing and actual inference evaluation have not yet been completed for this development version. The Lite profile has explicit comparison and release gates in [Local AI profiles](MODEL_PROFILES.md#evaluation-gate); model selection must not be interpreted as a claim of equal quality. Any future opt-in study requires its own explicit data handling and measurement design.

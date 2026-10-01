@@ -29,7 +29,6 @@ export const OFFSCREEN_URL = 'src/offscreen/index.html'
 export const SIGNAL_INTERVAL_MS = 30_000
 
 // ─── AI runtime ──────────────────────────────────────────────────────────────
-export const MODEL_ID = 'onnx-community/gemma-4-E2B-it-ONNX'
 export const MODEL_DTYPE_WEBGPU  = 'q4f16' as const  // 4-bit weights, fp16 activations
 export const MODEL_DTYPE_WASM    = 'q4'    as const  // 4-bit weights, no fp16 in WASM
 

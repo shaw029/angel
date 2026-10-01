@@ -40,7 +40,7 @@ Requested reminders wait five minutes and may skip adaptive spacing, but retain 
 | --- | --- | --- |
 | Content/background memory | Current observations, short title trail, narrative, fresh evidence, heuristic history | Reset by navigation/context changes or process lifecycle as applicable |
 | `chrome.storage.session` | AI run/status, companion origin/context and evidence signature, optional intent, quiet state, explanations, reminder records, explicitly saved URL/title | Browser session; tab-specific records removed when the tab closes |
-| `chrome.storage.local` | Settings, AI consent and approved model revision/processor, gate/outcome history, coarse user-correction priors | Until cleared or extension removed |
+| `chrome.storage.local` | Settings, AI consent and approved model profile/revision/processor, gate/outcome history, coarse user-correction priors | Until cleared or extension removed |
 | IndexedDB | Enumerated aggregate counters, behavioral profile, weekly snapshots | Local persistent history; old weekly snapshots pruned on subsequent writes |
 | Browser model cache | Downloaded model/tokenizer files | Until cleared/evicted or replaced |
 

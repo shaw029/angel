@@ -12,6 +12,7 @@ import type {
   DomainCategory,
   CompanionAction,
   ModelDevice,
+  ModelProfile,
 } from './types'
 import type { MSG } from './constants'
 
@@ -66,7 +67,7 @@ export type Message =
   | { type: MsgKey['SET_PRESENCE'];      payload: number }
   | { type: MsgKey['MODEL_PROGRESS'];    payload: ModelLoadStatus; runId: string }
   | { type: MsgKey['GET_MODEL_SETUP'] }
-  | { type: MsgKey['SET_MODEL_SETUP']; payload: { action: 'enable' | 'defer' | 'cancel'; device?: ModelDevice } }
+  | { type: MsgKey['SET_MODEL_SETUP']; payload: { action: 'enable' | 'defer' | 'cancel'; model?: ModelProfile; device?: ModelDevice } }
   | { type: MsgKey['KEEPALIVE'] }
   | { type: MsgKey['GET_PAGE_SNAPSHOT'] }
   | { type: MsgKey['GET_COMPANION'] }

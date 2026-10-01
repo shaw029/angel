@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { MODEL_REVISION } from '../src/shared/model-plan'
+import { modelRevision } from '../src/shared/model-plan'
 import { MSG, SNOOZE } from '../src/shared/constants'
 import { transitions } from './fixtures/memory'
 import type { BrowsingSignal, CompanionView, Intervention } from '../src/shared/types'
@@ -65,8 +65,8 @@ async function send(message: any, tabId?: number): Promise<any> {
 const action = (tabId: number, action: string, intent?: string) => send({ type: MSG.COMPANION_ACTION, payload: { action, intent } }, tabId)
 function setup(tabId: number) {
   hasDocument = true
-  local.modelPreference = { choice: 'enabled', device: 'webgpu', revision: MODEL_REVISION }
-  session.modelRun = { id: 'test-run', revision: MODEL_REVISION, device: 'webgpu', allowDownload: false }
+  local.modelPreference = { choice: 'enabled', model: 'full', device: 'webgpu', revision: modelRevision('full') }
+  session.modelRun = { id: 'test-run', model: 'full', revision: modelRevision('full'), device: 'webgpu', allowDownload: false }
   session.modelStatus = { phase: 'ready', device: 'webgpu' }
   local.state = { enabled: true, presenceLevel: 0.5, recentNudges: [], lastFullIntervention: null, lastSubtleIntervention: null, suppressionMultiplier: 1 }
   snapshots.set(tabId, { contextKey: `doc:${tabId}`, url: 'https://shop.example/item', domain: 'shop.example', timestamp: now,
@@ -198,21 +198,25 @@ test('install, startup, signals and popup cannot start a download without consen
   assert.equal(view.preference.choice, 'pending')
   assert.equal(documentsCreated, before)
   assert.equal(requested.filter(r => r.tabId === 20).length, 0)
-  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'defer' } })
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'defer', model: 'lite', device: 'wasm' } })
   installedListener()
   await serial(async () => {})
-  assert.equal((await send({ type: MSG.GET_MODEL_SETUP })).preference.choice, 'deferred')
+  const deferred = (await send({ type: MSG.GET_MODEL_SETUP })).preference
+  assert.equal(deferred.choice, 'deferred')
+  assert.equal(deferred.model, 'lite')
+  assert.equal(deferred.device, 'wasm')
   assert.equal(documentsCreated, before)
 })
 
 test('consent starts one run; cancel closes its owner and late progress cannot revive it', async () => {
   const before = documentsCreated
-  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'wasm' } })
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', model: 'lite', device: 'wasm' } })
   const run = structuredClone(session.modelRun)
+  assert.equal(run.model, 'lite')
   assert.equal(run.allowDownload, true)
   assert.equal(run.device, 'wasm')
   assert.equal(documentsCreated, before + 1)
-  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'wasm' } })
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', model: 'lite', device: 'wasm' } })
   assert.equal(documentsCreated, before + 1)
   const closed = documentsClosed
   await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'cancel' } })
@@ -226,7 +230,7 @@ test('consent starts one run; cancel closes its owner and late progress cannot r
 })
 
 test('restart uses cached files only; missing cache never triggers an automatic retry', async () => {
-  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'webgpu' } })
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', model: 'full', device: 'webgpu' } })
   const run = session.modelRun
   await send({ type: MSG.MODEL_PROGRESS, runId: run.id, payload: { phase: 'ready', device: 'webgpu' } })
   assert.equal(session.modelRun.allowDownload, false)
@@ -241,7 +245,7 @@ test('restart uses cached files only; missing cache never triggers an automatic 
   const before = documentsCreated
   await send({ type: MSG.GET_MODEL_SETUP })
   assert.equal(documentsCreated, before)
-  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'webgpu' } })
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', model: 'full', device: 'webgpu' } })
   assert.equal(session.modelRun.allowDownload, true)
   assert.equal(documentsCreated, before + 1)
 })

@@ -10,6 +10,8 @@ Development builds currently identify as `0.3.0-dev.1`.
 
 - Explicit AI download consent with size disclosure, an illustrative example, and a remembered Not now choice.
 - Download progress across model files, cancellation, retry, cached-only automatic restart, and revision-specific consent.
+- Lite and Full local Gemma profiles, each with a separately pinned model revision and download disclosure.
+- Profile comparison gates for download reduction, companion judgment quality, and Chrome resource use.
 - Website disclosure and draft store copy distinguishing the extension ZIP from the separate model download.
 
 - Ask Angel controls for optional intent, explanations, quiet mode, and saved return points.
@@ -32,7 +34,7 @@ Development builds currently identify as `0.3.0-dev.1`.
 
 ### Validation still required
 
-Interactive Chrome lifecycle checks and real-model quality/performance evaluation. Smaller-model benchmarking is deferred.
+Interactive Chrome lifecycle checks and real-model quality/performance evaluation, including Lite-versus-Full comparison.
 
 ## [0.2.2](https://github.com/shaw029/angel/releases/tag/v0.2.2) — 2026-09-18
 

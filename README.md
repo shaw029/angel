@@ -19,9 +19,9 @@ GitHub releases, the Chrome Web Store, and the development branch are separate d
 
 ## AI setup in development
 
-Open the popup to see why Angel uses local AI, its download estimate, and an illustrative example. Choose **Download and enable Angel** or **Not now**. No model download begins without consent, including when upgrading from an older version that loaded automatically.
+Open the popup to see why Angel uses local AI, select Lite or Full, review the download estimate, and see an illustrative example. Choose **Download and enable Lite/Full** or **Not now**. No model download begins without consent, including when upgrading from an older version that loaded automatically.
 
-The initial text-model files total approximately **3.1 GB for GPU** or **3.6 GB for CPU**. Estimates come from a pinned file manifest, not measured RAM usage; setup needs additional resources. Download progress spans all files. Closing the popup keeps setup running while Chrome is open; **Cancel setup** stops it. Complete cached files may be reused. Automatic restarts only use cache; missing files or a changed model revision require an explicit setup choice.
+Lite uses Google Gemma 3 1B and totals approximately **0.8 GB for GPU** or **0.9 GB for CPU**. Full, the existing larger model, totals approximately **3.1 GB for GPU** or **3.6 GB for CPU**. Estimates come from a pinned file manifest, not measured RAM usage; setup needs additional resources. Download progress spans the selected profile's files. Closing the popup keeps setup running while Chrome is open; **Cancel setup** stops it. Complete cached files may be reused. Automatic restarts only use cache; missing files, a changed model revision, or a different profile require an explicit setup choice.
 
 AI remains required for proactive nudges. Controls and saved return points work while AI is off. For a simulated preview with no model download, run the screenshot harness and open `/?setup&companion`. See [AI onboarding](docs/AI_ONBOARDING.md) for limitations and validation.
 
@@ -51,7 +51,7 @@ flowchart LR
 
 The **Witness** collects evidence. The **Narrator** proposes whether and how prominently to speak. The **Guardian** can withhold or reduce that proposal and enforces a minimum 150-second gap and a maximum of five nudges per rolling hour, including requested reminders. See [architecture](docs/ARCHITECTURE.md) and the [cognitive model](docs/COGNITIVE_MODEL.md).
 
-Inference uses `onnx-community/gemma-4-E2B-it-ONNX` through Transformers.js, with WebGPU and a WASM fallback. The model revision and download sizes are pinned in `src/shared/model-manifest.json`. Smaller-model comparisons are deferred. No hardware-independent speed or memory claims are made.
+Inference uses one of two pinned Gemma profiles through Transformers.js, with WebGPU and a WASM fallback. Full uses `onnx-community/gemma-4-E2B-it-ONNX`; Lite uses Google's 1B Gemma 3 model in `onnx-community/gemma-3-1b-it-ONNX-GQA`. Revisions and file sizes are pinned in `src/shared/model-manifest.json`. Lite is not presented as quality-equivalent to Full until it passes the documented [comparison gates](docs/MODEL_PROFILES.md#evaluation-gate). No hardware-independent speed or memory claims are made.
 
 ## Run locally
 
@@ -94,6 +94,7 @@ Model weights and tokenizer files are downloaded from Hugging Face and cached. D
 - [Architecture and lifecycle](docs/ARCHITECTURE.md)
 - [Behavioral estimates and adaptation](docs/COGNITIVE_MODEL.md)
 - [Metrics and validation limits](docs/EVALUATION.md)
+- [Local AI profiles and evaluation gates](docs/MODEL_PROFILES.md)
 - [Companion implementation and test coverage](docs/COMPANION_IMPLEMENTATION.md)
 - [Future work](docs/COMPANION_ROADMAP.md)
 - [Release and version policy](docs/RELEASING.md)

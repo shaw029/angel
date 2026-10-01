@@ -447,13 +447,16 @@ export interface CompressedContext {
 
 // Consent is separate from the proactive-nudge switch and never inferred from a cache.
 export type ModelDevice = 'webgpu' | 'wasm'
+export type ModelProfile = 'lite' | 'full'
 export interface ModelPreference {
   choice: 'pending' | 'deferred' | 'enabled'
+  model?: ModelProfile
   revision?: string
   device?: ModelDevice
 }
 export interface ModelRun {
   id: string
+  model: ModelProfile
   revision: string
   device: ModelDevice
   allowDownload: boolean

@@ -1,27 +1,57 @@
 {
-  "modelId": "onnx-community/gemma-4-E2B-it-ONNX",
-  "revision": "9f4bef82ea6e296bc69f8a2f5939f73af81b07a6",
-  "verifiedAt": "2026-09-28",
-  "files": {
-    "webgpu": {
-      "config.json": 5549,
-      "generation_config.json": 238,
-      "onnx/decoder_model_merged_q4f16.onnx": 673231,
-      "onnx/decoder_model_merged_q4f16.onnx_data": 1519700992,
-      "onnx/embed_tokens_q4f16.onnx": 5621,
-      "onnx/embed_tokens_q4f16.onnx_data": 1590689792,
-      "tokenizer.json": 19439251,
-      "tokenizer_config.json": 18807
+  "verifiedAt": "2026-10-01",
+  "models": {
+    "lite": {
+      "label": "Lite",
+      "description": "A smaller local model for short, structured companion judgments.",
+      "modelId": "onnx-community/gemma-3-1b-it-ONNX-GQA",
+      "revision": "d8ea201246f6ce6f94e4dbb1d8354bdd1d6732a0",
+      "files": {
+        "webgpu": {
+          "config.json": 1975,
+          "generation_config.json": 244,
+          "onnx/model_q4f16.onnx": 461341,
+          "onnx/model_q4f16.onnx_data": 763067904,
+          "tokenizer.json": 20323013,
+          "tokenizer_config.json": 2327
+        },
+        "wasm": {
+          "config.json": 1975,
+          "generation_config.json": 244,
+          "onnx/model_q4.onnx": 347363,
+          "onnx/model_q4.onnx_data": 859106816,
+          "tokenizer.json": 20323013,
+          "tokenizer_config.json": 2327
+        }
+      }
     },
-    "wasm": {
-      "config.json": 5549,
-      "generation_config.json": 238,
-      "onnx/decoder_model_merged_q4.onnx": 647599,
-      "onnx/decoder_model_merged_q4.onnx_data": 1864102912,
-      "onnx/embed_tokens_q4.onnx": 5142,
-      "onnx/embed_tokens_q4.onnx_data": 1762656256,
-      "tokenizer.json": 19439251,
-      "tokenizer_config.json": 18807
+    "full": {
+      "label": "Full",
+      "description": "Uses the larger model for the most nuanced local context judgments.",
+      "modelId": "onnx-community/gemma-4-E2B-it-ONNX",
+      "revision": "9f4bef82ea6e296bc69f8a2f5939f73af81b07a6",
+      "files": {
+        "webgpu": {
+          "config.json": 5549,
+          "generation_config.json": 238,
+          "onnx/decoder_model_merged_q4f16.onnx": 673231,
+          "onnx/decoder_model_merged_q4f16.onnx_data": 1519700992,
+          "onnx/embed_tokens_q4f16.onnx": 5621,
+          "onnx/embed_tokens_q4f16.onnx_data": 1590689792,
+          "tokenizer.json": 19439251,
+          "tokenizer_config.json": 18807
+        },
+        "wasm": {
+          "config.json": 5549,
+          "generation_config.json": 238,
+          "onnx/decoder_model_merged_q4.onnx": 647599,
+          "onnx/decoder_model_merged_q4.onnx_data": 1864102912,
+          "onnx/embed_tokens_q4.onnx": 5142,
+          "onnx/embed_tokens_q4.onnx_data": 1762656256,
+          "tokenizer.json": 19439251,
+          "tokenizer_config.json": 18807
+        }
+      }
     }
   }
 }
