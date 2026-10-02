@@ -14,7 +14,7 @@ export function Footer() {
               <span className="text-sm font-medium text-white/70">Angel</span>
             </div>
             <p className="text-xs leading-relaxed max-w-xs">
-              A browsing companion powered by local Gemma inference. Choose Lite or Full; browsing observations stay on your device and model files are downloaded and cached locally.
+              A browsing companion powered by local Gemma inference. Browsing observations stay on your device. Model files are downloaded and cached locally.
             </p>
           </div>
 

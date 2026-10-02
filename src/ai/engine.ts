@@ -1,7 +1,7 @@
 import { pipeline, env } from '@huggingface/transformers'
-import { MODEL_DTYPE_WEBGPU, MODEL_DTYPE_WASM } from '@shared/constants'
+import { MODEL_ID, MODEL_DTYPE_WEBGPU, MODEL_DTYPE_WASM } from '@shared/constants'
 import type { ModelLoadStatus } from '@shared/types'
-import { getAuthorizedModelRun, modelId, modelRevision, ModelDownloadProgress } from '@shared/model-plan'
+import { getAuthorizedModelRun, MODEL_REVISION, ModelDownloadProgress } from '@shared/model-plan'
 
 // Transformers.js progress event shape (v3)
 interface TFProgressEvent {
@@ -104,10 +104,9 @@ export class GemmaEngine {
 
     const run = await getAuthorizedModelRun()
     if (!run) throw new Error('Enable local AI before loading a model.')
-    const model = run.model
     const device = run.device
     this._device = device
-    const progress = new ModelDownloadProgress(model, device)
+    const progress = new ModelDownloadProgress(device)
     this.filesLoaded = 0
     this.quotaExceeded = false
 
@@ -133,10 +132,10 @@ export class GemmaEngine {
     const restoreWarn = this.interceptQuotaWarnings()
 
     try {
-      const raw = await pipeline('text-generation', modelId(model), {
+      const raw = await pipeline('text-generation', MODEL_ID, {
         device,
         dtype,
-        revision: modelRevision(model),
+        revision: MODEL_REVISION,
         local_files_only: !run.allowDownload,
         progress_callback: (raw: unknown) => {
           const info = raw as TFProgressEvent

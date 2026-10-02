@@ -2,9 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { GemmaEngine } from '../src/ai/engine'
 import manifest from '../src/shared/model-manifest.json'
+import { MODEL_ID } from '../src/shared/constants'
 import { calls, setFailure } from './fixtures/model-runtime'
-import { DEFAULT_MODEL_PROFILE, ModelDownloadProgress, modelDefinition, modelFiles, modelDownloadBytes, modelRevision } from '../src/shared/model-plan'
-import type { ModelProfile } from '../src/shared/types'
+import { MODEL_REVISION, ModelDownloadProgress, modelFiles, modelDownloadBytes } from '../src/shared/model-plan'
 const local: Record<string, any> = {}
 const session: Record<string, any> = {}
 ;(globalThis as any).chrome = {
@@ -14,9 +14,9 @@ const session: Record<string, any> = {}
     session: { async get(key: string) { return { [key]: session[key] } } },
   },
 }
-function consent(model: ModelProfile, allowDownload: boolean) {
-  local.modelPreference = { choice: 'enabled', model, revision: modelRevision(model), device: 'webgpu' }
-  session.modelRun = { id: 'run', model, revision: modelRevision(model), device: 'webgpu', allowDownload }
+function consent(allowDownload: boolean) {
+  local.modelPreference = { choice: 'enabled', revision: MODEL_REVISION, device: 'webgpu' }
+  session.modelRun = { id: 'run', revision: MODEL_REVISION, device: 'webgpu', allowDownload }
 }
 
 test('runtime refuses network/model construction without consent even if invoked directly', async () => {
@@ -28,14 +28,13 @@ test('runtime refuses network/model construction without consent even if invoked
 })
 
 test('explicit setup pins files and device; restoration forbids remote downloads', async () => {
-  consent('full', true)
+  consent(true)
   await new GemmaEngine().ensureReady()
-  assert.equal(calls.at(-1).model, modelDefinition('full').modelId)
-  assert.equal(calls.at(-1).options.revision, modelRevision('full'))
+  assert.equal(calls.at(-1).options.revision, MODEL_REVISION)
   assert.equal(calls.at(-1).options.dtype, 'q4f16')
   assert.equal(calls.at(-1).options.local_files_only, false)
   assert.equal(calls.at(-1).remote, true)
-  consent('full', false)
+  consent(false)
   await new GemmaEngine().ensureReady()
   assert.equal(calls.at(-1).options.local_files_only, true)
   assert.equal(calls.at(-1).remote, false)
@@ -48,15 +47,13 @@ test('explicit setup pins files and device; restoration forbids remote downloads
   setFailure(false)
 })
 
-test('each profile has a pinned model, and download accounting uses its complete denominator', () => {
-  assert.equal(DEFAULT_MODEL_PROFILE, 'full')
-  assert.equal(modelDefinition('lite').modelId, manifest.models.lite.modelId)
-  assert.equal(modelDefinition('full').modelId, manifest.models.full.modelId)
+test('download accounting retains complete files and uses the full model denominator', () => {
+  assert.equal(MODEL_ID, manifest.modelId)
   const device = 'webgpu'
-  const progress = new ModelDownloadProgress('full', device)
-  const files = Object.entries(modelFiles('full', device))
+  const progress = new ModelDownloadProgress(device)
+  const files = Object.entries(modelFiles(device))
   const first = progress.update(files[0]![0], 0, true)
-  assert.equal(first.totalBytes, modelDownloadBytes('full', device))
+  assert.equal(first.totalBytes, modelDownloadBytes(device))
   assert.equal(first.loadedBytes, files[0]![1])
   assert.ok(first.progress < 0.01, 'a complete small config is not 100% of the model')
   const half = progress.update(files[1]![0], files[1]![1] / 2)
@@ -64,21 +61,5 @@ test('each profile has a pinned model, and download accounting uses its complete
   assert.equal(progress.update(files[1]![0], 0).loadedBytes, half.loadedBytes)
   for (const [file] of files) progress.update(file, 0, true)
   assert.equal(progress.update('unknown optional file', 999).progress, 1)
-  assert.ok(modelDownloadBytes('full', 'wasm') > modelDownloadBytes('full', 'webgpu'))
-  assert.ok(modelDownloadBytes('lite', 'webgpu') < modelDownloadBytes('full', 'webgpu') * 0.3)
-})
-
-test('Lite setup selects its model and revision, rather than reusing Full cached files', async () => {
-  consent('lite', true)
-  await new GemmaEngine().ensureReady()
-  assert.equal(calls.at(-1).model, modelDefinition('lite').modelId)
-  assert.equal(calls.at(-1).options.revision, modelRevision('lite'))
-})
-
-test('pre-profile consent and a cached run continue with Full only', async () => {
-  local.modelPreference = { choice: 'enabled', revision: modelRevision('full'), device: 'webgpu' }
-  session.modelRun = { id: 'legacy-run', revision: modelRevision('full'), device: 'webgpu', allowDownload: false }
-  await new GemmaEngine().ensureReady()
-  assert.equal(calls.at(-1).model, modelDefinition('full').modelId)
-  assert.equal(calls.at(-1).options.local_files_only, true)
+  assert.ok(modelDownloadBytes('wasm') > modelDownloadBytes('webgpu'))
 })

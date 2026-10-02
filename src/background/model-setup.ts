@@ -1,6 +1,6 @@
 import { ensureOffscreenDocument, closeOffscreenDocument } from './offscreen'
-import { getModelPreference, getAuthorizedModelRun, hasModelConsent, isModelProfile, MODEL_PREFERENCE_KEY, MODEL_RUN_KEY, modelRevision } from '@shared/model-plan'
-import type { ModelDevice, ModelLoadStatus, ModelProfile, ModelRun, ModelSetupView } from '@shared/types'
+import { getModelPreference, getAuthorizedModelRun, hasModelConsent, MODEL_PREFERENCE_KEY, MODEL_RUN_KEY, MODEL_REVISION } from '@shared/model-plan'
+import type { ModelDevice, ModelLoadStatus, ModelRun, ModelSetupView } from '@shared/types'
 
 export async function modelSetupView(): Promise<ModelSetupView> {
   const preference = await getModelPreference()
@@ -9,9 +9,9 @@ export async function modelSetupView(): Promise<ModelSetupView> {
 }
 
 // Caller serializes lifecycle operations, but never waits for model downloads.
-export async function startModel(model: ModelProfile, device: ModelDevice, allowDownload: boolean): Promise<void> {
+export async function startModel(device: ModelDevice, allowDownload: boolean): Promise<void> {
   await closeOffscreenDocument()
-  const run: ModelRun = { id: crypto.randomUUID(), model, revision: modelRevision(model), device, allowDownload }
+  const run: ModelRun = { id: crypto.randomUUID(), revision: MODEL_REVISION, device, allowDownload }
   await chrome.storage.session.set({ [MODEL_RUN_KEY]: run, modelStatus: { phase: 'checking' } })
   try { await ensureOffscreenDocument() }
   catch {
@@ -20,22 +20,17 @@ export async function startModel(model: ModelProfile, device: ModelDevice, allow
   }
 }
 
-export async function enableModel(model: ModelProfile, device: ModelDevice): Promise<void> {
+export async function enableModel(device: ModelDevice): Promise<void> {
   const current = await getAuthorizedModelRun()
   const { status } = await modelSetupView()
-  if (current?.model === model && current.device === device && status.phase !== 'error' && status.phase !== 'idle' && await chrome.offscreen.hasDocument()) return
-  await chrome.storage.local.set({ [MODEL_PREFERENCE_KEY]: { choice: 'enabled', model, device, revision: modelRevision(model) } })
-  await startModel(model, device, true)
+  if (current?.device === device && status.phase !== 'error' && status.phase !== 'idle' && await chrome.offscreen.hasDocument()) return
+  await chrome.storage.local.set({ [MODEL_PREFERENCE_KEY]: { choice: 'enabled', device, revision: MODEL_REVISION } })
+  await startModel(device, true)
 }
 
-export async function stopModel(model?: ModelProfile, device?: ModelDevice): Promise<void> {
+export async function stopModel(): Promise<void> {
   // Revoke first, so queued progress/results cannot revive a cancelled download.
-  const previous = await getModelPreference()
-  await chrome.storage.local.set({ [MODEL_PREFERENCE_KEY]: {
-    choice: 'deferred',
-    ...(isModelProfile(model) ? { model } : isModelProfile(previous.model) ? { model: previous.model } : {}),
-    ...(device === 'webgpu' || device === 'wasm' ? { device } : previous.device ? { device: previous.device } : {}),
-  } })
+  await chrome.storage.local.set({ [MODEL_PREFERENCE_KEY]: { choice: 'deferred' } })
   await chrome.storage.session.remove(MODEL_RUN_KEY)
   await chrome.storage.session.set({ modelStatus: { phase: 'idle' } })
   // Destroying the owner document aborts its fetches, queue and runtime.
@@ -56,7 +51,7 @@ export async function restoreModel(): Promise<void> {
   const { status } = await modelSetupView()
   if (status.phase === 'error') return // retry is an explicit user action
   // Restart may use cached files only. Missing/evicted files require another click.
-  await startModel(preference.model!, preference.device!, false)
+  await startModel(preference.device!, false)
 }
 
 export async function acceptModelProgress(runId: string, status: ModelLoadStatus): Promise<void> {

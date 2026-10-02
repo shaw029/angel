@@ -28,4 +28,4 @@ The current Ask Angel is a controls panel. An optional question-and-answer exper
 
 ## Deferred
 
-Lite-versus-Full Chrome evaluation is required before promoting Lite as comparable to Full; see [Local AI profiles](MODEL_PROFILES.md#evaluation-gate). Cross-device sync, unrestricted chat, and claims of improved resilience are outside this release's scope.
+Smaller-model benchmarks and model migration are explicitly deferred. The existing model remains unchanged. Cross-device sync, unrestricted chat, and claims of improved resilience are outside this release's scope.

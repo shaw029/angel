@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MSG } from '@shared/constants'
-import { DEFAULT_MODEL_PROFILE, detectModelDevice, formatGB, getModelPreference, modelDefinition, modelDownloadBytes, modelProfile } from '@shared/model-plan'
-import type { ModelDevice, ModelProfile, ModelSetupView } from '@shared/types'
+import { detectModelDevice, formatGB, getModelPreference, modelDownloadBytes } from '@shared/model-plan'
+import type { ModelDevice, ModelSetupView } from '@shared/types'
 
 const button = 'rounded-lg px-3 py-2 text-xs font-medium focus-visible:outline-sage disabled:opacity-50'
 
-export function ModelSetupCard({ view, model, device, busy = false, notice = '', onModel, onDevice, onAction }: {
-  view: ModelSetupView; model: ModelProfile; device: ModelDevice; busy?: boolean; notice?: string
-  onModel: (model: ModelProfile) => void
+export function ModelSetupCard({ view, device, busy = false, notice = '', onDevice, onAction }: {
+  view: ModelSetupView; device: ModelDevice; busy?: boolean; notice?: string
   onDevice: (device: ModelDevice) => void
   onAction: (action: 'enable' | 'defer' | 'cancel') => void
 }) {
@@ -18,32 +17,18 @@ export function ModelSetupCard({ view, model, device, busy = false, notice = '',
   const deferred = view.preference.choice === 'deferred'
   const [expanded, setExpanded] = useState(false)
   const full = !deferred || expanded
-  const configuredModel = modelProfile(view.preference.model)
-  const selected = modelDefinition(model)
-  const size = formatGB(modelDownloadBytes(model, device))
-
-  const profilePicker = <>
-    <label className="mt-3 block text-xs text-ink-secondary" htmlFor="model-profile">AI profile</label>
-    <select id="model-profile" className="mt-1 w-full rounded-lg border border-neutral-200 bg-white p-2 text-xs" value={model} disabled={busy || active} onChange={e => onModel(e.target.value as ModelProfile)}>
-      <option value="lite">Lite · about {formatGB(modelDownloadBytes('lite', device))}</option>
-      <option value="full">Full · about {formatGB(modelDownloadBytes('full', device))}</option>
-    </select>
-    <p className="mt-2 text-xs leading-relaxed text-ink-secondary"><strong>{selected.label}:</strong> {selected.description}</p>
-  </>
+  const size = formatGB(modelDownloadBytes(device))
 
   return <section className="mt-4 rounded-xl border border-sage/20 bg-sage/5 p-3" aria-label="Local AI setup">
     {ready ? <>
       <h2 className="text-sm font-medium text-sage">Angel is ready</h2>
-      <p className="mt-1 text-xs leading-relaxed text-ink-secondary">Using the {modelDefinition(configuredModel).label} profile on this device. Your nudge switch and quiet preferences still apply.</p>
+      <p className="mt-1 text-xs leading-relaxed text-ink-secondary">AI runs on this device. Your nudge switch and quiet preferences still apply.</p>
       {status.storageWarning && <p className="mt-2 text-xs text-ink-secondary">{status.storageWarning}</p>}
-      {profilePicker}
-      {model !== configuredModel
-        ? <button className={`${button} mt-3 bg-sage text-white`} disabled={busy} onClick={() => onAction('enable')}>Download and switch to {selected.label}</button>
-        : <button className={`${button} mt-3 border border-neutral-200`} disabled={busy} onClick={() => onAction('cancel')}>Turn off local AI</button>}
+      <button className={`${button} mt-2 border border-neutral-200`} disabled={busy} onClick={() => onAction('cancel')}>Turn off local AI</button>
     </> : active ? <div role="status" aria-live="polite">
       <h2 className="text-sm font-medium text-ink-primary">{status.phase === 'downloading' ? 'Downloading local AI' : status.phase === 'checking' ? 'Checking saved model files…' : 'Preparing AI on this device…'}</h2>
       {status.phase === 'downloading' && <>
-        <p className="mt-2 text-xs tabular-nums text-ink-secondary">{formatGB(status.loadedBytes ?? 0)} / approximately {formatGB(status.totalBytes ?? modelDownloadBytes(model, device))}</p>
+        <p className="mt-2 text-xs tabular-nums text-ink-secondary">{formatGB(status.loadedBytes ?? 0)} / approximately {formatGB(status.totalBytes ?? modelDownloadBytes(device))}</p>
         <progress className="mt-2 h-2 w-full accent-sage" max={1} value={Math.min(status.progress, 1)} aria-label="Model files available" />
         <p className="mt-1 text-[10px] text-ink-muted">Includes complete files already saved on this device.</p>
       </>}
@@ -53,17 +38,16 @@ export function ModelSetupCard({ view, model, device, busy = false, notice = '',
       <h2 className="text-sm font-medium text-ink-primary">A companion that considers the context</h2>
       <p className="mt-2 text-xs leading-relaxed text-ink-secondary">A long session might be studying, relaxing, or drifting from what you intended. Local AI considers that context before offering a gentle nudge. It can be wrong; your choice comes first.</p>
       <p className="mt-2 text-xs font-medium text-sage">Your browsing context stays on this device. No account or cloud inference.</p>
-      {profilePicker}
       <label className="mt-3 block text-xs text-ink-secondary" htmlFor="model-device">Run AI using</label>
-      <select id="model-device" className="mt-1 w-full rounded-lg border border-neutral-200 bg-white p-2 text-xs" value={device} disabled={busy || active} onChange={e => onDevice(e.target.value as ModelDevice)}>
-        <option value="webgpu">GPU · about {formatGB(modelDownloadBytes(model, 'webgpu'))}</option>
-        <option value="wasm">CPU · about {formatGB(modelDownloadBytes(model, 'wasm'))}</option>
+      <select id="model-device" className="mt-1 w-full rounded-lg border border-neutral-200 bg-white p-2 text-xs" value={device} disabled={busy} onChange={e => onDevice(e.target.value as ModelDevice)}>
+        <option value="webgpu">GPU · about {formatGB(modelDownloadBytes('webgpu'))}</option>
+        <option value="wasm">CPU · about {formatGB(modelDownloadBytes('wasm'))}</option>
       </select>
       <p className="mt-2 text-xs leading-relaxed text-ink-secondary"><strong>Initial download: about {size}.</strong> Cached for future use. Use an unmetered connection and allow extra space for setup. Speed and support depend on your device.</p>
       <p className="mt-1 text-[10px] leading-relaxed text-ink-muted">Downloads model files from Hugging Face. Cleared files or a new model version may need another download; Angel will ask first. Existing complete files may be reused.</p>
       {status.phase === 'error' && <p role="alert" className="mt-2 text-xs leading-relaxed text-ink-secondary">{status.reason}</p>}
       <div className="mt-3 flex flex-col gap-2">
-        <button className={`${button} bg-sage text-white`} disabled={busy} onClick={() => onAction('enable')}>{status.phase === 'error' ? 'Retry AI setup' : `Download and enable ${selected.label}`}</button>
+        <button className={`${button} bg-sage text-white`} disabled={busy} onClick={() => onAction('enable')}>{status.phase === 'error' ? 'Retry AI setup' : 'Download and enable Angel'}</button>
         <button className={`${button} border border-neutral-200 bg-white text-ink-secondary`} disabled={busy} onClick={() => { setExpanded(false); onAction('defer') }}>Not now</button>
       </div>
     </> : <>
@@ -85,7 +69,6 @@ export function ModelSetupCard({ view, model, device, busy = false, notice = '',
 
 export function ModelSetup({ onReady }: { onReady: (ready: boolean) => void }) {
   const [view, setView] = useState<ModelSetupView | null>(null)
-  const [model, setModel] = useState<ModelProfile>(DEFAULT_MODEL_PROFILE)
   const [device, setDevice] = useState<ModelDevice>('webgpu')
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
@@ -105,7 +88,6 @@ export function ModelSetup({ onReady }: { onReady: (ready: boolean) => void }) {
     void Promise.all([chrome.runtime.sendMessage({ type: MSG.GET_MODEL_SETUP }), detectModelDevice()]).then(async ([result, suggested]) => {
       if (!live.current) return
       if (!result || result.error) throw new Error()
-      setModel(modelProfile(result.preference.model))
       setDevice(result.preference.device ?? suggested)
       await refresh()
     }).catch(() => { if (live.current) setNotice('Could not reach Angel. Close and reopen this popup to retry.') })
@@ -119,12 +101,12 @@ export function ModelSetup({ onReady }: { onReady: (ready: boolean) => void }) {
   async function act(action: 'enable' | 'defer' | 'cancel') {
     setBusy(true); setNotice('')
     try {
-      const result = await chrome.runtime.sendMessage({ type: MSG.SET_MODEL_SETUP, payload: { action, model, device } })
+      const result = await chrome.runtime.sendMessage({ type: MSG.SET_MODEL_SETUP, payload: { action, device } })
       if (!result || result.error) throw new Error()
       await refresh()
     } catch { setNotice('Could not update AI setup. Please try again.') }
     finally { setBusy(false) }
   }
-  return view ? <ModelSetupCard view={view} model={model} device={device} busy={busy} notice={notice} onModel={setModel} onDevice={setDevice} onAction={action => void act(action)} />
+  return view ? <ModelSetupCard view={view} device={device} busy={busy} notice={notice} onDevice={setDevice} onAction={action => void act(action)} />
     : <p role="status" className="mt-4 text-xs text-ink-muted">{notice || 'Checking AI setup…'}</p>
 }
