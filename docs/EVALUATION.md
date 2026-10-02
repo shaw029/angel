@@ -27,14 +27,30 @@ Run `npm run check` for version consistency, TypeScript, and regression/static-r
 
 ## Offline model evaluation
 
-`npm run eval:models` runs [44 companion scenarios](../eval/cases.ts) through the production `judgeSession` path (system prompt, evidence encoding, retries, schema validation and nudge gate) with real model weights on CPU through onnxruntime-node. Each scenario is labelled from the companion contract: stay quiet, a check-in is appropriate, or either. Sixteen stay-quiet cases are critical, meaning a nudge there is a companion-safety failure. The first run downloads the pinned CPU files into `.eval-cache/`; results go to `eval/results/` and a report to `docs/evaluation/`. To try another model, pin its files in [`eval/candidates.json`](../eval/candidates.json).
+`npm run eval:models` runs [65 companion scenarios](../eval/cases.ts) through the production `judgeSession` path (system prompt, evidence encoding, retries, schema validation, nudge rules and the stated-intent check) with real model weights on CPU through onnxruntime-node, then writes the [Full report](evaluation/FULL.md). Each scenario is labelled from the companion contract: stay quiet, a check-in is appropriate, or either. Twenty-eight stay-quiet cases are critical, meaning a nudge there is a companion-safety failure. Held-out batches are written before the change they measure. The first run downloads the pinned CPU files into `.eval-cache/`; per-case results go to `eval/results/`. To compare a smaller model, pin its files in [`eval/candidates.json`](../eval/candidates.json) and run `npm run eval:models -- <model>`, then `npm run eval:models -- compare <model>`.
 
-The first run (2 October 2026, Apple M4, `q4` weights) is recorded in [Lite vs Full](evaluation/LITE_VS_FULL.md):
+### Results so far
 
-- The shipped model returned schema-valid output in all 44 cases, but nudged in 8 of 30 stay-quiet cases. Five were critical: documentation reading for a stated task, stated pricing research, a recipe page's timer, and both pages whose titles contained instructions to intervene. It missed 3 of 10 check-ins.
-- Gemma 3 1B, a 75% smaller download, produced valid output in 3 of 44 cases and was not shipped.
+One greedy CPU run per row, 2 October 2026, Apple M4, `q4` weights.
 
-These are results from one CPU run. They do not cover the WebGPU `q4f16` weights, Chrome resource use, or real browsing, and the rubric is the maintainers' reading of the contract.
+| Change | Scenarios | Stayed quiet | Checked in | Critical false interruptions | Results file |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Shipped model before these changes | 44 | 22 / 30 | 7 / 10 | 5 | `full-cpu-q4.original.json` |
+| Evidence rules in code: `drifting` needs a stated intent, `captured` needs two or more fresh mechanics | 55 | 33 / 37 | 9 / 14 | 4 | the original run with the rules applied, plus `full-cpu-q4.before-prompt.json` for batch 1 |
+| Prompt judges alignment by whether the page serves the stated intent, not by its mechanics | 55 | 32 / 37 | 13 / 14 | 5 | `full-cpu-q4.before-intent-check.json` |
+| Separate stated-intent check before any nudge | 65 | 42 / 43 | 17 / 18 | 1 | `full-cpu-q4.json` |
+
+The evidence rules stopped nudges without a stated intent, including both title-injection cases in the original set. The prompt change recovered missed check-ins but read timers and feeds as divergence from a stated intent, interrupting a stated linear-algebra lecture. The stated-intent check asks the model one question without the page mechanics: does the current page serve the stated intent? Only a `diverges` answer lets a nudge through. Held-out batch 2, written before that check, scored 6 / 6 stay-quiet and 4 / 4 check-ins.
+
+Remaining failures: the check judged a competitor's pricing page as diverging from "research competitor pricing for my report", and the main judgment accepted a fourth autoplaying episode as aligned with "watch one episode before bed".
+
+Gemma 3 1B, a 75% smaller download, produced valid output in 3 of 44 cases with the original prompt and was not shipped; see [Lite vs Full](evaluation/LITE_VS_FULL.md).
+
+### Limits
+
+- The stated-intent check is an extra model call, made only when a nudge is about to be proposed for a session with a stated intent. On CPU it added about 10 seconds per such case. The background discards judgments older than 90 seconds, so on a slow WASM device the extra call can turn a check-in into silence. Measure this in Chrome.
+- These runs do not cover the WebGPU `q4f16` weights, Chrome resource use, or real browsing.
+- The rubric is the maintainers' reading of the contract. The prompt and the check were designed after reviewing the original 44 cases and held-out batch 1, so only batch 2 is an unseen test, and it has 10 cases.
 
 ## Stable-release validation
 

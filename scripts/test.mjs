@@ -12,8 +12,8 @@ try {
       bundle: true, platform: 'node', format: 'esm', tsconfig: 'tsconfig.json',
       banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" },
       plugins: name === 'narrator' ? [{ name: 'mock-local-inference', setup(build) {
-        build.onResolve({ filter: /^\.\/infer$/ }, args => args.importer.endsWith('/src/ai/index.ts')
-          ? { path: resolve('tests/fixtures/infer.ts') } : undefined)
+        build.onResolve({ filter: /^\.\/(infer|intent-check)$/ }, args => args.importer.endsWith('/src/ai/index.ts')
+          ? { path: resolve(`tests/fixtures/${args.path.slice(2)}.ts`) } : undefined)
       } }] : [],
       ...(name === 'model' ? { alias: { '@huggingface/transformers': resolve('tests/fixtures/model-runtime.ts') } } : {}),
       ...(name === 'background' ? { alias: { '@memory/index': resolve('tests/fixtures/memory.ts') } } : {}),

@@ -20,6 +20,8 @@ Development builds currently identify as `0.3.0-dev.1`.
 ### Changed
 
 - Ground visible nudge copy in current evidence and treat unknown intent as a reason to stay quiet.
+- Require a stated intent before a `drifting` judgment can nudge, and two or more fresh mechanics before a `captured` one, enforced in code so page titles cannot talk the model past them.
+- Before nudging a session with a stated intent, ask the model separately whether the current page serves that intent; only a page that diverges is nudged. The narrator prompt now judges alignment by whether the page serves the stated intent rather than by its mechanics. In the offline evaluation, critical false interruptions fell from 5 to 1 and check-ins rose from 7 of 10 to 17 of 18.
 - Learn alignment priors from explicit corrections only; retain the existing model.
 - Scope context to tab/site episodes and deduplicate repeated reasons.
 - Align architecture, privacy, evaluation, contribution, and release documentation with the implementation.
@@ -33,7 +35,7 @@ Development builds currently identify as `0.3.0-dev.1`.
 
 ### Validation still required
 
-Interactive Chrome lifecycle checks and in-browser model quality/performance evaluation. The offline evaluation found false interruptions by the shipped model, including nudges driven by instruction text in page titles; see [Lite vs Full](docs/evaluation/LITE_VS_FULL.md). A smaller Gemma 3 1B option was evaluated there and not shipped.
+Interactive Chrome lifecycle checks and in-browser model quality/performance evaluation. The [offline evaluation](docs/EVALUATION.md#offline-model-evaluation) covers CPU `q4` weights only; WebGPU behavior and the stated-intent check's latency on slow WASM devices still need measuring in Chrome. A smaller Gemma 3 1B option was evaluated and not shipped; see [Lite vs Full](docs/evaluation/LITE_VS_FULL.md).
 
 ## [0.2.2](https://github.com/shaw029/angel/releases/tag/v0.2.2) — 2026-09-18
 

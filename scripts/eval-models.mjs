@@ -1,9 +1,9 @@
-// Usage: npm run eval:models [-- <model>|report <candidate>] [--prefetch] [--only=<case-id>]
-// With no model, runs every candidate in eval/candidates.json and the shipped
-// Full model, then writes one report per candidate. Pinned CPU model files are
-// downloaded into .eval-cache/ on first run (Full alone is about 3.6 GB).
+// npm run eval:models                       run the shipped model, write docs/evaluation/FULL.md
+// npm run eval:models -- <model> [flags]    run one model: --only=<id,…|held-out> --tag=<name> --prefetch
+// npm run eval:models -- report             rewrite FULL.md from saved results
+// npm run eval:models -- compare <model>    write <MODEL>_VS_FULL.md for a candidate in eval/candidates.json
+// Pinned CPU model files are downloaded into .eval-cache/ on first run (Full is about 3.6 GB).
 import { build } from 'esbuild'
-import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 
@@ -17,13 +17,9 @@ await build({
 })
 
 const args = process.argv.slice(2)
-const flags = args.filter(a => a.startsWith('--'))
-const [target, candidate] = args.filter(a => !a.startsWith('--'))
-const candidates = Object.keys(JSON.parse(readFileSync('eval/candidates.json', 'utf8')))
-const steps = target === 'report' ? [['report', candidate ?? candidates[0]]]
-  : target ? [['run', target, ...flags]]
-  : [...candidates.map(c => ['run', c, ...flags]), ['run', 'full', ...flags],
-     ...(flags.length ? [] : candidates.map(c => ['report', c]))]
+const steps = args.length === 0 ? [['run', 'full'], ['report']]
+  : ['report', 'compare'].includes(args[0]) ? [args]
+  : [['run', ...args]]
 
 for (const step of steps) {
   const { status } = spawnSync(process.execPath, [outfile, ...step], { stdio: 'inherit' })

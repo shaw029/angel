@@ -14,7 +14,7 @@ This document describes the unreleased 0.3.0 source tree. Published builds are l
 | Deliver | Fresh context check, optional intent/quiet preference, interruption budget | `src/background/index.ts`, `companion.ts`, `gate.ts`, `snooze.ts` |
 | Respond | Dismissible nudge, explanation, correction, save/reminder, popup controls | `src/ui/components/Nudge.tsx`, `src/popup/CompanionPanel.tsx` |
 
-The model proposes a tier; neither a detector nor a behavioral state alone authorizes a nudge. `aligned` and `unknown` judgments veto delivery. User-visible text is selected from trusted evidence copy in `src/shared/evidence-copy.ts`, rather than displaying an unconstrained generated sentence.
+The model proposes a tier; neither a detector nor a behavioral state alone authorizes a nudge. `aligned` and `unknown` judgments veto delivery. `drifting` can lead to a nudge only when the user has stated an intent, and `captured` only with at least two fresh mechanic signals (session length does not count). These checks run in code, so page text that persuades the model cannot bypass them. When the user has stated an intent, a separate short model call (`src/ai/intent-check.ts`) then asks whether the current page serves it, without the page mechanics; only a `diverges` answer allows the nudge. User-visible text is selected from trusted evidence copy in `src/shared/evidence-copy.ts`, rather than displaying an unconstrained generated sentence.
 
 ## Context and lifecycle
 

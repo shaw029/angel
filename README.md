@@ -94,7 +94,7 @@ Model weights and tokenizer files are downloaded from Hugging Face and cached. D
 - [Architecture and lifecycle](docs/ARCHITECTURE.md)
 - [Behavioral estimates and adaptation](docs/COGNITIVE_MODEL.md)
 - [Metrics and validation limits](docs/EVALUATION.md)
-- [Offline model evaluation record](docs/evaluation/LITE_VS_FULL.md)
+- [Offline model evaluation](docs/evaluation/FULL.md) and the [Lite vs Full record](docs/evaluation/LITE_VS_FULL.md)
 - [Companion implementation and test coverage](docs/COMPANION_IMPLEMENTATION.md)
 - [Future work](docs/COMPANION_ROADMAP.md)
 - [Release and version policy](docs/RELEASING.md)

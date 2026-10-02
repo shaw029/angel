@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { judgeSession } from '../src/ai/index'
 import { setOutput, lastInput } from './fixtures/infer'
+import { setIntentFit } from './fixtures/intent-check'
 import type { CompressedContext, InferenceOutput } from '../src/shared/types'
 const ctx: CompressedContext = {
   event_type: 'checkout_pressure', signals: ['countdown_timer'],
@@ -9,7 +10,7 @@ const ctx: CompressedContext = {
   page_context: { category: 'ecommerce', scroll_depth: 'shallow', duration: 'extended' },
   explicitIntent: 'Comparing headphones',
 }
-const output: InferenceOutput = { alignment: 'captured', decision_state: 'intervene', confidence: 0.9,
+const output: InferenceOutput = { alignment: 'drifting', decision_state: 'intervene', confidence: 0.9,
   narrative: 'Observed timer language.', intent: '', tier_hint: 'full', intervention_style: 'gentle',
   intervention_message: 'You came to buy headphones and the price will be lower next week.', suggested_action: 'none' }
 
@@ -37,4 +38,25 @@ test('a model proposal without current supporting mechanics cannot produce a nud
   setOutput({ ...output, intervention_message: '' })
   assert.equal((await judgeSession({ ...ctx, signals: [] })).intervention, null)
   assert.ok((await judgeSession(ctx)).intervention, 'grounded copy does not require generated copy')
+})
+
+test('misaligned labels need the evidence their definitions require', async () => {
+  setOutput(output)
+  assert.ok((await judgeSession(ctx)).intervention, 'drifting from a stated intent')
+  assert.equal((await judgeSession({ ...ctx, explicitIntent: undefined })).intervention, null, 'no stated intent to drift from')
+  setOutput({ ...output, alignment: 'captured' })
+  const unstated = { ...ctx, explicitIntent: undefined }
+  assert.equal((await judgeSession(unstated)).intervention, null, 'one mechanic is not several')
+  assert.equal((await judgeSession({ ...unstated, signals: ['countdown_timer', 'session_long'] })).intervention, null, 'duration is not a mechanic')
+  assert.ok((await judgeSession({ ...unstated, signals: ['countdown_timer', 'urgency_language'] })).intervention)
+})
+
+test('with a stated intent, only a page found to diverge from it can be nudged', async () => {
+  setOutput(output)
+  for (const fit of ['serves', 'unclear'] as const) {
+    setIntentFit(fit)
+    assert.equal((await judgeSession(ctx)).intervention, null, fit)
+  }
+  setIntentFit('diverges')
+  assert.ok((await judgeSession(ctx)).intervention)
 })
