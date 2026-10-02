@@ -39,3 +39,6 @@ docs/CHROME_WEB_STORE.md
 
 # Versioned release packages
 artifacts/
+
+# Local model files downloaded by `npm run eval:models`
+.eval-cache/

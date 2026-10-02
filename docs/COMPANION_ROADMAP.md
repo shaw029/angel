@@ -28,4 +28,4 @@ The current Ask Angel is a controls panel. An optional question-and-answer exper
 
 ## Deferred
 
-Smaller-model benchmarks and model migration are explicitly deferred. The existing model remains unchanged. Cross-device sync, unrestricted chat, and claims of improved resilience are outside this release's scope.
+A smaller Gemma 3 1B option was evaluated offline and rejected; see the [evaluation record](evaluation/LITE_VS_FULL.md). Model migration is deferred, and the existing model remains unchanged. Cross-device sync, unrestricted chat, and claims of improved resilience are outside this release's scope.

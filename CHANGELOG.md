@@ -15,6 +15,7 @@ Development builds currently identify as `0.3.0-dev.1`.
 - Ask Angel controls for optional intent, explanations, quiet mode, and saved return points.
 - Explanations and explicit correction on both nudge tiers.
 - Regression tests, CI, synchronized development/release versions, packaged checksums, and a draft release workflow.
+- Offline model evaluation (`npm run eval:models`): companion scenarios run through the production judgment path with a contract-based rubric and a generated report.
 
 ### Changed
 
@@ -32,7 +33,7 @@ Development builds currently identify as `0.3.0-dev.1`.
 
 ### Validation still required
 
-Interactive Chrome lifecycle checks and real-model quality/performance evaluation. Smaller-model benchmarking is deferred.
+Interactive Chrome lifecycle checks and in-browser model quality/performance evaluation. The offline evaluation found false interruptions by the shipped model, including nudges driven by instruction text in page titles; see [Lite vs Full](docs/evaluation/LITE_VS_FULL.md). A smaller Gemma 3 1B option was evaluated there and not shipped.
 
 ## [0.2.2](https://github.com/shaw029/angel/releases/tag/v0.2.2) — 2026-09-18
 

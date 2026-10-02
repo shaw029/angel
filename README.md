@@ -51,7 +51,7 @@ flowchart LR
 
 The **Witness** collects evidence. The **Narrator** proposes whether and how prominently to speak. The **Guardian** can withhold or reduce that proposal and enforces a minimum 150-second gap and a maximum of five nudges per rolling hour, including requested reminders. See [architecture](docs/ARCHITECTURE.md) and the [cognitive model](docs/COGNITIVE_MODEL.md).
 
-Inference uses `onnx-community/gemma-4-E2B-it-ONNX` through Transformers.js, with WebGPU and a WASM fallback. The model revision and download sizes are pinned in `src/shared/model-manifest.json`. Smaller-model comparisons are deferred. No hardware-independent speed or memory claims are made.
+Inference uses `onnx-community/gemma-4-E2B-it-ONNX` through Transformers.js, with WebGPU and a WASM fallback. The model revision and download sizes are pinned in `src/shared/model-manifest.json`. A smaller Gemma 3 1B option was evaluated and not shipped; see the [offline evaluation record](docs/evaluation/LITE_VS_FULL.md). No hardware-independent speed or memory claims are made.
 
 ## Run locally
 
@@ -94,11 +94,12 @@ Model weights and tokenizer files are downloaded from Hugging Face and cached. D
 - [Architecture and lifecycle](docs/ARCHITECTURE.md)
 - [Behavioral estimates and adaptation](docs/COGNITIVE_MODEL.md)
 - [Metrics and validation limits](docs/EVALUATION.md)
+- [Offline model evaluation record](docs/evaluation/LITE_VS_FULL.md)
 - [Companion implementation and test coverage](docs/COMPANION_IMPLEMENTATION.md)
 - [Future work](docs/COMPANION_ROADMAP.md)
 - [Release and version policy](docs/RELEASING.md)
 
-Automated checks cover orchestration, evidence, corrections, reminder limits, and static UI rendering. Real-model evaluation and interactive Chrome lifecycle validation remain necessary before a stable release. Local counters do not demonstrate improved wellbeing or causal benefit.
+Automated checks cover orchestration, evidence, corrections, reminder limits, and static UI rendering. `npm run eval:models` scores the real model offline on CPU against companion scenarios. In-browser model evaluation and interactive Chrome lifecycle validation remain necessary before a stable release. Local counters do not demonstrate improved wellbeing or causal benefit.
 
 ## License
 
