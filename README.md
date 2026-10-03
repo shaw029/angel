@@ -13,7 +13,7 @@ Angel is a Chrome Manifest V3 extension that observes page mechanics and browsin
 | Channel | Version | Meaning |
 | --- | --- | --- |
 | Latest published GitHub release | [v0.2.2](https://github.com/shaw029/angel/releases/tag/v0.2.2) | Published 18 September 2026; download this for the released build. |
-| This source tree | **0.3.0-dev.1** | Unreleased companion improvements. Building this branch includes the features below. |
+| This source tree | **0.3.0-rc.1** | Release candidate for 0.3.0. Building this branch includes the features below. |
 
 GitHub releases, the Chrome Web Store, and the development branch are separate delivery channels. A merged change or development build does not mean a store update has been published. See the [release process](docs/RELEASING.md).
 

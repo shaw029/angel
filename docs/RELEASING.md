@@ -7,7 +7,7 @@
 - **Stable GitHub release:** a reviewed numeric version tag with an extension ZIP and checksum.
 - **Chrome Web Store:** a separate manual submission and approval. A GitHub release does not imply store availability.
 
-The current development version is `0.3.0-dev.1`; the latest published GitHub release is `v0.2.2`. Nothing in this branch publishes a release on a branch push. Landing-page deployment runs only for matching changes on `main` or an explicit manual dispatch.
+The current source version is the release candidate `0.3.0-rc.1`; the latest published GitHub release is `v0.2.2`. Nothing in this branch publishes a release on a branch push. Landing-page deployment runs only for matching changes on `main` or an explicit manual dispatch.
 
 ## Single version command
 

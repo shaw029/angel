@@ -4,7 +4,7 @@ Changes are grouped by release. Unreleased entries describe this source tree, no
 
 ## Unreleased — 0.3.0
 
-Development builds currently identify as `0.3.0-dev.1`.
+Release candidate builds identify as `0.3.0-rc.1`. See the [test report](docs/evaluation/TEST_REPORT.md).
 
 ### Added
 
