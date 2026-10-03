@@ -1,4 +1,4 @@
-export const env = { allowRemoteModels: true, allowLocalModels: true, useBrowserCache: true, useWasmCache: false, backends: { onnx: { wasm: {} } } }
+export const env = { allowRemoteModels: true, allowLocalModels: true, useBrowserCache: true, useWasmCache: false, remotePathTemplate: '{model}/resolve/{revision}/', backends: { onnx: { wasm: {} } } }
 export const calls: any[] = []
 export let fail = false
 export function setFailure(value: boolean) { fail = value }

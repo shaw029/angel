@@ -114,6 +114,12 @@ export class GemmaEngine {
     env.allowLocalModels = true
     env.useBrowserCache   = true
     env.useWasmCache      = false  // Cache API rejects chrome-extension:// URLs
+    // Transformers.js checks for tokenizer_config.json without the requested
+    // revision. Offline, that looked under `main`, missed the cached files and
+    // built a tokenizer with no config, so every judgment after a cache-only
+    // load failed. With the revision in the template, every lookup resolves to
+    // the files cached for this pinned revision; download URLs are unchanged.
+    env.remotePathTemplate = `{model}/resolve/${MODEL_REVISION}/`
 
     // Override the CDN default that Transformers.js v4 sets at module load time.
     // Chrome's CSP blocks loading scripts from external origins; serve ORT locally.

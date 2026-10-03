@@ -1,0 +1,20 @@
+{
+  "check": "no-webgpu",
+  "date": "2026-10-03T14:34:28.367Z",
+  "adapter": false,
+  "message": "Angel\n\nNudges are paused until local AI is ready.\n\nLocal AI is not available in this browser\n\nAngel's AI needs WebGPU, which this browser or device does not provide. Nothing will be downloaded.\n\nProactive nudges stay paused until AI is ready. Ask Angel and saved return points remain available.\n\nSee an example\n\nHow much support would you like from Angel?\n\nQuiet\nActive\nAsk Angel\n+",
+  "offscreenDocument": false,
+  "storage": {
+    "local": {},
+    "session": {
+      "modelStatus": {
+        "phase": "idle"
+      }
+    }
+  },
+  "passed": true,
+  "log": [
+    "[14:34:38] adapter false; popup shows unavailable; model document false",
+    "[14:34:38] screenshot /Users/abhinav/Documents/code/Cognitive Assistant/eval/results/screenshots/popup-no-webgpu.png"
+  ]
+}

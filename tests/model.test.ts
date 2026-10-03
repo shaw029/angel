@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { GemmaEngine } from '../src/ai/engine'
 import manifest from '../src/shared/model-manifest.json'
 import { MODEL_ID, MSG } from '../src/shared/constants'
-import { calls, setFailure } from './fixtures/model-runtime'
+import { calls, env, setFailure } from './fixtures/model-runtime'
 import { getAuthorizedModelRun, MODEL_REVISION, ModelDownloadProgress, modelFiles, modelDownloadBytes } from '../src/shared/model-plan'
 const local: Record<string, any> = {}
 const session: Record<string, any> = {}
@@ -48,6 +48,8 @@ test('explicit setup pins files and device; restoration forbids remote downloads
   await new GemmaEngine().ensureReady()
   assert.equal(calls.at(-1).options.local_files_only, true)
   assert.equal(calls.at(-1).remote, false)
+  // Lookups that omit the revision (tokenizer discovery) must still find the pinned cache.
+  assert.equal(env.remotePathTemplate, `{model}/resolve/${MODEL_REVISION}/`)
   setFailure(true)
   const before = calls.length
   const originalError = console.error

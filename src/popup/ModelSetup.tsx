@@ -54,7 +54,7 @@ export function ModelSetupCard({ view, gpu, busy = false, notice = '', onAction 
       <p className="text-xs leading-relaxed text-ink-secondary">Local AI is off. Your controls and saved return points are available.</p>
       <button className={`${button} mt-2 border border-neutral-200 bg-white text-sage`} onClick={() => setExpanded(true)}>Review AI setup</button>
     </>}
-    {!ready && <p className="mt-2 text-[10px] leading-relaxed text-ink-muted">Proactive nudges stay paused until AI is ready. Ask Angel and saved return points remain available.</p>}
+    {!ready && <p className="mt-2 text-[10px] leading-relaxed text-ink-muted">{gpu === false ? 'Proactive nudges need local AI.' : 'Proactive nudges stay paused until AI is ready.'} Ask Angel and saved return points remain available.</p>}
     <button className="mt-3 text-xs text-sage underline underline-offset-2" aria-expanded={example} onClick={() => setExample(!example)}>{example ? 'Hide example' : 'See an example'}</button>
     {example && <div className="mt-2 space-y-2 rounded-lg bg-white p-3 text-xs leading-relaxed text-ink-secondary">
       <p className="font-medium">Illustration — not an AI result about this page</p>

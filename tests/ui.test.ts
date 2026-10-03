@@ -45,6 +45,7 @@ test('AI onboarding discloses cost, decline, cancel, and meaningful readiness st
   assert.doesNotMatch(pending, /CPU|3.6 GB/, 'the CPU runtime cannot run the model')
   const noGpu = render({ choice: 'pending' }, { phase: 'idle' }, false)
   assert.match(noGpu, /needs WebGPU/)
+  assert.doesNotMatch(noGpu, /until AI is ready/, 'it will not become ready in this browser')
   assert.doesNotMatch(noGpu, /Download and enable/)
   const deferred = render({ choice: 'deferred' }, { phase: 'idle' })
   assert.match(deferred, /Review AI setup/)

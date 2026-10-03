@@ -5,131 +5,32 @@
 //
 // Usage: npm run eval:chrome -- <webgpu|wasm> [--cases=all|<count>] [--profile=<dir>] [--idle]
 // --idle then marks the model unused, fires the idle alarm and measures standby memory.
-import { execFileSync, spawn } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { MODEL_IDLE_ALARM } from '@shared/constants'
 import manifest from '@shared/model-manifest.json'
 import { CASES } from './cases'
+import { Cdp, chromeBinary, defaultProfile, extensionWorker, evaluateIn, gb, launchChrome, memory, note as noter, sleep, targets, waitFor, type Footprint } from './chrome-lib'
 
 type Device = 'webgpu' | 'wasm'
 const device = process.argv[2] as Device
 if (device !== 'webgpu' && device !== 'wasm') throw new Error('Usage: eval:chrome -- <webgpu|wasm> [--cases=all|<count>] [--profile=<dir>]')
 const flag = (name: string) => process.argv.find(a => a.startsWith(`--${name}=`))?.slice(name.length + 3)
-const profile = resolve(flag('profile') ?? join(tmpdir(), 'angel-chrome-eval'))
+const profile = resolve(flag('profile') ?? defaultProfile('angel-chrome-eval'))
 const casesFlag = flag('cases') ?? (device === 'webgpu' ? 'all' : '8')
-const port = 9333
 const JUDGMENT_WINDOW_MS = 90_000  // background discards older judgments (src/background/index.ts)
 
-function chromeBinary(): string {
-  if (process.env.CHROME_FOR_TESTING) return process.env.CHROME_FOR_TESTING
-  const root = join(homedir(), 'Library/Caches/ms-playwright')
-  const found = execFileSync('find', [root, '-maxdepth', '6', '-path', '*MacOS/Google Chrome for Testing', '-type', 'f']).toString().trim().split('\n').sort().at(-1)
-  if (!found) throw new Error('Chrome for Testing not found; set CHROME_FOR_TESTING')
-  return found
-}
-
-// ─── Minimal CDP client ───────────────────────────────────────────────────────
-
-class Cdp {
-  private id = 0
-  private pending = new Map<number, (msg: { result?: unknown; error?: unknown }) => void>()
-  private listeners: ((msg: { method: string; params: unknown }) => void)[] = []
-  private ready: Promise<void>
-  constructor(url: string) {
-    const ws = new WebSocket(url)
-    this.ws = ws
-    this.ready = new Promise((ok, fail) => { ws.onopen = () => ok(); ws.onerror = () => fail(new Error(`CDP connect failed: ${url}`)) })
-    ws.onmessage = ev => {
-      const msg = JSON.parse(String(ev.data))
-      if (msg.id) this.pending.get(msg.id)?.(msg)
-      else for (const l of this.listeners) l(msg)
-    }
-  }
-  private ws: WebSocket
-  async send<T = Record<string, unknown>>(method: string, params: object = {}): Promise<T> {
-    await this.ready
-    const id = ++this.id
-    return new Promise((ok, fail) => {
-      this.pending.set(id, msg => msg.error ? fail(new Error(JSON.stringify(msg.error))) : ok(msg.result as T))
-      this.ws.send(JSON.stringify({ id, method, params }))
-    })
-  }
-  on(listener: (msg: { method: string; params: any }) => void) { this.listeners.push(listener) }
-  close() { this.ws.close() }
-}
-
-async function targets(): Promise<{ type: string; url: string; webSocketDebuggerUrl: string }[]> {
-  return (await fetch(`http://127.0.0.1:${port}/json/list`)).json()
-}
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
-async function waitFor<T>(what: string, fn: () => Promise<T | undefined>, timeoutMs = 60_000): Promise<T> {
-  const end = Date.now() + timeoutMs
-  while (Date.now() < end) { try { const v = await fn(); if (v) return v } catch { /* not yet */ } await sleep(500) }
-  throw new Error(`Timed out waiting for ${what}`)
-}
-
-// ─── Process memory (macOS footprint, includes GPU allocations on Apple silicon) ─
-
-interface Footprint { now: number; peak: number }
-function processTree(root: number): { pid: number; kind: string }[] {
-  const rows = execFileSync('ps', ['-axo', 'pid=,ppid=,command=']).toString().trim().split('\n')
-    .map(l => l.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/)!).filter(Boolean)
-    .map(([, pid, ppid, cmd]) => ({ pid: Number(pid), ppid: Number(ppid), cmd: cmd! }))
-  const out: { pid: number; kind: string }[] = []
-  const walk = (pid: number) => {
-    for (const r of rows.filter(r => r.ppid === pid)) {
-      const kind = r.cmd.includes('--type=gpu-process') ? 'gpu'
-        : r.cmd.includes('--extension-process') ? 'extension'
-        : r.cmd.includes('--type=renderer') ? 'renderer' : 'other'
-      out.push({ pid: r.pid, kind }); walk(r.pid)
-    }
-  }
-  out.push({ pid: root, kind: 'browser' }); walk(root)
-  return out
-}
-function memory(root: number): Record<string, Footprint> {
-  const procs = processTree(root)
-  const file = join(tmpdir(), `angel-fp-${process.pid}.json`)
-  try { execFileSync('footprint', ['-j', file, ...procs.map(p => String(p.pid))], { stdio: 'ignore' }) } catch { /* partial output is fine */ }
-  const data = JSON.parse(readFileSync(file, 'utf8')) as { processes: { pid: number; footprint: number; auxiliary?: { phys_footprint_peak?: number } }[] }
-  const byKind: Record<string, Footprint> = {}
-  for (const p of data.processes) {
-    const kind = procs.find(x => x.pid === p.pid)?.kind ?? 'other'
-    const k = (byKind[kind] ??= { now: 0, peak: 0 })
-    k.now += p.footprint; k.peak += p.auxiliary?.phys_footprint_peak ?? p.footprint
-  }
-  byKind.total = Object.values(byKind).reduce((t, k) => ({ now: t.now + k.now, peak: t.peak + k.peak }), { now: 0, peak: 0 })
-  return byKind
-}
-const gb = (b: number) => `${(b / 1e9).toFixed(2)} GB`
 
 // ─── Run ─────────────────────────────────────────────────────────────────────
 
-mkdirSync(profile, { recursive: true })
-// A reused profile keeps the previous build's worker script while the version
-// is unchanged. Drop the cached scripts and registration; downloaded model
-// files live separately in CacheStorage and are kept.
-for (const dir of ['ScriptCache', 'Database']) rmSync(join(profile, 'Default', 'Service Worker', dir), { recursive: true, force: true })
-const dist = resolve('dist')
-const chrome = spawn(chromeBinary(), [
-  `--user-data-dir=${profile}`, `--load-extension=${dist}`, `--disable-extensions-except=${dist}`,
-  `--remote-debugging-port=${port}`, '--no-first-run', '--no-default-browser-check', 'about:blank',
-], { stdio: 'ignore' })
+const chrome = await launchChrome(profile)
 const log: string[] = []
-const note = (s: string) => { const line = `[${new Date().toISOString().slice(11, 19)}] ${s}`; log.push(line); console.log(line) }
+const note = noter(log)
 
 try {
-  const swTarget = await waitFor('extension service worker', async () =>
-    (await targets()).find(t => t.type === 'service_worker' && t.url.endsWith('/service-worker-loader.js')))
-  const sw = new Cdp(swTarget.webSocketDebuggerUrl)
-  const evaluate = async <T>(body: string): Promise<T> => {
-    const r = await sw.send<{ result: { value: T }; exceptionDetails?: unknown }>('Runtime.evaluate',
-      { expression: `(async () => { ${body} })()`, awaitPromise: true, returnByValue: true })
-    if (r.exceptionDetails) throw new Error(JSON.stringify(r.exceptionDetails))
-    return r.result.value
-  }
+  const sw = await extensionWorker()
+  const evaluate = <T>(body: string) => evaluateIn<T>(sw, body)
   const swErrors: string[] = []
   sw.on(msg => {
     if (msg.method === 'Runtime.exceptionThrown') swErrors.push(msg.params.exceptionDetails?.exception?.description ?? msg.params.exceptionDetails?.text)

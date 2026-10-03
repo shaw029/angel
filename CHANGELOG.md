@@ -9,13 +9,14 @@ Development builds currently identify as `0.3.0-dev.1`.
 ### Added
 
 - Explicit AI download consent with size disclosure, an illustrative example, and a remembered Not now choice.
-- Download progress across model files, cancellation, retry, cached-only automatic restart, and revision-specific consent.
+- Download progress across model files, cancellation, retry, loading from cached files only after setup, and revision-specific consent.
 - Website disclosure and draft store copy distinguishing the extension ZIP from the separate model download.
 
 - Ask Angel controls for optional intent, explanations, quiet mode, and saved return points.
 - Explanations and explicit correction on both nudge tiers.
 - Regression tests, CI, synchronized development/release versions, packaged checksums, and a draft release workflow.
 - Offline model evaluation (`npm run eval:models`): companion scenarios run through the production judgment path with a contract-based rubric and a generated report.
+- Chrome measurement script (`npm run eval:chrome`): loads the built extension in Chrome for Testing and records setup time, judgments and per-process memory. `npm run eval:chrome -- lifecycle <wake|no-webgpu>` checks waking from standby on a real page and the popup without WebGPU.
 
 ### Changed
 
@@ -30,6 +31,7 @@ Development builds currently identify as `0.3.0-dev.1`.
 
 ### Fixed
 
+- Every judgment failed after a browser restart or an idle unload. Transformers.js looks for the tokenizer config without the requested revision, so a load from cached files only built a tokenizer without its config. The pinned revision is now part of the model URL template, so every lookup finds the cached files.
 - Local AI never started in Chrome after the consent change: offscreen documents cannot use `chrome.storage`, so the model document now asks the background for the authorized run. Unit tests now run the engine with only `chrome.runtime` available.
 - A failed model load now closes the model document, releasing its memory (6.3 GB in one measurement).
 - Stale evidence and delayed inference delivery across navigation or changed preferences.
@@ -39,7 +41,7 @@ Development builds currently identify as `0.3.0-dev.1`.
 
 ### Validation still required
 
-Interactive Chrome lifecycle checks and in-browser model quality/performance evaluation. [Chrome measurements](docs/EVALUATION.md#chrome-measurements) show the GPU path matching the offline evaluation, but the CPU (WASM) option cannot load the pinned model and Full holds about 9.7 GB of memory at rest on the measured Mac. A smaller Gemma 3 1B option was evaluated and not shipped; see [Lite vs Full](docs/evaluation/LITE_VS_FULL.md).
+The manual Chrome lifecycle checklist; see the [test report](docs/evaluation/TEST_REPORT.md) for what has been measured. Known limitation: while the model loads, Chrome briefly used about 14 GB of memory on the measured 16 GB Mac; the model now loads only when a judgment is needed and unloads after 10 idle minutes. A smaller Gemma 3 1B option was evaluated and not shipped; see [Lite vs Full](docs/evaluation/LITE_VS_FULL.md).
 
 ## [0.2.2](https://github.com/shaw029/angel/releases/tag/v0.2.2) — 2026-09-18
 

@@ -1,0 +1,43 @@
+{
+  "check": "wake",
+  "date": "2026-10-03T15:11:18.128Z",
+  "afterPopup": {
+    "status": {
+      "phase": "standby"
+    },
+    "offscreenDocument": false
+  },
+  "phases": [
+    {
+      "phase": "standby",
+      "afterMs": 65
+    },
+    {
+      "phase": "loading",
+      "afterMs": 60539
+    },
+    {
+      "phase": "ready",
+      "afterMs": 67231
+    }
+  ],
+  "judgmentAfterWake": {
+    "scenario": "shop-bill-to-sale",
+    "allowDownload": false,
+    "ms": 18375,
+    "alignment": "drifting",
+    "nudged": true
+  },
+  "modelErrors": [],
+  "passed": true,
+  "log": [
+    "[15:11:22] after opening the popup: {\"status\":{\"phase\":\"standby\"},\"offscreenDocument\":false}",
+    "[15:11:22] screenshot /Users/abhinav/Documents/code/Cognitive Assistant/eval/results/screenshots/popup-standby.png",
+    "[15:11:22] opened the shop page",
+    "[15:11:22] phase standby at 0 s",
+    "[15:12:22] phase loading at 61 s",
+    "[15:12:29] phase ready at 67 s",
+    "[15:12:47] judgment after a cache-only wake (shop-bill-to-sale): drifting, nudge proposed, 18.4 s",
+    "[15:12:51] screenshot /Users/abhinav/Documents/code/Cognitive Assistant/eval/results/screenshots/shop-page-after-judgment.png"
+  ]
+}

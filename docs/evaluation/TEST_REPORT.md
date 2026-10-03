@@ -1,11 +1,11 @@
 # Test report: 0.3.0 development build
 
-Branch `feat/adaptive-companion-context`, tested 2–3 October 2026, up to commit `bc101df`. This report summarises what was tested, what was found and fixed, and what still needs testing before a release. The detailed records are linked in each section.
+Branch `feat/adaptive-companion-context`, tested 2–3 October 2026, up to the `0.3.0-rc.1` release candidate. This report summarises what was tested, what was found and fixed, and what still needs testing before a release. The detailed records are linked in each section.
 
 ## Summary
 
 - **Ready:** on WebGPU, local AI sets up, judges and stays within time limits in real Chrome. Its decisions match the offline evaluation exactly.
-- **Fixed during testing:** local AI never started in Chrome; the CPU option could never work; the loaded model held about 9.7 GB of memory at all times; Angel nudged people doing what they said they wanted to do and obeyed instructions in page titles.
+- **Fixed during testing:** local AI never started in Chrome; every judgment failed after a browser restart or idle unload; the CPU option could never work; the loaded model held about 9.7 GB of memory at all times; Angel nudged people doing what they said they wanted to do and obeyed instructions in page titles.
 - **Rejected:** the Lite profile (Gemma 3 1B) produced usable output in 3 of 44 cases and was removed.
 - **Still open:** the manual click-through checklist, other hardware, the ~14 GB memory spike while the model loads, and two known misjudgments.
 
@@ -87,11 +87,23 @@ Setup failed after the 3.6 GB download: the bundled runtime has no CPU implement
 
 Standby was measured after `bc101df`; the other rows before it. Record: [`chrome-webgpu-idle.json`](../../eval/results/chrome-webgpu-idle.json).
 
+### Chrome, lifecycle
+
+| Check | Result |
+| --- | --- |
+| Browser without WebGPU (`--disable-gpu`, fresh profile) | Pass. The popup says local AI is not available and offers no download; no model document starts. [Screenshot](../../eval/results/screenshots/popup-no-webgpu.png) |
+| Opening the popup with consent and cached files | Pass. The model stays in standby; no model document. [Screenshot](../../eval/results/screenshots/popup-standby.png) |
+| A real shop page waking the model | Pass. With urgency, stock and timer text and rapid click bursts, the page woke the model 60–256 s after opening; it was ready 6–12 s later. An untouched page does not wake it: Angel then estimates intentional browsing, whose strategy never asks for a judgment. |
+| Judging after a cache-only wake | Failed at first: every judgment came back empty with `Cannot read properties of null (reading 'add_bos_token')`. After the fix, `shop-bill-to-sale` returned drifting with a proposed nudge in 18.4 s, with no errors. |
+
+Records: [`chrome-lifecycle-no-webgpu.json`](../../eval/results/chrome-lifecycle-no-webgpu.json), [`chrome-lifecycle-wake.json`](../../eval/results/chrome-lifecycle-wake.json).
+
 ## Defects found and fixed
 
 | Defect | Effect | Fixed in | Verified by |
 | --- | --- | --- | --- |
 | The model document read consent from `chrome.storage`, which Chrome does not provide to offscreen documents | Local AI never started; setup stayed at "checking" | `6b04a34` | Chrome run; engine tests fail on the old code |
+| Transformers.js looked for the tokenizer config without the pinned revision, so cache-only loads built a tokenizer with no config | Every judgment failed after a browser restart or an idle unload | Revision pinned in the model URL template | Chrome wake check; engine test |
 | The CPU option used an operator the bundled WASM runtime lacks | CPU setup always failed after a 3.6 GB download | `bc101df` (option removed) | Chrome run; UI and background tests |
 | The model stayed loaded for the whole browser session | About 9.7 GB held at rest | `bc101df` (standby) | Chrome: 2.3 GB after the idle unload; unit tests |
 | A failed load left the model document open | 6.3 GB held after a failure | `6b04a34` | Unit test |
@@ -103,7 +115,6 @@ Testing note: a reused Chrome profile keeps the previous build's background work
 ## Not yet tested
 
 - The manual [stable-release checklist](../EVALUATION.md#stable-release-validation): consent, cancel, restart, tab switching, quiet mode, reminders, keyboard use.
-- A real page waking the model from standby in Chrome. The wake path is unit-tested and the load from cache was timed separately.
 - Other hardware: Windows and Linux, discrete GPUs, 8 GB machines, and the popup on a device without WebGPU.
 - Real browsing over days, and a blinded review of the scenario rubric and narratives.
 
@@ -123,4 +134,6 @@ npm run eval:models                            # offline evaluation, ~45 min; do
 npm run eval:models -- compare lite            # Lite vs Full report from saved results
 npm run eval:chrome -- webgpu --cases=all      # Chrome run; needs Playwright's Chrome for Testing, downloads 3.1 GB
 npm run eval:chrome -- webgpu --cases=2 --idle # adds the idle unload and standby memory
+npm run eval:chrome -- lifecycle no-webgpu      # popup without WebGPU
+npm run eval:chrome -- lifecycle wake           # page wakes the model; judging after a cache-only load
 ```
