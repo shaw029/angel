@@ -32,6 +32,10 @@ export const SIGNAL_INTERVAL_MS = 30_000
 export const MODEL_ID = 'onnx-community/gemma-4-E2B-it-ONNX'
 export const MODEL_DTYPE_WEBGPU  = 'q4f16' as const  // 4-bit weights, fp16 activations
 export const MODEL_DTYPE_WASM    = 'q4'    as const  // 4-bit weights, no fp16 in WASM
+// The loaded model holds several GB, so it is unloaded after this long without
+// a judgment and reloaded from cached files when the next one is needed.
+export const MODEL_IDLE_MS    = 10 * 60_000
+export const MODEL_IDLE_ALARM = 'model-idle'
 
 export const PRESENCE_DEFAULT = 0.45
 

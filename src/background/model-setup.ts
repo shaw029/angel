@@ -1,4 +1,5 @@
 import { ensureOffscreenDocument, closeOffscreenDocument } from './offscreen'
+import { MODEL_IDLE_ALARM, MODEL_IDLE_MS } from '@shared/constants'
 import { getModelPreference, getAuthorizedModelRun, hasModelConsent, MODEL_PREFERENCE_KEY, MODEL_RUN_KEY, MODEL_REVISION } from '@shared/model-plan'
 import type { ModelDevice, ModelLoadStatus, ModelRun, ModelSetupView } from '@shared/types'
 
@@ -33,11 +34,14 @@ export async function stopModel(): Promise<void> {
   await chrome.storage.local.set({ [MODEL_PREFERENCE_KEY]: { choice: 'deferred' } })
   await chrome.storage.session.remove(MODEL_RUN_KEY)
   await chrome.storage.session.set({ modelStatus: { phase: 'idle' } })
+  await chrome.alarms.clear(MODEL_IDLE_ALARM)
   // Destroying the owner document aborts its fetches, queue and runtime.
   await closeOffscreenDocument()
 }
 
-export async function restoreModel(): Promise<void> {
+// Install, startup and the popup leave a consented model in standby; only a
+// moment that needs a judgment wakes it, since a loaded model holds several GB.
+export async function restoreModel(wake = false): Promise<void> {
   const preference = await getModelPreference()
   if (!hasModelConsent(preference)) {
     const { modelStatus } = await chrome.storage.session.get('modelStatus')
@@ -50,8 +54,27 @@ export async function restoreModel(): Promise<void> {
   if (await chrome.offscreen.hasDocument()) return
   const { status } = await modelSetupView()
   if (status.phase === 'error') return // retry is an explicit user action
+  if (!wake) {
+    if (status.phase !== 'standby') await chrome.storage.session.set({ modelStatus: { phase: 'standby' } })
+    return
+  }
   // Restart may use cached files only. Missing/evicted files require another click.
   await startModel(preference.device!, false)
+}
+
+export async function markModelUsed(now = Date.now()): Promise<void> {
+  await chrome.storage.session.set({ modelLastUsed: now })
+}
+
+// Runs on the idle alarm. `busy` is true while a judgment may still arrive.
+export async function sleepModelIfIdle(busy: boolean, now = Date.now()): Promise<void> {
+  const { modelStatus } = await chrome.storage.session.get('modelStatus')
+  if (modelStatus?.phase !== 'ready') { await chrome.alarms.clear(MODEL_IDLE_ALARM); return }
+  const { modelLastUsed } = await chrome.storage.session.get('modelLastUsed')
+  if (busy || now - (modelLastUsed ?? 0) < MODEL_IDLE_MS) return
+  await closeOffscreenDocument()
+  await chrome.storage.session.set({ modelStatus: { phase: 'standby' } })
+  await chrome.alarms.clear(MODEL_IDLE_ALARM)
 }
 
 export async function acceptModelProgress(runId: string, status: ModelLoadStatus): Promise<void> {
@@ -61,6 +84,10 @@ export async function acceptModelProgress(runId: string, status: ModelLoadStatus
     await chrome.storage.session.set({ [MODEL_RUN_KEY]: { ...run, allowDownload: false } })
   }
   await chrome.storage.session.set({ modelStatus: status })
+  if (status.phase === 'ready') {
+    await markModelUsed()
+    chrome.alarms.create(MODEL_IDLE_ALARM, { periodInMinutes: 1 })
+  }
   // A failed load can leave gigabytes of model data in the document; retry
   // is an explicit user action that creates a fresh one.
   if (status.phase === 'error') await closeOffscreenDocument()

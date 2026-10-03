@@ -85,7 +85,10 @@ export async function onSnoozeAlarm(alarm: chrome.alarms.Alarm): Promise<boolean
 
   // Angel was switched off during the deferral — that veto still stands.
   const state = await getState()
-  if (!state.enabled || !(await getAuthorizedModelRun()) || (await modelSetupView()).status.phase !== 'ready') return true
+  // A reminder re-delivers a nudge that was already judged, so a model resting
+  // in standby (or waking from it) does not cancel it.
+  const phase = (await modelSetupView()).status.phase
+  if (!state.enabled || !(await getAuthorizedModelRun()) || phase === 'idle' || phase === 'error') return true
   if (!isCurrentIntervention(record.intervention, await getCompanion(record.tabId))) return true
   const now = Date.now()
   const last = Math.max(state.lastFullIntervention ?? 0, state.lastSubtleIntervention ?? 0)

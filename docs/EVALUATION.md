@@ -54,7 +54,7 @@ Gemma 3 1B, a 75% smaller download, produced valid output in 3 of 44 cases with 
 
 ## Chrome measurements
 
-`npm run eval:chrome -- <webgpu|wasm>` builds the extension, loads it in Chrome for Testing with a throwaway profile, prepares the model and sends scenarios to the model document. The script writes model consent the way setup does; the popup consent flow is covered by unit tests. Results go to `eval/results/chrome-*.json`.
+`npm run eval:chrome -- <webgpu|wasm> [--idle]` builds the extension, loads it in Chrome for Testing with a throwaway profile, prepares the model and sends scenarios to the model document. The script writes model consent the way setup does; the popup consent flow is covered by unit tests. Results go to `eval/results/chrome-*.json`.
 
 Measured 3 October 2026 in Chrome for Testing 153 on an Apple M4 with 16 GB RAM. Memory is macOS `footprint`, which on Apple silicon includes GPU allocations.
 
@@ -65,14 +65,17 @@ Measured 3 October 2026 in Chrome for Testing 153 on an Apple M4 with 16 GB RAM.
 | Judgments | All 65 scenarios gave the same alignment and the same nudge-or-quiet outcome as the offline CPU evaluation. Median 13.8 s, slowest 20.9 s, none near the 90 s window | None |
 | Memory after setup from cache | 14.0 GB in total: extension process 8.6 GB, GPU process 5.0 GB | 6.3 GB left in the extension process after the failure |
 | Memory at rest after judgments | 9.7 GB: extension 3.4 GB, GPU 6.0 GB; per-process peaks 8.6 GB and 7.9 GB | — |
+| Memory in standby, 5 s after the idle unload | 2.3 GB: extension 1.5 GB, GPU 0.3 GB | — |
 
 Before this measurement, local AI never started in Chrome: the model document read consent from `chrome.storage`, which Chrome does not provide to offscreen documents. Setup stayed at checking indefinitely. The model document now asks the background for the authorized run.
+
+Following these measurements, the extension offers local AI only with WebGPU, and the model rests in standby until a page moment will be judged, unloading again after 10 minutes without a judgment. The standby row was measured after that change.
 
 ## Stable-release validation
 
 Before a stable release, record browser version, operating system, hardware, model configuration, build commit, and outcomes for:
 
-1. Load/reload, model download progress, offline cache use, failed downloads, and unsupported GPU/WASM behavior.
+1. Load/reload, model download progress, offline cache use, failed downloads, devices without WebGPU, and standby: idle unload and reload from cache.
 2. Tab switching, background tabs, same-site SPA navigation, cross-origin navigation, worker suspension, tab closure, and browser restart.
 3. Optional intent changes, I chose this, quiet/resume, global nudge toggle, save/open/forget, and controls while inference is pending.
 4. Reminder expiry/cancellation and global interruption limits across multiple tabs.

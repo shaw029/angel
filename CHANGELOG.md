@@ -19,6 +19,8 @@ Development builds currently identify as `0.3.0-dev.1`.
 
 ### Changed
 
+- Local AI requires WebGPU. The CPU (WASM) option is removed: the bundled runtime cannot run the model's 4-bit embedding file, so that option failed after a 3.6 GB download. Without WebGPU the popup says local AI is unavailable and offers no download.
+- The model rests in standby until a page moment will be judged, loads from cached files, and unloads after 10 minutes without a judgment. Install, browser startup and opening the popup no longer load it. A loaded model held about 9.7 GB at rest in Chrome on the measured Mac.
 - Ground visible nudge copy in current evidence and treat unknown intent as a reason to stay quiet.
 - Require a stated intent before a `drifting` judgment can nudge, and two or more fresh mechanics before a `captured` one, enforced in code so page titles cannot talk the model past them.
 - Before nudging a session with a stated intent, ask the model separately whether the current page serves that intent; only a page that diverges is nudged. The narrator prompt now judges alignment by whether the page serves the stated intent rather than by its mechanics. In the offline evaluation, critical false interruptions fell from 5 to 1 and check-ins rose from 7 of 10 to 17 of 18.

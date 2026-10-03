@@ -215,6 +215,7 @@ export type ModelLoadStatus =
   | { phase: 'downloading'; progress: number; file: string; loadedBytes?: number; totalBytes?: number }
   | { phase: 'loading'; file: string; filesLoaded: number }
   | { phase: 'ready'; device: 'webgpu' | 'wasm'; storageWarning?: string }
+  | { phase: 'standby' }  // consented and cached, unloaded to free memory until a judgment is needed
   | { phase: 'error'; reason: string }
 
 // ─── Behavioral events (content script → background) ─────────────────────────

@@ -32,8 +32,8 @@ test('Ask Angel is user-opened and does not require a model response', () => {
 
 test('AI onboarding discloses cost, decline, cancel, and meaningful readiness states', async () => {
   const { ModelSetupCard } = await import('../src/popup/ModelSetup')
-  const render = (preference: any, status: any) => renderToString(createElement(ModelSetupCard, {
-    view: { preference, status }, device: 'webgpu', onDevice() {}, onAction() {},
+  const render = (preference: any, status: any, gpu: boolean | null = true) => renderToString(createElement(ModelSetupCard, {
+    view: { preference, status }, gpu, onAction() {},
   }))
   const pending = render({ choice: 'pending' }, { phase: 'idle' })
   assert.match(pending, /Download and enable Angel/)
@@ -42,6 +42,10 @@ test('AI onboarding discloses cost, decline, cancel, and meaningful readiness st
   assert.match(pending, /unmetered connection/)
   assert.match(pending, /See an example/)
   assert.doesNotMatch(pending, /one-time|proven|% better/)
+  assert.doesNotMatch(pending, /CPU|3.6 GB/, 'the CPU runtime cannot run the model')
+  const noGpu = render({ choice: 'pending' }, { phase: 'idle' }, false)
+  assert.match(noGpu, /needs WebGPU/)
+  assert.doesNotMatch(noGpu, /Download and enable/)
   const deferred = render({ choice: 'deferred' }, { phase: 'idle' })
   assert.match(deferred, /Review AI setup/)
   assert.doesNotMatch(deferred, /Download and enable Angel/)
@@ -51,4 +55,7 @@ test('AI onboarding discloses cost, decline, cancel, and meaningful readiness st
   assert.match(loading, /close this popup/)
   assert.match(render({ choice: 'enabled' }, { phase: 'loading' }), /Preparing AI/)
   assert.match(render({ choice: 'enabled' }, { phase: 'ready', device: 'webgpu' }), /Angel is ready/)
+  const standby = render({ choice: 'enabled' }, { phase: 'standby' })
+  assert.match(standby, /Angel is ready/)
+  assert.match(standby, /Resting to save memory/)
 })

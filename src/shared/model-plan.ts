@@ -12,7 +12,7 @@ export const modelFiles = (device: ModelDevice): Record<string, number> => manif
 
 export function hasModelConsent(preference: ModelPreference): boolean {
   return preference.choice === 'enabled' && preference.revision === MODEL_REVISION &&
-    (preference.device === 'webgpu' || preference.device === 'wasm')
+    preference.device === 'webgpu'  // the bundled CPU runtime cannot run this model
 }
 
 export async function getModelPreference(): Promise<ModelPreference> {

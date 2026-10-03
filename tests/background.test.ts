@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { MODEL_REVISION } from '../src/shared/model-plan'
-import { MSG, SNOOZE } from '../src/shared/constants'
+import { MODEL_IDLE_ALARM, MODEL_IDLE_MS, MSG, SNOOZE } from '../src/shared/constants'
 import { transitions } from './fixtures/memory'
 import type { BrowsingSignal, CompanionView, Intervention } from '../src/shared/types'
 
@@ -59,6 +59,7 @@ function area(values: Record<string, any>) {
 }
 await import('../src/background/index')
 const { serial } = await import('../src/background/serial')
+const { restoreModel } = await import('../src/background/model-setup')
 async function send(message: any, tabId?: number): Promise<any> {
   return new Promise(resolve => listener(message, tabId === undefined ? {} : { tab: { id: tabId } }, resolve))
 }
@@ -207,18 +208,20 @@ test('install, startup, signals and popup cannot start a download without consen
 
 test('consent starts one run; cancel closes its owner and late progress cannot revive it', async () => {
   const before = documentsCreated
-  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'wasm' } })
+  assert.ok((await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'wasm' } })).error, 'the CPU runtime cannot run the model')
+  assert.equal(documentsCreated, before)
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'webgpu' } })
   const run = structuredClone(session.modelRun)
   assert.equal(run.allowDownload, true)
-  assert.equal(run.device, 'wasm')
+  assert.equal(run.device, 'webgpu')
   assert.equal(documentsCreated, before + 1)
-  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'wasm' } })
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'webgpu' } })
   assert.equal(documentsCreated, before + 1)
   const closed = documentsClosed
   await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'cancel' } })
   assert.equal(documentsClosed, closed + 1)
   assert.equal(session.modelRun, undefined)
-  await send({ type: MSG.MODEL_PROGRESS, runId: run.id, payload: { phase: 'ready', device: 'wasm' } })
+  await send({ type: MSG.MODEL_PROGRESS, runId: run.id, payload: { phase: 'ready', device: 'webgpu' } })
   assert.equal(session.modelStatus.phase, 'idle')
   startupListener()
   await serial(async () => {})
@@ -233,8 +236,12 @@ test('restart uses cached files only; missing cache never triggers an automatic 
   hasDocument = false
   delete session.modelRun
   delete session.modelStatus
+  const created = documentsCreated
   startupListener()
   await serial(async () => {})
+  assert.equal(session.modelStatus.phase, 'standby', 'startup waits until a judgment is needed')
+  assert.equal(documentsCreated, created)
+  await serial(() => restoreModel(true))
   assert.equal(session.modelRun.allowDownload, false)
   await send({ type: MSG.MODEL_PROGRESS, runId: session.modelRun.id, payload: { phase: 'error', reason: 'Cache unavailable' } })
   hasDocument = false
@@ -278,4 +285,36 @@ test('a failed model load closes its document so its memory is released', async 
   assert.equal(session.modelStatus.phase, 'error')
   assert.equal(documentsClosed, closed + 1)
   assert.equal(hasDocument, false)
+})
+
+test('a model in standby is woken only by a moment that will be judged, from cached files', async () => {
+  setup(30)
+  hasDocument = false
+  delete session.modelRun
+  session.modelStatus = { phase: 'standby' }
+  const before = documentsCreated
+  assert.equal((await send({ type: MSG.GET_MODEL_SETUP })).status.phase, 'standby', 'opening the popup does not load it')
+  assert.equal(documentsCreated, before)
+  await evidence(30)
+  now += 40_000
+  await evidence(30)
+  assert.equal(documentsCreated, before + 1)
+  assert.equal(session.modelRun.allowDownload, false)
+  assert.equal(requested.filter(r => r.tabId === 30).length, 0, 'judged once the model is ready')
+})
+
+test('an idle model unloads to standby after ten minutes without a judgment', async () => {
+  setup(31)
+  await send({ type: MSG.MODEL_PROGRESS, runId: session.modelRun.id, payload: { phase: 'ready', device: 'webgpu' } })
+  assert.ok(alarms.has(MODEL_IDLE_ALARM))
+  alarmListener({ name: MODEL_IDLE_ALARM })
+  await serial(async () => {})
+  assert.equal(session.modelStatus.phase, 'ready', 'recently used')
+  now += MODEL_IDLE_MS
+  const closed = documentsClosed
+  alarmListener({ name: MODEL_IDLE_ALARM })
+  await serial(async () => {})
+  assert.equal(session.modelStatus.phase, 'standby')
+  assert.equal(documentsClosed, closed + 1)
+  assert.ok(!alarms.has(MODEL_IDLE_ALARM))
 })

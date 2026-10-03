@@ -10,7 +10,7 @@ A private browsing companion that offers gentle perspective. No blocking or enfo
 
 Angel uses on-device AI to consider browsing context before deciding whether to offer a nudge. It can be wrong, and your choice comes first.
 
-AI requires a separate initial model download: approximately 3.1 GB for GPU or 3.6 GB for CPU. Angel shows the size and asks before downloading. Model files are cached for future use; an unmetered connection is recommended. Setup speed and compatibility depend on your device, and additional storage and memory are needed.
+AI requires WebGPU and a separate initial model download of approximately 3.1 GB. Angel shows the size and asks before downloading. Model files are cached for future use; an unmetered connection is recommended. Setup speed and compatibility depend on your device, and additional storage and memory are needed.
 
 Choose Download and enable Angel or Not now. While AI is off, proactive nudges stay paused and your controls and saved return points remain available. You can cancel setup; complete cached files may remain for reuse. A later download may be needed after clearing files or updating the model, and Angel asks first.
 

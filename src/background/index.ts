@@ -1,6 +1,6 @@
 import { evaluate } from '@heuristics/index'
 import { getState, patchState } from '@storage/index'
-import { modelSetupView, enableModel, stopModel, restoreModel, acceptModelProgress } from './model-setup'
+import { modelSetupView, enableModel, stopModel, restoreModel, acceptModelProgress, markModelUsed, sleepModelIfIdle } from './model-setup'
 import { getAuthorizedModelRun } from '@shared/model-plan'
 import { compress } from '@ai/pipeline'
 import { guardianVerdict, isAnyTierAllowed, afterIntervention, afterDismissal } from './gate'
@@ -20,7 +20,7 @@ import { recordAlignment, getAlignmentPrior } from './priors'
 import type { RollingCognitiveContext } from './cognitive-state'
 import type { PatternKey } from '@memory/index'
 import type { Message, JudgmentPayload, DismissedPayload } from '@shared/messages'
-import { MSG, GATE, OFFSCREEN_URL, PRESENCE_DEFAULT } from '@shared/constants'
+import { MSG, GATE, MODEL_IDLE_ALARM, OFFSCREEN_URL, PRESENCE_DEFAULT } from '@shared/constants'
 import type {
   BrowsingSignal,
   BehavioralEvent,
@@ -107,6 +107,13 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // Deferred nudges ("remind me later") come back through here. chrome.alarms
 // rather than a timer because the service worker is terminated while idle.
 chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === MODEL_IDLE_ALARM) {
+    // Requests older than the judgment window can no longer be delivered.
+    const now = Date.now()
+    const busy = [...pending.values()].some(p => now - p.at < 90_000)
+    void serial(() => sleepModelIfIdle(busy, now))
+    return
+  }
   void serial(() => onSnoozeAlarm(alarm))
 })
 
@@ -182,7 +189,7 @@ async function dispatch(
       for (const tabId of latestSignals.keys()) invalidateRequests(tabId)
       if (message.payload.action === 'enable') {
         const device = message.payload.device
-        if (device !== 'webgpu' && device !== 'wasm') throw new Error('Choose a supported device')
+        if (device !== 'webgpu') throw new Error('Local AI needs WebGPU')
         await enableModel(device)
       } else if (message.payload.action === 'defer' || message.payload.action === 'cancel') {
         await stopModel()
@@ -320,16 +327,18 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
 
   const now = Date.now()
 
-  await restoreModel()
-  const modelRun = await getAuthorizedModelRun()
-  if (!modelRun || (await modelSetupView()).status.phase !== 'ready') return
-
   // Guardian pre-check: skip inference when nothing could be delivered anyway
   if (!isAnyTierAllowed(adjustedState, now, rawCtx.event_type, cognitiveState.state, strategy)) return
 
   // Narrator cadence: one consultation per tab at a time, recent verdicts cached,
   // a confident 'aligned' buys a long quiet period
   if (!narrator.shouldConsult(tabId, rawCtx.event_type, now)) return
+
+  // Only a moment that would be judged wakes a model in standby. A later
+  // signal is judged once it is ready.
+  await restoreModel(true)
+  const modelRun = await getAuthorizedModelRun()
+  if (!modelRun || (await modelSetupView()).status.phase !== 'ready') return
 
   // Enrich context with memory, intensity, and phrase cache before inference
   const memory        = await getMemorySummary().catch(() => undefined)
@@ -360,6 +369,7 @@ async function onBrowsingSignal(signal: BrowsingSignal, tabId: number | undefine
     session,
   })
   narrator.markRequested(tabId, now)
+  await markModelUsed(now)
 
   try {
     void chrome.runtime.sendMessage({ type: MSG.AI_CONTEXT, payload: { modelRunId: modelRun.id, requestId, tabId, ctx, expiresAt: now + 90_000 } }).catch(() => {

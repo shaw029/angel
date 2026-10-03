@@ -3,11 +3,13 @@
 // the offscreen document. Model consent is written the way setup writes it
 // (popup consent is covered by unit tests); downloads go to the throwaway profile.
 //
-// Usage: npm run eval:chrome -- <webgpu|wasm> [--cases=all|<count>] [--profile=<dir>]
+// Usage: npm run eval:chrome -- <webgpu|wasm> [--cases=all|<count>] [--profile=<dir>] [--idle]
+// --idle then marks the model unused, fires the idle alarm and measures standby memory.
 import { execFileSync, spawn } from 'node:child_process'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { MODEL_IDLE_ALARM } from '@shared/constants'
 import manifest from '@shared/model-manifest.json'
 import { CASES } from './cases'
 
@@ -106,6 +108,10 @@ const gb = (b: number) => `${(b / 1e9).toFixed(2)} GB`
 // ─── Run ─────────────────────────────────────────────────────────────────────
 
 mkdirSync(profile, { recursive: true })
+// A reused profile keeps the previous build's worker script while the version
+// is unchanged. Drop the cached scripts and registration; downloaded model
+// files live separately in CacheStorage and are kept.
+for (const dir of ['ScriptCache', 'Database']) rmSync(join(profile, 'Default', 'Service Worker', dir), { recursive: true, force: true })
 const dist = resolve('dist')
 const chrome = spawn(chromeBinary(), [
   `--user-data-dir=${profile}`, `--load-extension=${dist}`, `--disable-extensions-except=${dist}`,
@@ -124,6 +130,13 @@ try {
     if (r.exceptionDetails) throw new Error(JSON.stringify(r.exceptionDetails))
     return r.result.value
   }
+  const swErrors: string[] = []
+  sw.on(msg => {
+    if (msg.method === 'Runtime.exceptionThrown') swErrors.push(msg.params.exceptionDetails?.exception?.description ?? msg.params.exceptionDetails?.text)
+    if (msg.method === 'Runtime.consoleAPICalled' && ['error', 'warning'].includes(msg.params.type))
+      swErrors.push(`${msg.params.type}: ${msg.params.args.map((a: { value?: unknown; description?: string }) => a.value ?? a.description).join(' ').slice(0, 400)}`)
+  })
+  await sw.send('Runtime.enable')
   const baseline = memory(chrome.pid!)
   note(`Chrome for Testing started; total footprint ${gb(baseline.total!.now)}`)
 
@@ -191,13 +204,27 @@ try {
     }
   }
   const afterRun = memory(chrome.pid!)
+  let standby: Record<string, Footprint> | null = null
+  if (process.argv.includes('--idle') && phase === 'ready') {
+    await evaluate(`await chrome.storage.session.set({ modelLastUsed: 0 }); chrome.alarms.create(${JSON.stringify(MODEL_IDLE_ALARM)}, { when: Date.now() + 100 }); return true`)
+    note(`alarms before idle: ${JSON.stringify(await evaluate(`return await chrome.alarms.getAll()`))}`)
+    try {
+      await waitFor('standby', async () => (await evaluate<any>(`return (await chrome.storage.session.get('modelStatus')).modelStatus`))?.phase === 'standby' || undefined, 120_000)
+    } catch (err) {
+      note(`no standby: status ${JSON.stringify(await evaluate(`return await chrome.storage.session.get(null)`)).slice(0, 600)}; alarms ${JSON.stringify(await evaluate(`return await chrome.alarms.getAll()`))}; worker errors ${JSON.stringify(swErrors.slice(-5))}`)
+      throw err
+    }
+    await sleep(5_000)
+    standby = memory(chrome.pid!)
+    note(`idle unload: standby, footprint now ${gb(standby.total!.now)} (extension ${gb(standby.extension?.now ?? 0)}, GPU ${gb(standby.gpu?.now ?? 0)})`)
+  }
   const times = results.map(r => r.ms).sort((a, b) => a - b)
   const scored = results.filter(r => r.expect !== 'either')
   const summary = {
     device, chrome: execFileSync(chromeBinary(), ['--version']).toString().trim(),
     commit: execFileSync('git', ['describe', '--always', '--dirty', '--exclude=*']).toString().trim(),
     date: new Date().toISOString(), setup: { phase, reason: status?.reason ?? null, ms: setupMs, downloadMs: downloadEnd ? downloadEnd - setupStart : null },
-    memory: { baseline, setupPeak, afterSetup, afterRun },
+    memory: { baseline, setupPeak, afterSetup, afterRun, standby },
     judgments: {
       count: results.length,
       medianMs: times[Math.floor((times.length - 1) / 2)] ?? null,
@@ -211,7 +238,7 @@ try {
     results, log,
   }
   mkdirSync('eval/results', { recursive: true })
-  writeFileSync(`eval/results/chrome-${device}.json`, JSON.stringify(summary, null, 2) + '\n')
+  writeFileSync(`eval/results/chrome-${device}${standby ? '-idle' : ''}.json`, JSON.stringify(summary, null, 2) + '\n')
   note(`judgments: ${summary.judgments.correct} correct, median ${((summary.judgments.medianMs ?? 0) / 1000).toFixed(1)} s, max ${((summary.judgments.maxMs ?? 0) / 1000).toFixed(1)} s, over 90 s: ${summary.judgments.overWindow.length}`)
   note(`peak footprint during run: extension ${gb(afterRun.extension?.peak ?? 0)}, GPU ${gb(afterRun.gpu?.peak ?? 0)}, total ${gb(afterRun.total!.peak)}`)
   if (errors.length) note(`offscreen errors (${errors.length}): ${errors.slice(0, 3).join(' | ')}`)

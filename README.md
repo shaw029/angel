@@ -21,7 +21,9 @@ GitHub releases, the Chrome Web Store, and the development branch are separate d
 
 Open the popup to see why Angel uses local AI, its download estimate, and an illustrative example. Choose **Download and enable Angel** or **Not now**. No model download begins without consent, including when upgrading from an older version that loaded automatically.
 
-The initial text-model files total approximately **3.1 GB for GPU** or **3.6 GB for CPU**. Estimates come from a pinned file manifest, not measured RAM usage; setup needs additional resources. Download progress spans all files. Closing the popup keeps setup running while Chrome is open; **Cancel setup** stops it. Complete cached files may be reused. Automatic restarts only use cache; missing files or a changed model revision require an explicit setup choice.
+Local AI needs WebGPU; where it is unavailable, the popup says so and offers no download. The initial model files total approximately **3.1 GB**. Estimates come from a pinned file manifest, not measured RAM usage; setup needs additional resources. Download progress spans all files. Closing the popup keeps setup running while Chrome is open; **Cancel setup** stops it. Complete cached files may be reused.
+
+A loaded model uses several GB of memory (about 9.7 GB at rest on the measured Mac), so Angel keeps it in standby until a page needs a judgment, loads it from cached files, and unloads it again after 10 minutes without one. Loading uses cached files only; missing files or a changed model revision require an explicit setup choice.
 
 AI remains required for proactive nudges. Controls and saved return points work while AI is off. For a simulated preview with no model download, run the screenshot harness and open `/?setup&companion`. See [AI onboarding](docs/AI_ONBOARDING.md) for limitations and validation.
 
@@ -51,7 +53,7 @@ flowchart LR
 
 The **Witness** collects evidence. The **Narrator** proposes whether and how prominently to speak. The **Guardian** can withhold or reduce that proposal and enforces a minimum 150-second gap and a maximum of five nudges per rolling hour, including requested reminders. See [architecture](docs/ARCHITECTURE.md) and the [cognitive model](docs/COGNITIVE_MODEL.md).
 
-Inference uses `onnx-community/gemma-4-E2B-it-ONNX` through Transformers.js, with WebGPU and a WASM fallback. The model revision and download sizes are pinned in `src/shared/model-manifest.json`. A smaller Gemma 3 1B option was evaluated and not shipped; see the [offline evaluation record](docs/evaluation/LITE_VS_FULL.md). No hardware-independent speed or memory claims are made.
+Inference uses `onnx-community/gemma-4-E2B-it-ONNX` through Transformers.js, on WebGPU. The bundled CPU (WASM) runtime cannot run this model's 4-bit embedding file, so there is no CPU fallback. The model revision and download sizes are pinned in `src/shared/model-manifest.json`. A smaller Gemma 3 1B option was evaluated and not shipped; see the [offline evaluation record](docs/evaluation/LITE_VS_FULL.md). No hardware-independent speed or memory claims are made.
 
 ## Run locally
 

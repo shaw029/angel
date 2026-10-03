@@ -1,0 +1,185 @@
+{
+  "device": "webgpu",
+  "chrome": "Google Chrome for Testing 153.0.8010.12",
+  "commit": "6b04a34-dirty",
+  "date": "2026-10-03T12:16:46.917Z",
+  "setup": {
+    "phase": "ready",
+    "reason": null,
+    "ms": 12624,
+    "downloadMs": null
+  },
+  "memory": {
+    "baseline": {
+      "gpu": {
+        "now": 447579576,
+        "peak": 447628752
+      },
+      "renderer": {
+        "now": 208788512,
+        "peak": 215555104
+      },
+      "browser": {
+        "now": 82937392,
+        "peak": 82937392
+      },
+      "extension": {
+        "now": 94311104,
+        "peak": 94311104
+      },
+      "other": {
+        "now": 47089896,
+        "peak": 47122688
+      },
+      "total": {
+        "now": 880706480,
+        "peak": 887555040
+      }
+    },
+    "setupPeak": {
+      "extension": {
+        "now": 8596961848,
+        "peak": 8597076536
+      },
+      "gpu": {
+        "now": 3179366584,
+        "peak": 3179382968
+      },
+      "renderer": {
+        "now": 389479592,
+        "peak": 394460328
+      },
+      "browser": {
+        "now": 88442464,
+        "peak": 125519504
+      },
+      "other": {
+        "now": 48023784,
+        "peak": 48072936
+      },
+      "total": {
+        "now": 12302274272,
+        "peak": 12344512272
+      }
+    },
+    "afterSetup": {
+      "extension": {
+        "now": 8597092920,
+        "peak": 8597174840
+      },
+      "gpu": {
+        "now": 5293067120,
+        "peak": 6536138472
+      },
+      "browser": {
+        "now": 94094944,
+        "peak": 125519504
+      },
+      "renderer": {
+        "now": 411222504,
+        "peak": 422052328
+      },
+      "other": {
+        "now": 45861096,
+        "peak": 48072936
+      },
+      "total": {
+        "now": 14441338584,
+        "peak": 15728958080
+      }
+    },
+    "afterRun": {
+      "gpu": {
+        "now": 6023023568,
+        "peak": 7900842960
+      },
+      "extension": {
+        "now": 3352242232,
+        "peak": 8541138608
+      },
+      "browser": {
+        "now": 93603424,
+        "peak": 125519504
+      },
+      "renderer": {
+        "now": 388841960,
+        "peak": 422052328
+      },
+      "other": {
+        "now": 45811944,
+        "peak": 48072936
+      },
+      "total": {
+        "now": 9903523128,
+        "peak": 17037626336
+      }
+    },
+    "standby": {
+      "extension": {
+        "now": 1489756848,
+        "peak": 8541138608
+      },
+      "gpu": {
+        "now": 280004264,
+        "peak": 7900842960
+      },
+      "browser": {
+        "now": 93406816,
+        "peak": 125519504
+      },
+      "renderer": {
+        "now": 388891112,
+        "peak": 422052328
+      },
+      "other": {
+        "now": 45828328,
+        "peak": 48072936
+      },
+      "total": {
+        "now": 2297887368,
+        "peak": 17037626336
+      }
+    }
+  },
+  "judgments": {
+    "count": 2,
+    "medianMs": 15409,
+    "maxMs": 17967,
+    "overWindow": [],
+    "correct": "1 / 2",
+    "falseInterruptions": [
+      "work-pricing-research"
+    ],
+    "missed": []
+  },
+  "offscreenErrors": [],
+  "results": [
+    {
+      "id": "study-lecture",
+      "expect": "quiet",
+      "ms": 17967,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "work-pricing-research",
+      "expect": "quiet",
+      "ms": 15409,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    }
+  ],
+  "log": [
+    "[12:15:52] Chrome for Testing started; total footprint 0.88 GB",
+    "[12:15:52] phase checking",
+    "[12:15:58] phase loading",
+    "[12:16:04] phase ready",
+    "[12:16:05] setup ready in 13 s (download n/a s); footprint now 14.44 GB, peaks: extension 8.60 GB, GPU 6.54 GB",
+    "[12:16:23] ✓ study-lecture                  drifting  quiet  18.0 s",
+    "[12:16:38] ✗ work-pricing-research          drifting  NUDGE  15.4 s",
+    "[12:16:40] alarms before idle: [{\"name\":\"model-idle\",\"persistAcrossSessions\":true,\"scheduledTime\":1791029800570}]",
+    "[12:16:46] idle unload: standby, footprint now 2.30 GB (extension 1.49 GB, GPU 0.28 GB)"
+  ]
+}

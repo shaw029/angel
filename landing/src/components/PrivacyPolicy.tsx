@@ -65,14 +65,14 @@ export function PrivacyPolicy() {
             intent. It does not contain raw page HTML or the passages matched by text detectors.
           </p>
           <p>
-            Gemma runs inside the browser using WebGPU where available, with a WASM fallback.
+            Gemma runs inside the browser using WebGPU. Without WebGPU, local AI is not available.
             Prompts, titles, and browsing observations are not sent to a remote inference service.
           </p>
         </Section>
 
         <Section title="What is stored locally">
           <List items={[
-            'Your AI download choice, selected processor and approved model revision, persistent settings, recent delivery/outcome records, and correction-based priors grouped by coarse site category.',
+            'Your AI download choice, approved model revision, persistent settings, recent delivery/outcome records, and correction-based priors grouped by coarse site category.',
             'IndexedDB aggregate counters, behavioral profile summaries, and weekly aggregate snapshots. Old weekly snapshots are pruned on subsequent writes; aggregates do not contain URLs or page passages.',
             'Browser session storage for tab/site context, including evidence signatures containing the current title, optional intent, quiet preference, explanations, and requested reminders.',
             'An explicitly saved URL/title when you choose Save this page for later. It remains associated with that tab until forgotten, the tab closes, or the browser session ends.',
@@ -90,7 +90,7 @@ export function PrivacyPolicy() {
           <p>
             After you choose Download and enable Angel, the development version downloads model weights, tokenizer files, and related model configuration from
             Hugging Face. These can require multiple requests and can be downloaded again after
-            cache eviction, clearing, or an upgrade. Automatic restarts use cached files only; missing files require another setup choice. A changed model revision requires renewed consent. Cancel setup stops the model-loading document; already completed cached files may remain for reuse. The download service receives normal request
+            cache eviction, clearing, or an upgrade. The model is loaded from cached files when a page needs a judgment and unloaded after 10 minutes without one; missing files require another setup choice. A changed model revision requires renewed consent. Cancel setup stops the model-loading document; already completed cached files may remain for reuse. The download service receives normal request
             metadata, including your IP address; prompts and browsing observations are not included.
           </p>
           <p>
