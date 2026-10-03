@@ -27,6 +27,9 @@ Run `npm run check` for version consistency, TypeScript, and regression/static-r
 
 ## Offline model evaluation
 
+A summary of all testing for the 0.3.0 development build, with defects found and open items, is in the [test report](evaluation/TEST_REPORT.md).
+
+
 `npm run eval:models` runs [65 companion scenarios](../eval/cases.ts) through the production `judgeSession` path (system prompt, evidence encoding, retries, schema validation, nudge rules and the stated-intent check) with real model weights on CPU through onnxruntime-node, then writes the [Full report](evaluation/FULL.md). Each scenario is labelled from the companion contract: stay quiet, a check-in is appropriate, or either. Twenty-eight stay-quiet cases are critical, meaning a nudge there is a companion-safety failure. Held-out batches are written before the change they measure. The first run downloads the pinned CPU files into `.eval-cache/`; per-case results go to `eval/results/`. To compare a smaller model, pin its files in [`eval/candidates.json`](../eval/candidates.json) and run `npm run eval:models -- <model>`, then `npm run eval:models -- compare <model>`.
 
 ### Results so far
