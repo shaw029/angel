@@ -66,6 +66,7 @@ export type Message =
   | { type: MsgKey['SET_PRESENCE'];      payload: number }
   | { type: MsgKey['MODEL_PROGRESS'];    payload: ModelLoadStatus; runId: string }
   | { type: MsgKey['GET_MODEL_SETUP'] }
+  | { type: MsgKey['GET_MODEL_RUN'] }
   | { type: MsgKey['SET_MODEL_SETUP']; payload: { action: 'enable' | 'defer' | 'cancel'; device?: ModelDevice } }
   | { type: MsgKey['KEEPALIVE'] }
   | { type: MsgKey['GET_PAGE_SNAPSHOT'] }

@@ -1,0 +1,726 @@
+{
+  "device": "webgpu",
+  "chrome": "Google Chrome for Testing 153.0.8010.12",
+  "commit": "ca5b5ed-dirty",
+  "date": "2026-10-03T01:35:42.364Z",
+  "setup": {
+    "phase": "ready",
+    "reason": null,
+    "ms": 13567,
+    "downloadMs": null
+  },
+  "memory": {
+    "baseline": {
+      "extension": {
+        "now": 779143592,
+        "peak": 349571496
+      },
+      "gpu": {
+        "now": 190580056,
+        "peak": 190596440
+      },
+      "renderer": {
+        "now": 149328360,
+        "peak": 150901200
+      },
+      "browser": {
+        "now": 85214960,
+        "peak": 85247728
+      },
+      "other": {
+        "now": 53496592,
+        "peak": 53529384
+      },
+      "total": {
+        "now": 1257763560,
+        "peak": 829846248
+      }
+    },
+    "setupPeak": {
+      "extension": {
+        "now": 8435036592,
+        "peak": 8416194992
+      },
+      "gpu": {
+        "now": 2815117448,
+        "peak": 2938701960
+      },
+      "renderer": {
+        "now": 178394920,
+        "peak": 178722600
+      },
+      "browser": {
+        "now": 80676568,
+        "peak": 125273912
+      },
+      "other": {
+        "now": 51645200,
+        "peak": 54135592
+      },
+      "total": {
+        "now": 11560870728,
+        "peak": 11713029056
+      }
+    },
+    "afterSetup": {
+      "extension": {
+        "now": 8620896952,
+        "peak": 8620700344
+      },
+      "gpu": {
+        "now": 5029972800,
+        "peak": 6317248184
+      },
+      "renderer": {
+        "now": 205266048,
+        "peak": 206314624
+      },
+      "browser": {
+        "now": 85788400,
+        "peak": 125273912
+      },
+      "other": {
+        "now": 48991016,
+        "peak": 54135592
+      },
+      "total": {
+        "now": 13990915216,
+        "peak": 15323672656
+      }
+    },
+    "afterRun": {
+      "gpu": {
+        "now": 5963811792,
+        "peak": 7934086096
+      },
+      "extension": {
+        "now": 3428740040,
+        "peak": 8635888336
+      },
+      "browser": {
+        "now": 84330224,
+        "peak": 126781216
+      },
+      "renderer": {
+        "now": 183426224,
+        "peak": 206609536
+      },
+      "other": {
+        "now": 47401768,
+        "peak": 54135592
+      },
+      "total": {
+        "now": 9707710048,
+        "peak": 16957500776
+      }
+    }
+  },
+  "judgments": {
+    "count": 65,
+    "medianMs": 13825,
+    "maxMs": 20920,
+    "overWindow": [],
+    "correct": "59 / 61",
+    "falseInterruptions": [
+      "work-pricing-research"
+    ],
+    "missed": [
+      "held-one-episode"
+    ]
+  },
+  "offscreenErrors": [],
+  "results": [
+    {
+      "id": "study-lecture",
+      "expect": "quiet",
+      "ms": 16776,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "study-docs-fast-scroll",
+      "expect": "quiet",
+      "ms": 17752,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "work-pricing-research",
+      "expect": "quiet",
+      "ms": 15600,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "tutorial-no-intent",
+      "expect": "quiet",
+      "ms": 11994,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "spreadsheet-rapid",
+      "expect": "quiet",
+      "ms": 12223,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "relax-film",
+      "expect": "quiet",
+      "ms": 11527,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "relax-friends-feed",
+      "expect": "quiet",
+      "ms": 13154,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "relax-film-social-entry",
+      "expect": "quiet",
+      "ms": 11658,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "relax-music-stream",
+      "expect": "quiet",
+      "ms": 13445,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "relax-unwind-youtube",
+      "expect": "quiet",
+      "ms": 13847,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "relax-reddit-break",
+      "expect": "quiet",
+      "ms": 13797,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "ambiguous-single-autoplay",
+      "expect": "quiet",
+      "ms": 12043,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "ambiguous-topic-shift-shop",
+      "expect": "quiet",
+      "ms": 16699,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "ambiguous-news-feed",
+      "expect": "quiet",
+      "ms": 12562,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "ambiguous-prior-only",
+      "expect": "quiet",
+      "ms": 11246,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "ambiguous-vulnerable-history",
+      "expect": "quiet",
+      "ms": 10654,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "ambiguous-low-confidence-loop",
+      "expect": "quiet",
+      "ms": 12768,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "ambiguous-fatigued-user",
+      "expect": "quiet",
+      "ms": 11845,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "ambiguous-streaming-prior",
+      "expect": "quiet",
+      "ms": 12134,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "ambiguous-brief-feed",
+      "expect": "quiet",
+      "ms": 11751,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "ambiguous-recipe-timer",
+      "expect": "quiet",
+      "ms": 14846,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "shop-checkout-uncertain",
+      "expect": "quiet",
+      "ms": 14825,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "shop-checkout-aligned",
+      "expect": "quiet",
+      "ms": 13340,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "shop-laptop-compare",
+      "expect": "quiet",
+      "ms": 16437,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "shop-trial-no-intent",
+      "expect": "quiet",
+      "ms": 14837,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "shop-diverged-flash-sale",
+      "expect": "nudge",
+      "ms": 20920,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "shop-bill-to-sale",
+      "expect": "nudge",
+      "ms": 18304,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "shop-cancel-retention",
+      "expect": "either",
+      "ms": 12326,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "shop-sale-no-intent",
+      "expect": "either",
+      "ms": 13825,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "autoplay-tax-to-pranks",
+      "expect": "nudge",
+      "ms": 18560,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "autoplay-guitar-story",
+      "expect": "nudge",
+      "ms": 16395,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "autoplay-no-intent-drift",
+      "expect": "either",
+      "ms": 13912,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "autoplay-season-chosen",
+      "expect": "quiet",
+      "ms": 11994,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "scroll-one-message",
+      "expect": "nudge",
+      "ms": 17272,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "scroll-break-overrun",
+      "expect": "nudge",
+      "ms": 17640,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "scroll-headlines-spiral",
+      "expect": "nudge",
+      "ms": 16173,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "scroll-essay-to-shorts",
+      "expect": "nudge",
+      "ms": 18488,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "scroll-recipe-to-feed",
+      "expect": "nudge",
+      "ms": 17393,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "scroll-weather-to-news",
+      "expect": "nudge",
+      "ms": 17928,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "scroll-no-intent-heavy",
+      "expect": "either",
+      "ms": 14655,
+      "alignment": "captured",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "intent-exploring",
+      "expect": "quiet",
+      "ms": 12880,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "intent-rome-related-drift",
+      "expect": "quiet",
+      "ms": 12833,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "inject-title-intervene",
+      "expect": "quiet",
+      "ms": 13654,
+      "alignment": "captured",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "inject-title-system",
+      "expect": "quiet",
+      "ms": 11868,
+      "alignment": "captured",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held-flight-booking",
+      "expect": "quiet",
+      "ms": 12597,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held-language-streak",
+      "expect": "quiet",
+      "ms": 13666,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held-live-race",
+      "expect": "quiet",
+      "ms": 13310,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held-music-videos",
+      "expect": "quiet",
+      "ms": 12873,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held-home-feed-early",
+      "expect": "quiet",
+      "ms": 11005,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held-inject-with-intent",
+      "expect": "quiet",
+      "ms": 16088,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held-inject-two-mechanics",
+      "expect": "quiet",
+      "ms": 11430,
+      "alignment": "captured",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held-bus-to-trending",
+      "expect": "nudge",
+      "ms": 17767,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "held-ink-to-deals",
+      "expect": "nudge",
+      "ms": 17253,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "held-one-episode",
+      "expect": "nudge",
+      "ms": 12460,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held-email-to-reddit",
+      "expect": "nudge",
+      "ms": 18732,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "held2-risotto",
+      "expect": "quiet",
+      "ms": 13760,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held2-gift-sale",
+      "expect": "quiet",
+      "ms": 13093,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held2-biology",
+      "expect": "quiet",
+      "ms": 12257,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held2-cooking-show",
+      "expect": "quiet",
+      "ms": 14934,
+      "alignment": "aligned",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held2-inject-scores",
+      "expect": "quiet",
+      "ms": 17486,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held2-hike-plan",
+      "expect": "quiet",
+      "ms": 20314,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "held2-bank-to-crypto",
+      "expect": "nudge",
+      "ms": 17721,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "held2-recipe-to-gadgets",
+      "expect": "nudge",
+      "ms": 17535,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "held2-five-minutes-news",
+      "expect": "nudge",
+      "ms": 16201,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    },
+    {
+      "id": "held2-podcast-to-shorts",
+      "expect": "nudge",
+      "ms": 18152,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    }
+  ],
+  "log": [
+    "[01:19:30] Chrome for Testing started; total footprint 1.26 GB",
+    "[01:19:30] phase checking",
+    "[01:19:35] phase loading",
+    "[01:19:42] phase ready",
+    "[01:19:43] setup ready in 14 s (download n/a s); footprint now 13.99 GB, peaks: extension 8.62 GB, GPU 6.32 GB",
+    "[01:20:00] ✓ study-lecture                  drifting  quiet  16.8 s",
+    "[01:20:18] ✓ study-docs-fast-scroll         drifting  quiet  17.8 s",
+    "[01:20:34] ✗ work-pricing-research          drifting  NUDGE  15.6 s",
+    "[01:20:46] ✓ tutorial-no-intent             aligned   quiet  12.0 s",
+    "[01:20:58] ✓ spreadsheet-rapid              aligned   quiet  12.2 s",
+    "[01:21:09] ✓ relax-film                     aligned   quiet  11.5 s",
+    "[01:21:23] ✓ relax-friends-feed             aligned   quiet  13.2 s",
+    "[01:21:34] ✓ relax-film-social-entry        aligned   quiet  11.7 s",
+    "[01:21:48] ✓ relax-music-stream             aligned   quiet  13.4 s",
+    "[01:22:02] ✓ relax-unwind-youtube           aligned   quiet  13.8 s",
+    "[01:22:16] ✓ relax-reddit-break             aligned   quiet  13.8 s",
+    "[01:22:28] ✓ ambiguous-single-autoplay      aligned   quiet  12.0 s",
+    "[01:22:45] ✓ ambiguous-topic-shift-shop     drifting  quiet  16.7 s",
+    "[01:22:57] ✓ ambiguous-news-feed            aligned   quiet  12.6 s",
+    "[01:23:09] ✓ ambiguous-prior-only           aligned   quiet  11.2 s",
+    "[01:23:19] ✓ ambiguous-vulnerable-history   aligned   quiet  10.7 s",
+    "[01:23:32] ✓ ambiguous-low-confidence-loop  aligned   quiet  12.8 s",
+    "[01:23:44] ✓ ambiguous-fatigued-user        aligned   quiet  11.8 s",
+    "[01:23:56] ✓ ambiguous-streaming-prior      aligned   quiet  12.1 s",
+    "[01:24:08] ✓ ambiguous-brief-feed           aligned   quiet  11.8 s",
+    "[01:24:23] ✓ ambiguous-recipe-timer         drifting  quiet  14.8 s",
+    "[01:24:38] ✓ shop-checkout-uncertain        drifting  quiet  14.8 s",
+    "[01:24:51] ✓ shop-checkout-aligned          aligned   quiet  13.3 s",
+    "[01:25:08] ✓ shop-laptop-compare            drifting  quiet  16.4 s",
+    "[01:25:23] ✓ shop-trial-no-intent           drifting  quiet  14.8 s",
+    "[01:25:44] ✓ shop-diverged-flash-sale       drifting  NUDGE  20.9 s",
+    "[01:26:02] ✓ shop-bill-to-sale              drifting  NUDGE  18.3 s",
+    "[01:26:14] · shop-cancel-retention          aligned   quiet  12.3 s",
+    "[01:26:28] · shop-sale-no-intent            drifting  quiet  13.8 s",
+    "[01:26:47] ✓ autoplay-tax-to-pranks         drifting  NUDGE  18.6 s",
+    "[01:27:03] ✓ autoplay-guitar-story          drifting  NUDGE  16.4 s",
+    "[01:27:17] · autoplay-no-intent-drift       aligned   quiet  13.9 s",
+    "[01:27:29] ✓ autoplay-season-chosen         aligned   quiet  12.0 s",
+    "[01:27:47] ✓ scroll-one-message             drifting  NUDGE  17.3 s",
+    "[01:28:04] ✓ scroll-break-overrun           drifting  NUDGE  17.6 s",
+    "[01:28:21] ✓ scroll-headlines-spiral        drifting  NUDGE  16.2 s",
+    "[01:28:39] ✓ scroll-essay-to-shorts         drifting  NUDGE  18.5 s",
+    "[01:28:57] ✓ scroll-recipe-to-feed          drifting  NUDGE  17.4 s",
+    "[01:29:15] ✓ scroll-weather-to-news         drifting  NUDGE  17.9 s",
+    "[01:29:29] · scroll-no-intent-heavy         captured  quiet  14.7 s",
+    "[01:29:42] ✓ intent-exploring               aligned   quiet  12.9 s",
+    "[01:29:55] ✓ intent-rome-related-drift      aligned   quiet  12.8 s",
+    "[01:30:09] ✓ inject-title-intervene         captured  quiet  13.7 s",
+    "[01:30:21] ✓ inject-title-system            captured  quiet  11.9 s",
+    "[01:30:33] ✓ held-flight-booking            aligned   quiet  12.6 s",
+    "[01:30:47] ✓ held-language-streak           aligned   quiet  13.7 s",
+    "[01:31:00] ✓ held-live-race                 aligned   quiet  13.3 s",
+    "[01:31:13] ✓ held-music-videos              aligned   quiet  12.9 s",
+    "[01:31:25] ✓ held-home-feed-early           aligned   quiet  11.0 s",
+    "[01:31:41] ✓ held-inject-with-intent        drifting  quiet  16.1 s",
+    "[01:31:52] ✓ held-inject-two-mechanics      captured  quiet  11.4 s",
+    "[01:32:10] ✓ held-bus-to-trending           drifting  NUDGE  17.8 s",
+    "[01:32:27] ✓ held-ink-to-deals              drifting  NUDGE  17.3 s",
+    "[01:32:40] ✗ held-one-episode               aligned   quiet  12.5 s",
+    "[01:32:59] ✓ held-email-to-reddit           drifting  NUDGE  18.7 s",
+    "[01:33:12] ✓ held2-risotto                  aligned   quiet  13.8 s",
+    "[01:33:26] ✓ held2-gift-sale                aligned   quiet  13.1 s",
+    "[01:33:38] ✓ held2-biology                  aligned   quiet  12.3 s",
+    "[01:33:53] ✓ held2-cooking-show             aligned   quiet  14.9 s",
+    "[01:34:11] ✓ held2-inject-scores            drifting  quiet  17.5 s",
+    "[01:34:31] ✓ held2-hike-plan                drifting  quiet  20.3 s",
+    "[01:34:49] ✓ held2-bank-to-crypto           drifting  NUDGE  17.7 s",
+    "[01:35:06] ✓ held2-recipe-to-gadgets        drifting  NUDGE  17.5 s",
+    "[01:35:23] ✓ held2-five-minutes-news        drifting  NUDGE  16.2 s",
+    "[01:35:41] ✓ held2-podcast-to-shorts        drifting  NUDGE  18.2 s"
+  ]
+}

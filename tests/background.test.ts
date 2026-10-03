@@ -256,3 +256,26 @@ test('old model consent and cached files cannot authorize a different revision',
   assert.equal(session.modelRun, undefined)
   assert.equal(documentsCreated, before)
 })
+
+test('only the model document can ask for the authorized model run', async () => {
+  local.modelPreference = { choice: 'enabled', device: 'webgpu', revision: MODEL_REVISION }
+  session.modelRun = { id: 'doc-run', revision: MODEL_REVISION, device: 'webgpu', allowDownload: false }
+  const ask = (sender: object) => new Promise(resolve => {
+    if (!listener({ type: MSG.GET_MODEL_RUN }, sender, resolve)) resolve('unanswered')
+  })
+  assert.equal(((await ask({ url: 'src/offscreen/index.html' })) as any)?.id, 'doc-run')
+  assert.equal(await ask({ url: 'src/offscreen/index.html', tab: { id: 3 } }), 'unanswered')
+  assert.equal(await ask({ url: 'src/popup/index.html' }), 'unanswered')
+  delete local.modelPreference
+  assert.equal(await ask({ url: 'src/offscreen/index.html' }), null, 'revoked consent')
+})
+
+test('a failed model load closes its document so its memory is released', async () => {
+  hasDocument = true
+  await send({ type: MSG.SET_MODEL_SETUP, payload: { action: 'enable', device: 'webgpu' } })
+  const closed = documentsClosed
+  await send({ type: MSG.MODEL_PROGRESS, runId: session.modelRun.id, payload: { phase: 'error', reason: 'Unsupported model operator' } })
+  assert.equal(session.modelStatus.phase, 'error')
+  assert.equal(documentsClosed, closed + 1)
+  assert.equal(hasDocument, false)
+})

@@ -1,7 +1,7 @@
 import { pipeline, env } from '@huggingface/transformers'
 import { MODEL_ID, MODEL_DTYPE_WEBGPU, MODEL_DTYPE_WASM } from '@shared/constants'
 import type { ModelLoadStatus } from '@shared/types'
-import { getAuthorizedModelRun, MODEL_REVISION, ModelDownloadProgress } from '@shared/model-plan'
+import { requestModelRun, MODEL_REVISION, ModelDownloadProgress } from '@shared/model-plan'
 
 // Transformers.js progress event shape (v3)
 interface TFProgressEvent {
@@ -102,7 +102,7 @@ export class GemmaEngine {
   private async load(): Promise<void> {
     this.emit({ phase: 'checking' })
 
-    const run = await getAuthorizedModelRun()
+    const run = await requestModelRun()
     if (!run) throw new Error('Enable local AI before loading a model.')
     const device = run.device
     this._device = device

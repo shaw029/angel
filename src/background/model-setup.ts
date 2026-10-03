@@ -61,4 +61,7 @@ export async function acceptModelProgress(runId: string, status: ModelLoadStatus
     await chrome.storage.session.set({ [MODEL_RUN_KEY]: { ...run, allowDownload: false } })
   }
   await chrome.storage.session.set({ modelStatus: status })
+  // A failed load can leave gigabytes of model data in the document; retry
+  // is an explicit user action that creates a fresh one.
+  if (status.phase === 'error') await closeOffscreenDocument()
 }

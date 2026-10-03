@@ -1,0 +1,142 @@
+{
+  "device": "wasm",
+  "chrome": "Google Chrome for Testing 153.0.8010.12",
+  "commit": "ca5b5ed-dirty",
+  "date": "2026-10-03T01:37:40.099Z",
+  "setup": {
+    "phase": "error",
+    "reason": "AI setup did not finish. Check your connection and available storage, then try again. If this device cannot prepare the model, try the other processor option.",
+    "ms": 91949,
+    "downloadMs": 90337
+  },
+  "memory": {
+    "baseline": {
+      "extension": {
+        "now": 1191250440,
+        "peak": 659589640
+      },
+      "gpu": {
+        "now": 381617592,
+        "peak": 381633976
+      },
+      "browser": {
+        "now": 87984048,
+        "peak": 88033200
+      },
+      "renderer": {
+        "now": 177968792,
+        "peak": 187356800
+      },
+      "other": {
+        "now": 48892352,
+        "peak": 48908736
+      },
+      "total": {
+        "now": 1887713224,
+        "peak": 1365522352
+      }
+    },
+    "setupPeak": {
+      "extension": {
+        "now": 4086587936,
+        "peak": 7373089712
+      },
+      "browser": {
+        "now": 1861849984,
+        "peak": 1866650520
+      },
+      "gpu": {
+        "now": 178357688,
+        "peak": 406259128
+      },
+      "other": {
+        "now": 130550760,
+        "peak": 135023592
+      },
+      "renderer": {
+        "now": 211460400,
+        "peak": 242491648
+      },
+      "total": {
+        "now": 6468806768,
+        "peak": 10023514600
+      }
+    },
+    "afterSetup": {
+      "extension": {
+        "now": 6322301560,
+        "peak": 7817227424
+      },
+      "browser": {
+        "now": 1963676760,
+        "peak": 1969984624
+      },
+      "gpu": {
+        "now": 178308536,
+        "peak": 406259128
+      },
+      "other": {
+        "now": 130436072,
+        "peak": 135023592
+      },
+      "renderer": {
+        "now": 209674544,
+        "peak": 242491648
+      },
+      "total": {
+        "now": 8804397472,
+        "peak": 10570986416
+      }
+    },
+    "afterRun": {
+      "extension": {
+        "now": 4849067728,
+        "peak": 7817227424
+      },
+      "browser": {
+        "now": 1963676760,
+        "peak": 1969984624
+      },
+      "gpu": {
+        "now": 178341304,
+        "peak": 406259128
+      },
+      "other": {
+        "now": 130436072,
+        "peak": 135023592
+      },
+      "renderer": {
+        "now": 209674544,
+        "peak": 242491648
+      },
+      "total": {
+        "now": 7331196408,
+        "peak": 10570986416
+      }
+    }
+  },
+  "judgments": {
+    "count": 0,
+    "medianMs": null,
+    "maxMs": null,
+    "overWindow": [],
+    "correct": "0 / 0",
+    "falseInterruptions": [],
+    "missed": []
+  },
+  "offscreenErrors": [
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/onnx/embed_tokens_q4.onnx_data\": \"TypeError: Failed to fetch\"",
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/onnx/embed_tokens_q4.onnx\": \"TypeError: Failed to fetch\"",
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/onnx/decoder_model_merged_q4.onnx\": \"TypeError: Failed to fetch\"",
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/onnx/decoder_model_merged_q4.onnx_data\": \"TypeError: Failed to fetch\"",
+    "error: [GemmaEngine] load failed: Error: Can't create a session. ERROR_CODE: 9, ERROR_MESSAGE: Could not find an implementation for GatherBlockQuantized(1) node with name '/model/embed_tokens/Gather_Quant'\n    at ke (chrome-extension://ogbcjankjhegnbblnbgiplgnfmldmgfe/assets/offscreen-FUiJEzvR.js:7:31212)\n    at Ql (chrome-extension://ogbcjankjhegnbblnbgiplgnfmldmgfe/assets/offscreen-FUiJEzvR.js:8:23106)"
+  ],
+  "results": [],
+  "log": [
+    "[01:36:05] Chrome for Testing started; total footprint 1.89 GB",
+    "[01:36:05] phase checking",
+    "[01:36:11] phase downloading",
+    "[01:37:36] phase error: AI setup did not finish. Check your connection and available storage, then try again. If this device cannot prepare the model, try the other processor option.",
+    "[01:37:37] setup error in 92 s (download 90 s); footprint now 8.80 GB, peaks: extension 7.82 GB, GPU 0.41 GB"
+  ]
+}

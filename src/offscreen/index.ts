@@ -1,5 +1,5 @@
 import type { Message } from '@shared/messages'
-import { getAuthorizedModelRun } from '@shared/model-plan'
+import { requestModelRun } from '@shared/model-plan'
 import { MSG } from '@shared/constants'
 import { judgeSession } from '@ai/index'
 import { engine } from '@ai/engine'
@@ -65,9 +65,9 @@ engine.onProgress((status: ModelLoadStatus) => {
   }
 })
 
-// The background creates this document only after consent. Recheck storage here
+// The background creates this document only after consent. Ask it again here
 // as a second boundary; loading the HTML directly cannot authorize a download.
-void getAuthorizedModelRun().then(run => {
+void requestModelRun().then(run => {
   startupRun = run
   if (run) return engine.ensureReady()
 }).catch(() => stopKeepalive())
@@ -83,7 +83,7 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
   // Always answer — even a failed inference must release the background's
   // in-flight lock for this tab, or the tab goes silent until SW restart.
   const task = inferenceQueue.then(async () => {
-    const run = await getAuthorizedModelRun()
+    const run = await requestModelRun()
     if (!run || run.id !== modelRunId || run.id !== startupRun?.id || !engine.isReady || Date.now() >= expiresAt) return { judgment: null, intervention: null }
     activeInferences++
     startKeepalive()

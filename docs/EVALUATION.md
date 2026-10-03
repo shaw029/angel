@@ -52,6 +52,22 @@ Gemma 3 1B, a 75% smaller download, produced valid output in 3 of 44 cases with 
 - These runs do not cover the WebGPU `q4f16` weights, Chrome resource use, or real browsing.
 - The rubric is the maintainers' reading of the contract. The prompt and the check were designed after reviewing the original 44 cases and held-out batch 1, so only batch 2 is an unseen test, and it has 10 cases.
 
+## Chrome measurements
+
+`npm run eval:chrome -- <webgpu|wasm>` builds the extension, loads it in Chrome for Testing with a throwaway profile, prepares the model and sends scenarios to the model document. The script writes model consent the way setup does; the popup consent flow is covered by unit tests. Results go to `eval/results/chrome-*.json`.
+
+Measured 3 October 2026 in Chrome for Testing 153 on an Apple M4 with 16 GB RAM. Memory is macOS `footprint`, which on Apple silicon includes GPU allocations.
+
+| | GPU (WebGPU, `q4f16`) | CPU (WASM, `q4`) |
+| --- | --- | --- |
+| First setup | Ready in 85 s, 76 s of it downloading | Fails after the 92 s download: the bundled runtime has no CPU implementation of `GatherBlockQuantized`, which the 4-bit embedding file uses |
+| Setup from cached files | Ready in 14 s | — |
+| Judgments | All 65 scenarios gave the same alignment and the same nudge-or-quiet outcome as the offline CPU evaluation. Median 13.8 s, slowest 20.9 s, none near the 90 s window | None |
+| Memory after setup from cache | 14.0 GB in total: extension process 8.6 GB, GPU process 5.0 GB | 6.3 GB left in the extension process after the failure |
+| Memory at rest after judgments | 9.7 GB: extension 3.4 GB, GPU 6.0 GB; per-process peaks 8.6 GB and 7.9 GB | — |
+
+Before this measurement, local AI never started in Chrome: the model document read consent from `chrome.storage`, which Chrome does not provide to offscreen documents. Setup stayed at checking indefinitely. The model document now asks the background for the authorized run.
+
 ## Stable-release validation
 
 Before a stable release, record browser version, operating system, hardware, model configuration, build commit, and outcomes for:

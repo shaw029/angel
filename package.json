@@ -12,6 +12,7 @@
     "start": "concurrently -n build,demo -c cyan,magenta \"vite build --watch\" \"python3 -m http.server 3001 --directory demo\"",
     "test": "node scripts/test.mjs && node --test tests/release.test.mjs",
     "eval:models": "node scripts/eval-models.mjs",
+    "eval:chrome": "node scripts/eval-chrome.mjs",
     "prebuild": "npm run setup",
     "predev": "npm run setup",
     "prestart": "npm run setup",

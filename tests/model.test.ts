@@ -2,18 +2,28 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { GemmaEngine } from '../src/ai/engine'
 import manifest from '../src/shared/model-manifest.json'
-import { MODEL_ID } from '../src/shared/constants'
+import { MODEL_ID, MSG } from '../src/shared/constants'
 import { calls, setFailure } from './fixtures/model-runtime'
-import { MODEL_REVISION, ModelDownloadProgress, modelFiles, modelDownloadBytes } from '../src/shared/model-plan'
+import { getAuthorizedModelRun, MODEL_REVISION, ModelDownloadProgress, modelFiles, modelDownloadBytes } from '../src/shared/model-plan'
 const local: Record<string, any> = {}
 const session: Record<string, any> = {}
-;(globalThis as any).chrome = {
-  runtime: { getURL: (path: string) => `chrome-extension://fixture/${path}` },
-  storage: {
-    local: { async get(key: string) { return { [key]: local[key] } } },
-    session: { async get(key: string) { return { [key]: session[key] } } },
+// The engine runs in an offscreen document, where Chrome provides chrome.runtime
+// but not chrome.storage. Consent is answered by the background's own check.
+const background = { storage: {
+  local: { async get(key: string) { return { [key]: local[key] } } },
+  session: { async get(key: string) { return { [key]: session[key] } } },
+} }
+const offscreen = {
+  runtime: {
+    getURL: (path: string) => `chrome-extension://fixture/${path}`,
+    async sendMessage(message: { type: string }) {
+      if (message.type !== MSG.GET_MODEL_RUN) return undefined
+      ;(globalThis as any).chrome = background
+      try { return await getAuthorizedModelRun() } finally { (globalThis as any).chrome = offscreen }
+    },
   },
 }
+;(globalThis as any).chrome = offscreen
 function consent(allowDownload: boolean) {
   local.modelPreference = { choice: 'enabled', revision: MODEL_REVISION, device: 'webgpu' }
   session.modelRun = { id: 'run', revision: MODEL_REVISION, device: 'webgpu', allowDownload }

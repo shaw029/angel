@@ -48,6 +48,7 @@ export const MSG = {
   MODEL_PROGRESS:   'MODEL_PROGRESS',
   KEEPALIVE:        'KEEPALIVE',
   GET_MODEL_SETUP:  'GET_MODEL_SETUP',
+  GET_MODEL_RUN:    'GET_MODEL_RUN',  // offscreen → background: the authorized model run, or null
   SET_MODEL_SETUP:  'SET_MODEL_SETUP',
   GET_PAGE_SNAPSHOT: 'GET_PAGE_SNAPSHOT',
   GET_COMPANION:     'GET_COMPANION',

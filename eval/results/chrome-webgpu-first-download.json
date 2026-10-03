@@ -1,0 +1,168 @@
+{
+  "device": "webgpu",
+  "chrome": "Google Chrome for Testing 153.0.8010.12",
+  "commit": "ca5b5ed-dirty",
+  "date": "2026-10-03T01:18:36.189Z",
+  "setup": {
+    "phase": "ready",
+    "reason": null,
+    "ms": 84653,
+    "downloadMs": 76172
+  },
+  "memory": {
+    "baseline": {
+      "gpu": {
+        "now": 204981568,
+        "peak": 205014336
+      },
+      "renderer": {
+        "now": 146067752,
+        "peak": 149000488
+      },
+      "browser": {
+        "now": 83363736,
+        "peak": 83363736
+      },
+      "extension": {
+        "now": 94196392,
+        "peak": 94196392
+      },
+      "other": {
+        "now": 48007400,
+        "peak": 48007400
+      },
+      "total": {
+        "now": 576616848,
+        "peak": 579582352
+      }
+    },
+    "setupPeak": {
+      "extension": {
+        "now": 4124514736,
+        "peak": 6919265768
+      },
+      "browser": {
+        "now": 1690407568,
+        "peak": 1696486032
+      },
+      "gpu": {
+        "now": 1358513880,
+        "peak": 1354139352
+      },
+      "renderer": {
+        "now": 152573472,
+        "peak": 178345528
+      },
+      "other": {
+        "now": 65440456,
+        "peak": 83315016
+      },
+      "total": {
+        "now": 7391450112,
+        "peak": 10231551696
+      }
+    },
+    "afterSetup": {
+      "gpu": {
+        "now": 6184701480,
+        "peak": 6187077160
+      },
+      "extension": {
+        "now": 5323021800,
+        "peak": 6919265768
+      },
+      "browser": {
+        "now": 90753040,
+        "peak": 1700352656
+      },
+      "renderer": {
+        "now": 152573472,
+        "peak": 178345528
+      },
+      "other": {
+        "now": 61000392,
+        "peak": 83315016
+      },
+      "total": {
+        "now": 11812050184,
+        "peak": 15068356128
+      }
+    },
+    "afterRun": {
+      "gpu": {
+        "now": 5669669648,
+        "peak": 7536937744
+      },
+      "extension": {
+        "now": 3249379688,
+        "peak": 6919265768
+      },
+      "browser": {
+        "now": 90064936,
+        "peak": 1700352656
+      },
+      "renderer": {
+        "now": 149165600,
+        "peak": 178345528
+      },
+      "other": {
+        "now": 61016776,
+        "peak": 83315016
+      },
+      "total": {
+        "now": 9219296648,
+        "peak": 16418216712
+      }
+    }
+  },
+  "judgments": {
+    "count": 2,
+    "medianMs": 16290,
+    "maxMs": 18736,
+    "overWindow": [],
+    "correct": "1 / 2",
+    "falseInterruptions": [
+      "work-pricing-research"
+    ],
+    "missed": []
+  },
+  "offscreenErrors": [
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/config.json\": \"TypeError: Failed to fetch\"",
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/config.json\": \"TypeError: Failed to fetch\"",
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/tokenizer.json\": \"TypeError: Failed to fetch\"",
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/tokenizer_config.json\": \"TypeError: Failed to fetch\"",
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/onnx/embed_tokens_q4f16.onnx_data\": \"TypeError: Failed to fetch\"",
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/onnx/embed_tokens_q4f16.onnx\": \"TypeError: Failed to fetch\"",
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/onnx/decoder_model_merged_q4f16.onnx\": \"TypeError: Failed to fetch\"",
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/onnx/decoder_model_merged_q4f16.onnx_data\": \"TypeError: Failed to fetch\"",
+    "warning: Unable to load from local path \"/models/onnx-community/gemma-4-E2B-it-ONNX/generation_config.json\": \"TypeError: Failed to fetch\""
+  ],
+  "results": [
+    {
+      "id": "study-lecture",
+      "expect": "quiet",
+      "ms": 18736,
+      "alignment": "drifting",
+      "nudged": false,
+      "withinWindow": true
+    },
+    {
+      "id": "work-pricing-research",
+      "expect": "quiet",
+      "ms": 16290,
+      "alignment": "drifting",
+      "nudged": true,
+      "withinWindow": true
+    }
+  ],
+  "log": [
+    "[01:16:35] Chrome for Testing started; total footprint 0.58 GB",
+    "[01:16:35] phase checking",
+    "[01:16:40] phase downloading",
+    "[01:17:51] phase loading",
+    "[01:17:58] phase ready",
+    "[01:17:59] setup ready in 85 s (download 76 s); footprint now 11.81 GB, peaks: extension 6.92 GB, GPU 6.19 GB",
+    "[01:18:18] ✓ study-lecture                  drifting  quiet  18.7 s",
+    "[01:18:35] ✗ work-pricing-research          drifting  NUDGE  16.3 s"
+  ]
+}

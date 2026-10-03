@@ -1,4 +1,5 @@
 import manifest from './model-manifest.json'
+import { MSG } from './constants'
 import type { ModelDevice, ModelPreference, ModelRun } from './types'
 
 export const MODEL_REVISION = manifest.revision
@@ -24,6 +25,13 @@ export async function getAuthorizedModelRun(): Promise<ModelRun | null> {
   const preference = await getModelPreference()
   const run = (await chrome.storage.session.get(MODEL_RUN_KEY))[MODEL_RUN_KEY] as ModelRun | undefined
   return run && hasModelConsent(preference) && run.revision === preference.revision && run.device === preference.device ? run : null
+}
+
+// Offscreen documents get chrome.runtime but not chrome.storage, so the model
+// document asks the background, which owns consent, for the authorized run.
+export async function requestModelRun(): Promise<ModelRun | null> {
+  try { return (await chrome.runtime.sendMessage({ type: MSG.GET_MODEL_RUN })) ?? null }
+  catch { return null }
 }
 
 export async function detectModelDevice(): Promise<ModelDevice> {

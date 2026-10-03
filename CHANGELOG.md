@@ -28,6 +28,8 @@ Development builds currently identify as `0.3.0-dev.1`.
 
 ### Fixed
 
+- Local AI never started in Chrome after the consent change: offscreen documents cannot use `chrome.storage`, so the model document now asks the background for the authorized run. Unit tests now run the engine with only `chrome.runtime` available.
+- A failed model load now closes the model document, releasing its memory (6.3 GB in one measurement).
 - Stale evidence and delayed inference delivery across navigation or changed preferences.
 - Reminder delivery bypassing hard interruption limits.
 - Concurrent counter/profile writes and previous-state duration measurement.
@@ -35,7 +37,7 @@ Development builds currently identify as `0.3.0-dev.1`.
 
 ### Validation still required
 
-Interactive Chrome lifecycle checks and in-browser model quality/performance evaluation. The [offline evaluation](docs/EVALUATION.md#offline-model-evaluation) covers CPU `q4` weights only; WebGPU behavior and the stated-intent check's latency on slow WASM devices still need measuring in Chrome. A smaller Gemma 3 1B option was evaluated and not shipped; see [Lite vs Full](docs/evaluation/LITE_VS_FULL.md).
+Interactive Chrome lifecycle checks and in-browser model quality/performance evaluation. [Chrome measurements](docs/EVALUATION.md#chrome-measurements) show the GPU path matching the offline evaluation, but the CPU (WASM) option cannot load the pinned model and Full holds about 9.7 GB of memory at rest on the measured Mac. A smaller Gemma 3 1B option was evaluated and not shipped; see [Lite vs Full](docs/evaluation/LITE_VS_FULL.md).
 
 ## [0.2.2](https://github.com/shaw029/angel/releases/tag/v0.2.2) — 2026-09-18
 

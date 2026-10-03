@@ -20,7 +20,7 @@ import { recordAlignment, getAlignmentPrior } from './priors'
 import type { RollingCognitiveContext } from './cognitive-state'
 import type { PatternKey } from '@memory/index'
 import type { Message, JudgmentPayload, DismissedPayload } from '@shared/messages'
-import { MSG, GATE, PRESENCE_DEFAULT } from '@shared/constants'
+import { MSG, GATE, OFFSCREEN_URL, PRESENCE_DEFAULT } from '@shared/constants'
 import type {
   BrowsingSignal,
   BehavioralEvent,
@@ -121,6 +121,13 @@ chrome.runtime.onMessage.addListener(
   (message: Message, sender, sendResponse) => {
     if (message.type === MSG.AI_CONTEXT || message.type === MSG.INTERVENTION ||
         message.type === MSG.GET_PAGE_SNAPSHOT || message.type === MSG.CLEAR_NUDGE) return false
+    // Read-only, so it skips the queue: the model document asks while setup is
+    // still creating it. Only that document may learn the run ID.
+    if (message.type === MSG.GET_MODEL_RUN) {
+      if (sender.tab || sender.url !== chrome.runtime.getURL(OFFSCREEN_URL)) return false
+      void getAuthorizedModelRun().then(sendResponse, () => sendResponse(null))
+      return true
+    }
     void serial(() => dispatch(message, sender.tab?.id, sendResponse)).catch(err => {
       console.error('[Angel] message failed:', err)
       sendResponse({ error: 'Could not update Angel. Please try again.' })
